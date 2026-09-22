@@ -1,0 +1,46 @@
+# Early Tamil Pottery AI — runtime dependencies
+#
+# Target: Python 3.13 (3.13.7 confirmed present on this machine; 3.10 also available).
+#
+# ── PyTorch / GPU note ───────────────────────────────────────────────────────
+# An NVIDIA RTX 4050 Laptop GPU (6 GB) is present on this machine, but the torch
+# currently installed globally is the CPU-only build (2.9.1+cpu). To use the GPU,
+# install a CUDA build FIRST, from the PyTorch index, before installing this file:
+#
+#     pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
+#
+# Confirm the correct CUDA tag for your driver at https://pytorch.org/get-started/locally/
+# then verify with:  python -c "import torch; print(torch.cuda.is_available())"
+#
+# 6 GB of VRAM comfortably fits ResNet18 / EfficientNet-B0 / ConvNeXt-Tiny at 224px
+# with modest batch sizes. It does not fit large OCR transformers without care.
+# CPU-only is acceptable for Milestones 1–3; Milestone 4 will want the GPU.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# --- Core numerical / data ---
+numpy>=1.26
+pandas>=2.0
+pyyaml>=6.0
+
+# --- Validation (dataset schema — Milestones 1–2) ---
+jsonschema>=4.20
+
+# --- Imaging / preprocessing (Milestone 3) ---
+pillow>=10.0
+opencv-python>=4.9
+
+# --- Modelling (Milestone 4 onward) ---
+torch>=2.2
+torchvision>=0.17
+scikit-learn>=1.4
+
+# --- Metrics and plots (Milestone 5) ---
+matplotlib>=3.8
+
+# --- UI (Milestone 12) ---
+streamlit>=1.30
+
+# Deliberately NOT pinned yet:
+#   transformers / timm  — add at Milestone 7 (OCR) when the architecture is chosen,
+#                          not before. Installing a model zoo in advance invites
+#                          reaching for a model before the dataset justifies one.

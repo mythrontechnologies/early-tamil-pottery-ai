@@ -1,0 +1,65 @@
+# ── Data ──────────────────────────────────────────────────────────────────────
+# Image data is NOT committed. Much of it is expected to be non-redistributable
+# (excavation-report plates, museum photographs). See data/metadata/README.md §4.2.
+# The metadata that describes it IS committed, so the dataset is reproducible
+# by anyone who can obtain the images legitimately.
+data/raw/*
+data/interim/*
+data/processed/*
+data/external/*
+!data/raw/.gitkeep
+!data/interim/.gitkeep
+!data/processed/.gitkeep
+!data/external/.gitkeep
+
+# Metadata and schema ARE tracked — do not add data/metadata/ here.
+
+# ── Models ────────────────────────────────────────────────────────────────────
+models/*
+!models/.gitkeep
+*.pt
+*.pth
+*.onnx
+*.ckpt
+*.safetensors
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.python-version
+
+# ── Tooling ───────────────────────────────────────────────────────────────────
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# ── Outputs ───────────────────────────────────────────────────────────────────
+outputs/
+runs/
+logs/
+*.log
+wandb/
+
+# ── Editors / OS ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Secrets ───────────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.key
+credentials.json

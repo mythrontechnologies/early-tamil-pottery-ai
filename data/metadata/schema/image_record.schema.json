@@ -1,0 +1,351 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://early-tamil-pottery-ai/schema/image_record.schema.json",
+  "title": "Early Tamil Pottery AI - Image Record",
+  "description": "One record per PHOTOGRAPH of a pottery sherd. Multiple records may share an artifact_id when several photographs document the same physical object. artifact_id is the train/val/test split key (see docs/SPLIT_METHODOLOGY.md). Missing information MUST be marked with an explicit sentinel ('unknown', 'not_available', 'not_applicable') and MUST NOT be invented.",
+  "schema_version": "1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+
+  "$defs": {
+    "sentinel": {
+      "enum": ["unknown", "not_available", "not_applicable"]
+    },
+    "free_text": {
+      "type": "string",
+      "description": "Free text, or one of the sentinels 'unknown' / 'not_available' / 'not_applicable'. Empty string is NOT permitted - absence must be explicit.",
+      "minLength": 1
+    },
+    "signed_year": {
+      "description": "Year as a signed integer. Negative = BCE, positive = CE. There is no year 0 (use -1 for 1 BCE, 1 for 1 CE). null means the bound is not established.",
+      "type": ["integer", "null"],
+      "minimum": -3000,
+      "maximum": 2100,
+      "not": { "const": 0 }
+    },
+    "yes_no_unknown": {
+      "enum": ["yes", "no", "unknown"]
+    },
+    "region": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "An annotated region of interest in the image. Coordinate system is 'xywh_pixels': x,y are the top-left corner in absolute pixels measured from the image top-left; w,h are width and height in pixels; measured in the ORIGINAL unrotated image as stored in data/raw.",
+      "properties": {
+        "x": { "type": "integer", "minimum": 0 },
+        "y": { "type": "integer", "minimum": 0 },
+        "w": { "type": "integer", "exclusiveMinimum": 0 },
+        "h": { "type": "integer", "exclusiveMinimum": 0 },
+        "region_label": {
+          "enum": ["inscription", "graffiti", "possible_inscription", "decoration_non_script", "damage", "other"]
+        },
+        "annotator": { "$ref": "#/$defs/free_text" },
+        "notes": { "$ref": "#/$defs/free_text" }
+      },
+      "required": ["x", "y", "w", "h", "region_label"]
+    }
+  },
+
+  "required": [
+    "image_id",
+    "artifact_id",
+    "image_path",
+    "source",
+    "license",
+    "redistributable",
+    "inscription_present",
+    "script_type",
+    "label_source",
+    "verification_status"
+  ],
+
+  "properties": {
+
+    "schema_version": {
+      "type": "string",
+      "description": "Version of this schema the record was written against.",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+
+    "image_id": {
+      "type": "string",
+      "description": "Globally unique identifier for THIS PHOTOGRAPH. Convention: artifactid__view[__n]. Must be unique across the whole dataset.",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{2,127}$"
+    },
+    "artifact_id": {
+      "type": "string",
+      "description": "Identifier of the PHYSICAL OBJECT. All photographs of the same sherd MUST share this value. THIS IS THE TRAIN/VAL/TEST SPLIT KEY - see docs/SPLIT_METHODOLOGY.md. If it is not known whether two photographs show the same object, they must be treated as the same artifact (conservative grouping) and flagged in notes.",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{2,127}$"
+    },
+    "image_path": {
+      "type": "string",
+      "description": "Path to the image file, relative to data/raw/. Forward slashes only.",
+      "minLength": 1
+    },
+    "image_sha256": {
+      "description": "SHA-256 of the image file bytes. Used to detect the same photograph entering the dataset twice under different ids - a direct data-leakage vector.",
+      "oneOf": [
+        { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        { "$ref": "#/$defs/sentinel" }
+      ]
+    },
+    "view": {
+      "description": "Which aspect of the sherd the photograph shows.",
+      "enum": ["exterior", "interior", "profile", "closeup", "detail", "rubbing", "drawing", "composite", "unknown"]
+    },
+    "image_width_px": { "type": ["integer", "null"], "exclusiveMinimum": 0 },
+    "image_height_px": { "type": ["integer", "null"], "exclusiveMinimum": 0 },
+    "scale_bar_present": {
+      "description": "Whether a physical scale/measuring reference is visible. Determines whether absolute size features may be used.",
+      "$ref": "#/$defs/yes_no_unknown"
+    },
+
+    "source": {
+      "description": "Kind of origin the image came from.",
+      "enum": [
+        "museum_collection",
+        "excavation_report",
+        "published_epigraphic_corpus",
+        "academic_publication",
+        "fieldwork_photograph",
+        "online_repository",
+        "other",
+        "unknown"
+      ]
+    },
+    "source_reference": {
+      "description": "Precise pointer into the source: report page/plate/figure number, museum record, repository URL, etc. Must be specific enough for a third party to locate the original.",
+      "$ref": "#/$defs/free_text"
+    },
+    "collection": { "$ref": "#/$defs/free_text" },
+    "catalogue_reference": {
+      "description": "Accession / catalogue / corpus number as printed in the source. NEVER invent a catalogue number.",
+      "$ref": "#/$defs/free_text"
+    },
+    "license": {
+      "description": "Licence or rights status of the image, verbatim where known. Recommended values: an SPDX id (e.g. 'CC-BY-4.0'), 'public_domain', 'permission_granted_see_rights_notes', 'rights_reserved_no_redistribution', 'permission_pending', 'unknown'.",
+      "type": "string",
+      "minLength": 1
+    },
+    "redistributable": {
+      "description": "Whether this image may be redistributed with the dataset. 'unknown' means it MUST NOT be redistributed until clarified.",
+      "$ref": "#/$defs/yes_no_unknown"
+    },
+    "rights_notes": { "$ref": "#/$defs/free_text" },
+
+    "site": {
+      "description": "Archaeological site name as published. NEVER invent a site.",
+      "$ref": "#/$defs/free_text"
+    },
+    "site_district": { "$ref": "#/$defs/free_text" },
+    "site_state": { "$ref": "#/$defs/free_text" },
+    "excavation_reference": {
+      "description": "Excavation season / trench / quadrant identifier as published.",
+      "$ref": "#/$defs/free_text"
+    },
+    "stratigraphic_context": {
+      "description": "Layer / depth / phase as published, verbatim.",
+      "$ref": "#/$defs/free_text"
+    },
+    "context_reliability": {
+      "description": "How securely the object is tied to an archaeological context. Constrains how much weight stratigraphic evidence may carry in chronological reasoning.",
+      "enum": [
+        "excavated_stratified",
+        "excavated_unstratified",
+        "surface_collection",
+        "museum_unprovenanced",
+        "unprovenanced",
+        "unknown"
+      ]
+    },
+
+    "artifact_type": {
+      "enum": ["pottery_sherd", "complete_vessel", "lid", "ring_stand", "other", "unknown"]
+    },
+    "pottery_type": {
+      "description": "Ware category as published. Do not assign a value unless the source states it or an expert annotator determines it.",
+      "enum": [
+        "black_and_red_ware",
+        "black_ware",
+        "red_ware",
+        "red_slipped_ware",
+        "russet_coated_painted_ware",
+        "rouletted_ware",
+        "coarse_red_ware",
+        "grey_ware",
+        "amphora",
+        "terra_sigillata",
+        "other",
+        "unknown",
+        "not_available"
+      ]
+    },
+    "sherd_part": {
+      "enum": [
+        "rim", "neck", "shoulder", "body", "carination", "base",
+        "handle", "spout", "complete_profile", "other", "unknown", "not_available"
+      ]
+    },
+    "fabric_notes": { "$ref": "#/$defs/free_text" },
+    "surface_treatment": {
+      "enum": ["slipped", "burnished", "plain", "painted", "other", "unknown", "not_available"]
+    },
+
+    "inscription_present": {
+      "description": "Whether any deliberate mark (script or graffiti) is present on the sherd.",
+      "enum": ["yes", "no", "uncertain"]
+    },
+    "script_type": {
+      "description": "PRIMARY CLASSIFICATION LABEL (Milestone 4). 'tamil_brahmi' = Tamil-Brahmi / Tamili script. 'graffiti' = non-script or undeciphered incised marks. 'none' = no visible deliberate mark. 'uncertain' = a mark is present but cannot be assigned. 'tamil_brahmi_and_graffiti' = both co-occur on the same sherd. 'other_script' = a different script (e.g. Prakrit-Brahmi, Vatteluttu, Grantha); such records are HELD OUT of the initial 4-class classifier.",
+      "enum": [
+        "tamil_brahmi",
+        "graffiti",
+        "tamil_brahmi_and_graffiti",
+        "none",
+        "uncertain",
+        "other_script"
+      ]
+    },
+    "script_type_other_detail": {
+      "description": "Which script, when script_type = 'other_script'.",
+      "$ref": "#/$defs/free_text"
+    },
+    "label_source": {
+      "description": "WHO assigned script_type. Determines whether the label may be treated as ground truth.",
+      "enum": [
+        "published_epigraphic_corpus",
+        "excavation_report",
+        "museum_catalogue",
+        "expert_annotation",
+        "project_annotation_unverified",
+        "unknown"
+      ]
+    },
+    "label_confidence": {
+      "enum": ["high", "medium", "low", "unknown"]
+    },
+    "inscription_technique": {
+      "enum": [
+        "incised_pre_firing",
+        "incised_post_firing",
+        "incised_timing_unknown",
+        "painted",
+        "stamped",
+        "impressed",
+        "other",
+        "unknown",
+        "not_applicable"
+      ]
+    },
+    "inscription_placement": {
+      "enum": [
+        "exterior_body", "exterior_rim", "exterior_base", "exterior_shoulder",
+        "interior", "other", "unknown", "not_applicable"
+      ]
+    },
+    "inscription_regions": {
+      "description": "Zero or more annotated regions. Supplies supervision for Milestone 6 (inscription-region detection). An empty array means 'no regions annotated yet', NOT 'no inscription' - that is what inscription_present records.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/region" }
+    },
+    "character_count_visible": {
+      "description": "Number of distinct characters/marks visible, if counted. null = not counted.",
+      "type": ["integer", "null"],
+      "minimum": 0
+    },
+
+    "transcription": {
+      "description": "Transcription of the inscription AS PUBLISHED, or as read by an expert annotator. NEVER fill in characters that are not visible. Preserve the source's editorial conventions for damage and restoration.",
+      "$ref": "#/$defs/free_text"
+    },
+    "transcription_encoding": {
+      "enum": ["tamil_unicode", "brahmi_unicode", "romanized", "mixed", "not_available", "not_applicable"]
+    },
+    "transliteration": { "$ref": "#/$defs/free_text" },
+    "transliteration_scheme": {
+      "enum": ["iso_15919", "mahadevan_2003", "other", "unknown", "not_available", "not_applicable"]
+    },
+    "translation_en": { "$ref": "#/$defs/free_text" },
+    "translation_ta": { "$ref": "#/$defs/free_text" },
+    "reading_status": {
+      "description": "Epistemic status of the reading. Records marked 'disputed' or 'published_tentative' MUST NOT be presented by the prototype as settled readings.",
+      "enum": [
+        "published_secure",
+        "published_tentative",
+        "disputed",
+        "unread",
+        "illegible",
+        "not_applicable",
+        "unknown"
+      ]
+    },
+    "alternative_readings": {
+      "description": "Other readings proposed in the literature. Each entry should carry its own attribution inline, e.g. 'reading (Author Year)'.",
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "reading_source": {
+      "description": "Who produced the transcription/translation recorded above, with citation.",
+      "$ref": "#/$defs/free_text"
+    },
+
+    "dating_text": {
+      "description": "Date as stated in the source, VERBATIM (e.g. 'c. 2nd century BCE'). This is the primary record; the numeric bounds below are a derived machine-readable convenience.",
+      "$ref": "#/$defs/free_text"
+    },
+    "dating_lower_year": { "$ref": "#/$defs/signed_year" },
+    "dating_upper_year": { "$ref": "#/$defs/signed_year" },
+    "dating_basis": {
+      "description": "On what grounds the date rests. Multiple values allowed. An empty array is not permitted - use ['unknown'].",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "enum": [
+          "stratigraphy",
+          "radiocarbon_c14",
+          "ams_radiocarbon",
+          "thermoluminescence_osl",
+          "palaeography",
+          "pottery_typology",
+          "associated_finds",
+          "associated_coins",
+          "published_attribution",
+          "unknown",
+          "not_available"
+        ]
+      }
+    },
+    "dating_reliability": {
+      "description": "'disputed' marks dates actively contested in the literature. Such records must never be used as unqualified training targets or presented as settled.",
+      "enum": ["published_secure", "published_tentative", "disputed", "project_estimate", "unknown"]
+    },
+    "dating_source": {
+      "description": "Citation for the date. Required in practice whenever a numeric bound is given.",
+      "$ref": "#/$defs/free_text"
+    },
+
+    "publication": {
+      "description": "Full bibliographic reference. NEVER invent a publication.",
+      "$ref": "#/$defs/free_text"
+    },
+    "publication_doi_or_url": { "$ref": "#/$defs/free_text" },
+
+    "split": {
+      "description": "Assigned in Milestone 2 by artifact_id, never by image. 'excluded' records are retained for the record but used nowhere.",
+      "enum": ["train", "val", "test", "unassigned", "excluded"]
+    },
+    "split_exclusion_reason": { "$ref": "#/$defs/free_text" },
+    "verification_status": {
+      "description": "Whether a human has checked this record against its cited source. Records that are not 'verified_against_source' MUST NOT support any claim the prototype presents to a user as evidence.",
+      "enum": ["verified_against_source", "needs_verification", "unverified"]
+    },
+    "annotator": { "$ref": "#/$defs/free_text" },
+    "annotation_date": {
+      "description": "ISO 8601 date (YYYY-MM-DD), or a sentinel.",
+      "oneOf": [
+        { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+        { "$ref": "#/$defs/sentinel" }
+      ]
+    },
+    "notes": { "$ref": "#/$defs/free_text" }
+  }
+}

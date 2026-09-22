@@ -1,0 +1,126 @@
+# Early Tamil Pottery AI — project configuration
+#
+# Single source of truth for project-level constants. Nothing here is hard-coded in src/.
+# Anything with verification_status other than `verified_against_source` MUST NOT reach the UI
+# as evidence — the Milestone 11 retrieval layer filters on this field.
+
+project:
+  name: early-tamil-pottery-ai
+  schema_version: "1.0.0"
+  description: >-
+    AI-assisted analysis of Early Historic Tamil Nadu pottery, with emphasis on
+    Tamil-Brahmi/Tamili inscriptions and graffiti. Research prototype.
+  disclaimer: >-
+    This system provides AI-assisted archaeological analysis and is not a substitute for
+    expert epigraphic or archaeological assessment.
+
+scope:
+  region: "Tamil Nadu, South India"
+  artifact_focus: "pottery sherds and fragments"
+  primary_feature: "Tamil-Brahmi/Tamili inscriptions and graffiti on pottery"
+
+# ---------------------------------------------------------------------------
+# Chronology. See docs/CHRONOLOGICAL_SCOPE.md.
+# Years are signed integers: negative = BCE, positive = CE, no year 0.
+# NOTHING HERE IS VERIFIED. These are provisional working bounds, not assertions
+# about when Tamil-Brahmi began. The earliest date of Tamil-Brahmi is contested;
+# the system reports the disagreement rather than resolving it.
+# ---------------------------------------------------------------------------
+chronology:
+
+  ingestion_scope:
+    comment: >-
+      Deliberately generous so that material relevant to the early-date positions is not
+      excluded by an assumption made before the evidence was examined.
+    lower_year: -600
+    upper_year: 600
+    verification_status: unverified
+    source_ref: "docs/CHRONOLOGICAL_SCOPE.md#5"
+
+  modelling_scope:
+    comment: "Where data density is expected to be highest. Not a claim about script origins."
+    lower_year: -300
+    upper_year: 300
+    verification_status: unverified
+    source_ref: "docs/CHRONOLOGICAL_SCOPE.md#5"
+
+  # Competing scholarly positions on the earliest Tamil-Brahmi.
+  # The prototype surfaces these; it does not pick one.
+  tamil_brahmi_earliest_positions:
+    - id: A
+      label: "Conventional / epigraphic"
+      lower_year: -300
+      upper_year: -100
+      basis: [palaeography]
+      reference: R1
+      verification_status: unverified
+    - id: B
+      label: "Early AMS determinations"
+      lower_year: -500
+      upper_year: -400
+      basis: [ams_radiocarbon, stratigraphy]
+      reference: R3
+      verification_status: unverified
+    - id: C
+      label: "Keeladi / TNSDA"
+      lower_year: -600
+      upper_year: -500
+      basis: [ams_radiocarbon, stratigraphy]
+      reference: R6
+      verification_status: unverified
+    - id: D
+      label: "Sceptical — association not secure"
+      kind: methodological_objection   # not a rival date; applies to B and C
+      basis: [published_attribution]
+      reference: R5
+      verification_status: unverified
+
+  # How the dating stage combines the above when a record's own evidence is insufficient.
+  fallback_policy: union_of_cited_positions   # never a midpoint, never a bare percentage
+
+# ---------------------------------------------------------------------------
+# Milestone 4 classifier
+# ---------------------------------------------------------------------------
+classification:
+  task: script_type
+  classes: [tamil_brahmi, graffiti, none, uncertain]
+  held_out_labels: [other_script, tamil_brahmi_and_graffiti]
+  held_out_reason: >-
+    Real categories, but too few expected examples to model at first and a poor fit for any
+    of the four classes. Retained in the dataset, excluded from the initial model.
+
+# ---------------------------------------------------------------------------
+# Splitting. See docs/SPLIT_METHODOLOGY.md. Split key is artifact_id, never image_id.
+# ---------------------------------------------------------------------------
+split:
+  group_key: artifact_id
+  stratify_by: script_type
+  train: 0.70
+  val: 0.15
+  test: 0.15
+  seed: 20260922
+  # If the artifact count is too small for a meaningful single split, switch to grouped k-fold
+  # and report that instead of a single held-out figure.
+  min_artifacts_per_class_for_holdout: 20
+  fallback_strategy: grouped_k_fold
+  k_folds: 5
+
+# ---------------------------------------------------------------------------
+# Transliteration / encoding defaults
+# ---------------------------------------------------------------------------
+text:
+  default_transliteration_scheme: iso_15919
+  default_transcription_encoding: tamil_unicode
+
+# ---------------------------------------------------------------------------
+# Integrity gates enforced across the pipeline
+# ---------------------------------------------------------------------------
+integrity:
+  # Sentinels permitted in place of a value. Empty strings are never permitted.
+  sentinels: [unknown, not_available, not_applicable]
+  # Records below this verification level cannot be surfaced as evidence in the UI.
+  min_verification_for_evidence: verified_against_source
+  # Unknown rights are treated as non-redistributable.
+  unknown_rights_are_redistributable: false
+  # Reading statuses that must never be displayed as settled.
+  unsettled_reading_statuses: [published_tentative, disputed, unread, illegible, unknown]
