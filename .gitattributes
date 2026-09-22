@@ -1,0 +1,30 @@
+# The dataset layer guarantees byte-deterministic output (LF, UTF-8, no BOM).
+# Git's autocrlf would rewrite these files on checkout and break that guarantee,
+# so data and fixture files are pinned to LF regardless of platform.
+*.jsonl   text eol=lf
+*.json    text eol=lf
+*.csv     text eol=lf
+*.yaml    text eol=lf
+*.yml     text eol=lf
+
+# Source and docs: normalise to LF in the repository too, for stable diffs.
+*.py      text eol=lf
+*.md      text eol=lf
+*.txt     text eol=lf
+.gitignore      text eol=lf
+.gitattributes  text eol=lf
+
+# Images are binary; never touch them.
+*.jpg  binary
+*.jpeg binary
+*.png  binary
+*.tif  binary
+*.tiff binary
+*.webp binary
+*.bmp  binary
+
+# Model weights.
+*.pt   binary
+*.pth  binary
+*.onnx binary
+*.safetensors binary

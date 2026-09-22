@@ -1,0 +1,18 @@
+{
+  "research_data_present": false,
+  "record_count": 0,
+  "unique_artifacts": 0,
+  "validation_status": "PASS",
+  "training_ready": false,
+  "reason": "No real archaeological images are currently available",
+  "image_files_present": 0,
+  "artifacts_by_class": {},
+  "min_artifacts_per_class_required": 20,
+  "classes_below_threshold": [],
+  "blockers": [
+    "data/metadata/records.jsonl does not exist - no records have been ingested",
+    "See docs/DATA_INVENTORY.md for acquisition routes"
+  ],
+  "records_path": "data/metadata/records.jsonl",
+  "data_root": "data/raw"
+}

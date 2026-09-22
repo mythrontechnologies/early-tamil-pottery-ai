@@ -120,7 +120,8 @@ def main() -> int:
     print(f"[ INFO ] images in data/raw : {len(images)}")
     print(f"[ INFO ] records.jsonl      : {n_records} record(s)")
     if not images:
-        print("         Dataset is empty - see docs/DATA_INVENTORY.md. This is expected at M1.")
+        print("         Dataset is empty - see docs/DATA_INVENTORY.md.")
+        print("         Training is blocked: python -m src.dataset readiness")
 
     print("\n" + "=" * 68)
     if missing:

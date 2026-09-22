@@ -62,14 +62,38 @@ Rules:
 | Canonical (machine-facing) | JSON Lines, one record per line | `records.jsonl` | Milestone 2 ingestion |
 | Contract | JSON Schema draft 2020-12 | `schema/image_record.schema.json` | this milestone |
 
-**CSV ⇄ JSONL conventions** (implemented in Milestone 2, specified here):
+**CSV ⇄ JSONL conventions** (implemented in `src/dataset/convert.py`):
 
-- Array fields (`dating_basis`, `alternative_readings`) are semicolon-separated in CSV:
-  `stratigraphy;palaeography`
-- `inscription_regions` is a JSON string inside the CSV cell.
-- `null` integers are the empty cell in CSV.
-- Any leading-underscore key is a comment and is stripped before validation. This is how
-  `schema/_example_record.json` carries its `_WARNING` banner.
+Column order is always the schema's field declaration order. Both round trips —
+`JSONL → CSV → JSONL` and `CSV → JSONL → CSV` — are the identity, and output is
+byte-deterministic (UTF-8, no BOM, `\n` line endings). Reading tolerates a BOM, since
+spreadsheets add one.
+
+| JSON value | CSV cell |
+|---|---|
+| key absent | *(empty cell)* |
+| `"unknown"` | `unknown` — verbatim |
+| `null` (integer field) | `null` — literal token |
+| `-200` | `-200` |
+| `[]` | `[]` — literal token |
+| `["stratigraphy","palaeography"]` | `stratigraphy;palaeography` |
+| `["a; b", "c"]` | `["a; b","c"]` — compact JSON |
+| `[{…region…}]` | compact JSON, keys sorted |
+
+Two details that matter:
+
+- **An empty cell means "key absent", not "empty string".** The schema forbids empty
+  strings, so there is nothing else a blank cell could mean. To record null, type `null`;
+  to record unknown, type `unknown`.
+- **Only enum-valued arrays are semicolon-joined.** `dating_basis` holds enum values that
+  cannot contain a semicolon, so `stratigraphy;palaeography` is safe.
+  `alternative_readings` holds free text that *can* contain a semicolon, so it is encoded
+  as compact JSON instead. Joining it on `;` would silently split a reading in half on the
+  round trip — a quiet corruption of research data. (This supersedes the
+  "both arrays are semicolon-separated" note in the Milestone 1 draft of this file.)
+
+Any leading-underscore key is a comment and is stripped before validation. This is how
+`schema/_example_record.json` carries its `_WARNING` banner.
 
 ---
 
@@ -206,23 +230,29 @@ claimed; the integers exist only so code can compute range overlap (Milestone 16
 
 ## 5. Validating a record
 
-The Milestone 2 ingestion tool will wrap this, but the check is plain `jsonschema`:
+Implemented in `src/dataset/`. From the project root:
 
-```python
-import json
-from jsonschema import Draft202012Validator
-
-schema = json.load(open("data/metadata/schema/image_record.schema.json"))
-record = json.load(open("data/metadata/schema/_example_record.json"))
-record = {k: v for k, v in record.items() if not k.startswith("_")}   # strip comment keys
-
-errors = sorted(Draft202012Validator(schema).iter_errors(record), key=lambda e: e.path)
-for e in errors:
-    print(list(e.path), e.message)
+```bash
+python -m src.dataset validate <file.jsonl|file.csv|file.json>
+python -m src.dataset ingest   <file>  --commit      # default is a dry run
+python -m src.dataset audit
+python -m src.dataset readiness
+python -m src.dataset convert  in.jsonl out.csv
+python -m src.dataset rules                          # list all rules
 ```
 
-Cross-field rules that JSON Schema does **not** express, and which the Milestone 2 validator will
-enforce, are listed in [`../../docs/SPLIT_METHODOLOGY.md`](../../docs/SPLIT_METHODOLOGY.md) §4.
+Two layers run:
+
+- **`E1` — schema layer.** The JSON Schema contract. Catches missing required fields,
+  empty strings, year zero, unsupported enum values, unknown fields, malformed types.
+- **`R1`–`R15` — cross-field layer.** The rules JSON Schema cannot express, specified in
+  [`../../docs/SPLIT_METHODOLOGY.md`](../../docs/SPLIT_METHODOLOGY.md) §4.
+- **`E2`–`E5`** are additional *engineering* checks (hash agreement, path hygiene, schema
+  version, duplicate photographs). They are data-hygiene assertions, not archaeological
+  claims — the separate namespace is deliberate.
+
+Validation reports; it never repairs. Ingestion is all-or-nothing: one bad record rejects
+the batch, and nothing partial is written.
 
 ---
 

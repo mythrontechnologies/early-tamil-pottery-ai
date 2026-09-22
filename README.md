@@ -6,9 +6,9 @@ inscriptions and graffiti.
 > **This system provides AI-assisted archaeological analysis and is not a substitute for expert
 > epigraphic or archaeological assessment.**
 
-**Status: Milestone 1 of 13 complete — project structure, environment, dataset schema.**
+**Status: Milestones 1–2 of 13 complete — structure, schema, ingestion and validation.**
 There is **no data and no trained model.** The system cannot analyse an image yet, and no part of
-it should be presented as if it could.
+it should be presented as if it could. Training is blocked in code by a readiness gate.
 
 ---
 
@@ -43,7 +43,8 @@ An LLM-generated explanation is not evidence and is never presented as such.
 | Records | **0** |
 | Verified references | **0** — see [`docs/CHRONOLOGICAL_SCOPE.md`](docs/CHRONOLOGICAL_SCOPE.md) |
 | Models | none |
-| Tests | 19 passing (schema contract) |
+| Training ready | **false** — blocked by `src/dataset/readiness.py` |
+| Tests | 164 passing |
 
 No dataset has been fabricated. A synthetic pottery corpus would produce a model that is confident
 and baseless — the exact failure this project exists to avoid.
@@ -59,8 +60,9 @@ cd V:\ADM\early-tamil-pottery-ai
 python -m venv .venv
 .venv\Scripts\activate
 
-# 2. GPU users: install CUDA torch FIRST (an RTX 4050 is present on this machine,
-#    but the global torch is the CPU-only build). Check the right tag at pytorch.org.
+# 2. GPU users: install CUDA torch FIRST, before anything pulls in the CPU wheel.
+#    Already done in this project's .venv (torch 2.14.0+cu126, RTX 4050 detected).
+#    Check the right CUDA tag for your driver at pytorch.org.
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
 
 # 3. Dependencies
@@ -70,6 +72,19 @@ pip install -r requirements.txt -r requirements-dev.txt
 python scripts/check_env.py
 python -m pytest tests/ -q
 ```
+
+### Dataset commands
+
+```bash
+python -m src.dataset rules                       # list all validation rules
+python -m src.dataset validate <file>             # validate .jsonl / .csv / .json
+python -m src.dataset ingest   <file> --commit    # default is a dry run
+python -m src.dataset audit                       # what is in the dataset
+python -m src.dataset readiness                   # may training proceed? (no)
+python -m src.dataset convert  in.jsonl out.csv   # CSV <-> JSONL, lossless
+```
+
+Exit codes: `0` success, `1` validation failure, `2` usage error.
 
 `check_env.py` installs nothing; it reports what is present, whether CUDA is usable, whether the
 schema is valid, and how much data exists.
@@ -93,19 +108,24 @@ early-tamil-pottery-ai/
 │           └── _example_record.json        ← fictitious structural example
 ├── knowledge/                structured KB (Milestone 11) — dirs only, empty
 ├── src/
+│   ├── dataset/              ingestion, validation, conversion, audit, gate
 │   ├── preprocessing/  classification/  detection/  ocr/
 │   ├── translation/    dating/          knowledge/  evaluation/
 ├── app/                      Streamlit UI (Milestone 12) — not built
 ├── configs/project.yaml      chronology, splits, integrity gates
 ├── scripts/check_env.py
-├── tests/test_schema.py
+├── tests/
+│   ├── fixtures/             SYNTHETIC test data — never research data
+│   ├── test_schema.py        test_validation.py
+│   └── test_conversion.py    test_ingest_audit_readiness.py
 ├── notebooks/
 ├── models/                   (git-ignored)
 └── docs/
     ├── CHRONOLOGICAL_SCOPE.md   chronology + references to verify
     ├── DATA_INVENTORY.md        what data exists and how to get more
-    ├── SPLIT_METHODOLOGY.md     leakage prevention
-    └── MILESTONE_1_REPORT.md
+    ├── SPLIT_METHODOLOGY.md     leakage prevention + the 15 validation rules
+    ├── MILESTONE_1_REPORT.md
+    └── MILESTONE_2_REPORT.md
 ```
 
 Data files are git-ignored; **the metadata describing them is committed**, so the dataset is
@@ -142,7 +162,12 @@ of Tamil-Brahmi is **contested**; the config records competing positions and the
 disagreement rather than resolving it. See
 [`docs/CHRONOLOGICAL_SCOPE.md`](docs/CHRONOLOGICAL_SCOPE.md).
 
-**6. Nothing is fabricated.**
+**6. Training is gated, not merely discouraged.**
+`assert_training_ready()` raises until real data exists, passes validation, and clears the
+per-class artifact threshold. Fixtures cannot satisfy it. Every training entry point from
+Milestone 4 must call it.
+
+**7. Nothing is fabricated.**
 No invented sites, inscriptions, translations, dates, catalogue numbers or publications. The
 references currently on file are **drafted and unverified**, and are marked as such until a human
 checks them against the physical publications.
@@ -154,8 +179,8 @@ checks them against the physical publications.
 | # | Milestone | Status |
 |---|---|---|
 | 1 | Project structure, environment, dataset schema | ✅ **complete** |
-| 2 | Dataset ingestion and validation | next — tooling buildable now, ingestion blocked on data |
-| 3 | Preprocessing pipeline | |
+| 2 | Dataset ingestion and validation | ✅ **complete** — tooling built and tested; ingestion of real data blocked |
+| 3 | Preprocessing pipeline | next |
 | 4 | Tamil-Brahmi / graffiti / no-inscription classifier | blocked on data |
 | 5 | Evaluation and error analysis | blocked |
 | 6 | Inscription-region detection | blocked |
@@ -179,9 +204,11 @@ Verified on this machine, 2026-09-22:
 |---|---|
 | Python | 3.13.7 (3.10 also available) |
 | GPU | NVIDIA RTX 4050 Laptop, 6 GiB |
-| torch | 2.9.1**+cpu** — CPU-only build; reinstall from the CUDA index to use the GPU |
-| Present globally | numpy, pandas, opencv, pillow, scikit-learn, matplotlib, jsonschema, pytest, PyYAML, transformers |
-| Missing | **streamlit** |
+| torch | `2.14.0+cu126` in `.venv` — **CUDA available: True** |
+| `.venv` holds | torch, torchvision, numpy, pillow |
+| `.venv` still needs | `pip install -r requirements.txt -r requirements-dev.txt` |
+| Global interpreter has | numpy, pandas, opencv, pillow, scikit-learn, matplotlib, jsonschema, pytest, PyYAML |
 
-6 GiB of VRAM comfortably fits ResNet18 / EfficientNet-B0 / ConvNeXt-Tiny at 224 px. CPU is fine
-through Milestone 3.
+The dataset layer needs only the standard library plus `jsonschema` and `PyYAML`, so
+Milestones 1–2 run on either interpreter. 6 GiB of VRAM comfortably fits ResNet18 /
+EfficientNet-B0 / ConvNeXt-Tiny at 224 px.

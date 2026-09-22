@@ -47,9 +47,13 @@ meaningless one.
 | **Plate-level correlation** | All sherds from one excavation-report plate photographed together under identical conditions | Not leakage in the strict sense, but it inflates within-source similarity. Report per-site and per-source performance separately. |
 | **Site-level confound** | A site whose sherds are nearly all one class | Report the per-site breakdown so a "site detector" masquerading as a script classifier is visible. |
 
-## 4. Cross-field validation rules (Milestone 2)
+## 4. Cross-field validation rules
 
-JSON Schema cannot express these; the ingestion validator will.
+**Status: implemented in Milestone 2** — `src/dataset/validation.py`. Run
+`python -m src.dataset rules` to list them, or `python -m src.dataset validate <file>` to
+apply them. Every rule below has at least one test in `tests/test_validation.py`.
+
+JSON Schema cannot express these; the ingestion validator does.
 
 | # | Rule | Severity |
 |---|---|---|
@@ -71,6 +75,17 @@ JSON Schema cannot express these; the ingestion validator will.
 
 Rule 10 deserves a note: a date cannot rest on stratigraphy if the object is a surface find or
 unprovenanced, no matter what a catalogue entry asserts.
+
+Rules 2 and 4 depend on files being present. When the data root does not exist, they are
+**reported as skipped** rather than silently passing — a skipped check must never read as
+a clean one.
+
+Alongside these, Milestone 2 added five **engineering** checks, namespaced `E1`–`E5` to
+keep them visibly distinct from the methodological rules above: schema conformance (`E1`),
+hash agreement with the file on disk (`E2`), `image_path` hygiene — no backslashes,
+absolute paths or `..` traversal (`E3`), schema-version compatibility (`E4`), and duplicate
+photographs *within* one artifact (`E5`, warning). None of these asserts anything about
+pottery, scripts or chronology.
 
 ## 5. Split proportions
 
