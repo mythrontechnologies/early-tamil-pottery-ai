@@ -124,3 +124,54 @@ integrity:
   unknown_rights_are_redistributable: false
   # Reading statuses that must never be displayed as settled.
   unsettled_reading_statuses: [published_tentative, disputed, unread, illegible, unknown]
+
+# ---------------------------------------------------------------------------
+# Milestone 3 - image preprocessing.
+#
+# Every value here is an ENGINEERING parameter or an IMAGE-QUALITY heuristic.
+# None of it is an archaeological judgement. A quality flag says something about
+# the photograph, never about the object, its authenticity or its date.
+#
+# The thresholds below are provisional defaults chosen a priori. They have never
+# been calibrated against real pottery photographs, because none exist yet. They
+# must be revisited once real images arrive.
+# ---------------------------------------------------------------------------
+preprocessing:
+  pipeline_version: "1.0.0"
+
+  # Geometry
+  target_size: 224                  # square edge, in pixels
+  resize_strategy: pad              # pad (letterbox) | crop (centre crop)
+  resample: lanczos                 # fixed for determinism
+  pad_color: [0, 0, 0]
+  # 'pad' is the default because a centre crop can remove the edge of a sherd,
+  # and an inscription frequently sits near a break or a rim.
+
+  # Colour
+  alpha_background: [255, 255, 255] # RGBA is composited onto this, then flattened
+  output_format: png                # lossless, so preprocessing is not re-lossy
+
+  # Hard limits - below these the image is rejected rather than flagged
+  min_dimension_px: 32
+  max_pixels: 178956970             # Pillow's decompression-bomb ceiling
+
+  supported_formats: [JPEG, PNG, TIFF, BMP, WEBP]
+
+  # Applied at model-load time, not baked into the stored image.
+  normalization:
+    mean: [0.485, 0.456, 0.406]
+    std: [0.229, 0.224, 0.225]
+    source: imagenet
+    note: >-
+      ImageNet statistics, appropriate for the pretrained backbones named in
+      the brief. Recompute from the training split once real data exists.
+
+  # Quality heuristics -> warnings only. Never errors, never archaeological claims.
+  quality_thresholds:
+    min_dimension_warn: 224         # below the model input size means upscaling
+    blur_laplacian_var: 100.0       # lower = softer/blurrier
+    dark_mean: 40.0
+    bright_mean: 215.0
+    low_contrast_std: 20.0
+    clip_fraction: 0.05             # fraction of pixels at 0 or at 255
+    max_aspect_ratio: 4.0

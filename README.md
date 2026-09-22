@@ -6,7 +6,7 @@ inscriptions and graffiti.
 > **This system provides AI-assisted archaeological analysis and is not a substitute for expert
 > epigraphic or archaeological assessment.**
 
-**Status: Milestones 1–2 of 13 complete — structure, schema, ingestion and validation.**
+**Status: Milestones 1–3 of 13 complete — structure, schema, ingestion/validation, preprocessing.**
 There is **no data and no trained model.** The system cannot analyse an image yet, and no part of
 it should be presented as if it could. Training is blocked in code by a readiness gate.
 
@@ -44,7 +44,7 @@ An LLM-generated explanation is not evidence and is never presented as such.
 | Verified references | **0** — see [`docs/CHRONOLOGICAL_SCOPE.md`](docs/CHRONOLOGICAL_SCOPE.md) |
 | Models | none |
 | Training ready | **false** — blocked by `src/dataset/readiness.py` |
-| Tests | 164 passing |
+| Tests | 255 passing |
 
 No dataset has been fabricated. A synthetic pottery corpus would produce a model that is confident
 and baseless — the exact failure this project exists to avoid.
@@ -84,6 +84,16 @@ python -m src.dataset readiness                   # may training proceed? (no)
 python -m src.dataset convert  in.jsonl out.csv   # CSV <-> JSONL, lossless
 ```
 
+### Preprocessing commands
+
+```bash
+python -m src.preprocessing checks                # list the P1-P8 checks
+python -m src.preprocessing inspect <image|dir>   # report only, writes nothing
+python -m src.preprocessing run <image|dir> --out DIR
+```
+
+Deterministic, and it refuses to write anywhere under `data/raw`.
+
 Exit codes: `0` success, `1` validation failure, `2` usage error.
 
 `check_env.py` installs nothing; it reports what is present, whether CUDA is usable, whether the
@@ -109,15 +119,18 @@ early-tamil-pottery-ai/
 ├── knowledge/                structured KB (Milestone 11) — dirs only, empty
 ├── src/
 │   ├── dataset/              ingestion, validation, conversion, audit, gate
-│   ├── preprocessing/  classification/  detection/  ocr/
-│   ├── translation/    dating/          knowledge/  evaluation/
+│   ├── preprocessing/        loader, transforms, quality, pipeline
+│   ├── classification/  detection/  ocr/
+│   ├── translation/     dating/     knowledge/  evaluation/
 ├── app/                      Streamlit UI (Milestone 12) — not built
 ├── configs/project.yaml      chronology, splits, integrity gates
 ├── scripts/check_env.py
 ├── tests/
 │   ├── fixtures/             SYNTHETIC test data — never research data
+│   │   └── images/           26 generated patterns, not photographs
 │   ├── test_schema.py        test_validation.py
-│   └── test_conversion.py    test_ingest_audit_readiness.py
+│   ├── test_conversion.py    test_ingest_audit_readiness.py
+│   └── test_preprocessing.py
 ├── notebooks/
 ├── models/                   (git-ignored)
 └── docs/
@@ -125,7 +138,8 @@ early-tamil-pottery-ai/
     ├── DATA_INVENTORY.md        what data exists and how to get more
     ├── SPLIT_METHODOLOGY.md     leakage prevention + the 15 validation rules
     ├── MILESTONE_1_REPORT.md
-    └── MILESTONE_2_REPORT.md
+    ├── MILESTONE_2_REPORT.md
+    └── MILESTONE_3_REPORT.md
 ```
 
 Data files are git-ignored; **the metadata describing them is committed**, so the dataset is
@@ -167,7 +181,17 @@ disagreement rather than resolving it. See
 per-class artifact threshold. Fixtures cannot satisfy it. Every training entry point from
 Milestone 4 must call it.
 
-**7. Nothing is fabricated.**
+**7. Raw images are never modified.**
+Preprocessing opens sources read-only and raises `RawImmutabilityError` on any attempt to
+write under `data/raw`. Output is deterministic, and every processed image carries a
+sidecar with its source hash, transform log and provenance.
+
+**8. Image quality is not archaeology.**
+Quality metrics describe the photograph, never the object. The disclaimer is embedded in
+the metrics themselves, and a test forbids any field named for authenticity, date or script
+from appearing in the quality block.
+
+**9. Nothing is fabricated.**
 No invented sites, inscriptions, translations, dates, catalogue numbers or publications. The
 references currently on file are **drafted and unverified**, and are marked as such until a human
 checks them against the physical publications.
@@ -180,8 +204,8 @@ checks them against the physical publications.
 |---|---|---|
 | 1 | Project structure, environment, dataset schema | ✅ **complete** |
 | 2 | Dataset ingestion and validation | ✅ **complete** — tooling built and tested; ingestion of real data blocked |
-| 3 | Preprocessing pipeline | next |
-| 4 | Tamil-Brahmi / graffiti / no-inscription classifier | blocked on data |
+| 3 | Preprocessing pipeline | ✅ **complete** — deterministic, tested on synthetic fixtures |
+| 4 | Tamil-Brahmi / graffiti / no-inscription classifier | blocked on data — next once images exist |
 | 5 | Evaluation and error analysis | blocked |
 | 6 | Inscription-region detection | blocked |
 | 7 | Character recognition | blocked |
@@ -205,10 +229,8 @@ Verified on this machine, 2026-09-22:
 | Python | 3.13.7 (3.10 also available) |
 | GPU | NVIDIA RTX 4050 Laptop, 6 GiB |
 | torch | `2.14.0+cu126` in `.venv` — **CUDA available: True** |
-| `.venv` holds | torch, torchvision, numpy, pillow |
-| `.venv` still needs | `pip install -r requirements.txt -r requirements-dev.txt` |
-| Global interpreter has | numpy, pandas, opencv, pillow, scikit-learn, matplotlib, jsonschema, pytest, PyYAML |
+| `.venv` | fully provisioned; all 255 tests run from it |
 
-The dataset layer needs only the standard library plus `jsonschema` and `PyYAML`, so
-Milestones 1–2 run on either interpreter. 6 GiB of VRAM comfortably fits ResNet18 /
-EfficientNet-B0 / ConvNeXt-Tiny at 224 px.
+Use `.venv\Scripts\python.exe`, not the global interpreter. The dataset layer needs only
+the standard library plus `jsonschema` and `PyYAML`; preprocessing adds Pillow and NumPy.
+6 GiB of VRAM comfortably fits ResNet18 / EfficientNet-B0 / ConvNeXt-Tiny at 224 px.

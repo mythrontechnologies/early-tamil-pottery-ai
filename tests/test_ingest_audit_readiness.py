@@ -295,9 +295,18 @@ class TestNoFabricatedData:
         assert not fixtures_dir.is_relative_to(ROOT / "data")
 
     def test_every_fixture_is_marked_synthetic(self, fixtures_dir):
-        """A fixture must never be mistakable for a real record."""
+        """A fixture must never be mistakable for a real record.
+
+        Either marker is acceptable: record fixtures use FIXTURE_ identifiers, while
+        the image manifest declares itself SYNTHETIC. What matters is that no fixture
+        file is silent about being invented.
+        """
+        markers = ("FIXTURE", "SYNTHETIC")
         for path in sorted(fixtures_dir.rglob("*.jsonl")) + sorted(
             fixtures_dir.rglob("*.json")
         ):
             text = path.read_text(encoding="utf-8")
-            assert "FIXTURE" in text, f"{path.name} carries no synthetic marker"
+            assert any(m in text for m in markers), (
+                f"{path.relative_to(fixtures_dir)} carries no synthetic marker "
+                f"(expected one of {markers})"
+            )

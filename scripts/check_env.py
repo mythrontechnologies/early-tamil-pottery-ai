@@ -24,7 +24,7 @@ REQUIRED = [
     ("yaml", "PyYAML", "M1"),
     ("jsonschema", "jsonschema", "M1"),
     ("PIL", "pillow", "M3"),
-    ("cv2", "opencv-python", "M3"),
+    ("cv2", "opencv-python", "M6"),
     ("torch", "torch", "M4"),
     ("torchvision", "torchvision", "M4"),
     ("sklearn", "scikit-learn", "M5"),
