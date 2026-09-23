@@ -78,6 +78,17 @@ chronology:
   # How the dating stage combines the above when a record's own evidence is insufficient.
   fallback_policy: union_of_cited_positions   # never a midpoint, never a bare percentage
 
+  # Milestone 7. Named periods the reasoning layer may use as LABELS for an estimated
+  # range. A label never dates an object; it describes where an evidence-based range falls.
+  periods:
+    - id: early_historic_tamil_nadu
+      label: "Early Historic Tamil Nadu"
+      lower_year: -300          # "approximately 3rd century BCE" (CHRONOLOGICAL_SCOPE §3)
+      upper_year: 400           # "3rd/4th century CE" (ibid.); sometimes extended to c. 600 CE
+      note: "Conventional range; the literary 'Sangam age' is a separate, non-archaeological periodisation."
+      verification_status: unverified
+      source_ref: "docs/CHRONOLOGICAL_SCOPE.md#3"
+
 # ---------------------------------------------------------------------------
 # Milestone 4 classifier
 # ---------------------------------------------------------------------------

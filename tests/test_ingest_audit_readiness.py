@@ -192,6 +192,35 @@ class TestAudit:
         assert report.records_with_dating == 1
         assert report.records_with_dating_basis == 1
 
+    @pytest.mark.parametrize("basis", [["not_available"], ["unknown"], ["not_applicable"],
+                                       ["unknown", "not_available"], [], None])
+    def test_sentinel_dating_basis_is_not_evidence(self, make_record, basis):
+        """Milestone 7 regression: a sentinel basis is the absence of a basis."""
+        from src.dataset.audit import has_dating_evidence_basis
+
+        rec = make_record(dating_basis=basis) if basis is not None else make_record(dating_basis=...)
+        assert not has_dating_evidence_basis(rec)
+        assert audit([rec]).records_with_dating_basis == 0
+
+    @pytest.mark.parametrize("basis", [["palaeography"], ["not_available", "stratigraphy"]])
+    def test_real_dating_basis_is_counted(self, make_record, basis):
+        from src.dataset.audit import has_dating_evidence_basis
+
+        assert has_dating_evidence_basis(make_record(dating_basis=basis))
+
+    def test_audit_does_not_modify_records(self, make_record):
+        rec = make_record(dating_basis=["not_available"])
+        before = json.dumps(rec, sort_keys=True)
+        audit([rec])
+        assert json.dumps(rec, sort_keys=True) == before
+
+    def test_live_dataset_counts_no_dating_basis(self, live_research):
+        """All 30 acquired records carry dating_basis=['not_available']."""
+        report = audit(live_research["records"])
+        assert report.records_with_dating_basis == sum(
+            1 for r in live_research["records"]
+            if any(b not in ("unknown", "not_available", "not_applicable") for b in r["dating_basis"]))
+
     def test_validation_summary_folded_in(self, base_record):
         from src.dataset.validation import validate_records
 

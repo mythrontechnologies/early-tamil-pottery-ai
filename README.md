@@ -6,8 +6,9 @@ inscriptions and graffiti.
 > **This system provides AI-assisted archaeological analysis and is not a substitute for expert
 > epigraphic or archaeological assessment.**
 
-**Status: Milestones 1–6 complete — structure, schema, ingestion/validation, preprocessing,
-data source audit, dataset & training framework, public dataset acquisition.**
+**Status: Milestones 1–7 complete — structure, schema, ingestion/validation, preprocessing,
+data source audit, dataset & training framework, public dataset acquisition, annotation &
+archaeological reasoning layer.**
 The project holds **30 real, openly licensed photographs of Tamil Nadu archaeological pottery**
 (17 artifacts), but **none carries an expert label**, so there is **no trained model**. The
 system cannot analyse an image yet, and no part of it should be presented as if it could.
@@ -48,7 +49,8 @@ An LLM-generated explanation is not evidence and is never presented as such.
 | Verified references | **0** — see [`docs/CHRONOLOGICAL_SCOPE.md`](docs/CHRONOLOGICAL_SCOPE.md) |
 | Models | none — the training framework exists and has never run on data |
 | Training ready | **false** — blocked by `src/dataset/readiness.py` (gates G1–G11) |
-| Tests | 453 passing |
+| Annotations | **0** — annotation tool and evidence-based reasoning layer ready ([`docs/ANNOTATION_GUIDE.md`](docs/ANNOTATION_GUIDE.md)) |
+| Tests | 569 passing |
 
 No dataset has been fabricated. A synthetic pottery corpus would produce a model that is confident
 and baseless — the exact failure this project exists to avoid.
@@ -99,6 +101,16 @@ python -m src.acquisition plan configs/acquisition/milestone6_wikimedia_commons.
 python -m src.acquisition registry                # what has been acquired, by licence and scope
 ```
 
+### Annotation and reasoning commands
+
+```bash
+streamlit run app/annotate.py                     # annotation interface (append-only)
+python -m src.annotation validate                 # rules N1-N13 + knowledge base K1-K5
+python -m src.annotation summary                  # per-artifact status, disagreements
+python -m src.annotation quality                  # technical quality vs archaeological usability
+python -m src.reasoning analyze <artifact_id>     # evidence-based identification / reading / age
+```
+
 ### Training and evaluation commands
 
 ```bash
@@ -143,16 +155,21 @@ early-tamil-pottery-ai/
 │       └── schema/
 │           ├── image_record.schema.json    ← the contract
 │           └── _example_record.json        ← fictitious structural example
-├── knowledge/                structured KB (Milestone 11) — dirs only, empty
+├── knowledge/                referenced knowledge base (references, sites, scripts, published readings)
 ├── src/
 │   ├── dataset/              ingestion, validation, loader, splits, sampling, stats, gate
 │   ├── preprocessing/        loader, transforms, quality, pipeline
 │   ├── acquisition/          licence policy, Commons adapter, provenance, acquisition pipeline
+│   ├── annotation/           annotation schema rules, append-only store, resolution, UI helpers
+│   ├── reasoning/            deterministic evidence-based analysis (engine, inputs, CLI)
+│   ├── dating/               signed-year chronology (no year 0), evidence-based age ranges
+│   ├── translation/          interpretation: "no translation established" unless sourced
+│   ├── knowledge/            knowledge-base loader and validator
 │   ├── training/             config, augmentation, model, engine, checkpoints, experiments
 │   ├── evaluation/           metrics, artifact aggregation, blocked reports
 │   ├── classification/  detection/  ocr/
 │   ├── translation/     dating/     knowledge/
-├── app/                      Streamlit UI (Milestone 12) — not built
+├── app/annotate.py           Streamlit annotation interface
 ├── configs/project.yaml      chronology, classes, splits, integrity gates
 ├── configs/training.yaml     model, optimiser, augmentation, runtime (untuned defaults)
 ├── configs/acquisition/      curated acquisition plans (no licences: those are read from the source)
@@ -181,7 +198,10 @@ early-tamil-pottery-ai/
     ├── MILESTONE_5_REPORT.md
     ├── DATA_ACQUISITION.md      acquisition procedure, policy A1-A9, provenance
     ├── PUBLIC_DATASET_AUDIT.md  every source searched, accepted and rejected, with reasons
-    └── MILESTONE_6_REPORT.md
+    ├── MILESTONE_6_REPORT.md
+    ├── ANNOTATION_GUIDE.md      what to label and what not to
+    ├── ARCHAEOLOGICAL_REASONING.md  evidence hierarchy, dating, confidence, translation limits
+    └── MILESTONE_7_REPORT.md
 ```
 
 Data files are git-ignored; **the metadata describing them is committed**, so the dataset is
@@ -252,6 +272,7 @@ checks them against the physical publications.
 | 4 | Research data acquisition & source audit | ✅ **complete** — no data acquired; permission request is the next action |
 | 5 | Dataset & training framework | ✅ **complete** — loader, splits, gates, trainer, metrics; never run on data |
 | 6 | Public dataset acquisition | ✅ **complete** — 30 research + 15 supporting images, all openly licensed, none labelled |
+| 7 | Annotation + archaeological reasoning layer | ✅ **complete** — annotation UI, multi-annotator store, evidence-based reasoning; 0 annotations |
 | — | Classifier training *(originally M4)* | blocked on authorised data |
 | — | Evaluation and error analysis *(originally M5)* | infrastructure built; blocked on data |
 | — | Inscription-region detection *(originally M6)* | blocked |
@@ -277,7 +298,7 @@ Verified on this machine, 2026-09-23:
 | Python | 3.13.7 (3.10 also available) |
 | GPU | NVIDIA RTX 4050 Laptop, 6 GiB |
 | torch | `2.14.0+cu126` in `.venv` — **CUDA available: True** |
-| `.venv` | fully provisioned; all 453 tests run from it |
+| `.venv` | fully provisioned; all 569 tests run from it |
 
 Use `.venv\Scripts\python.exe`, not the global interpreter. The dataset layer needs only
 the standard library plus `jsonschema` and `PyYAML`; preprocessing adds Pillow and NumPy.

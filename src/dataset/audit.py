@@ -13,7 +13,7 @@ from dataclasses import asdict, dataclass, field as dc_field
 from pathlib import Path
 from typing import Any
 
-from .schema import RESEARCH_RECORDS_PATH, has_real_value
+from .schema import RESEARCH_RECORDS_PATH, SENTINELS, has_real_value
 from .validation import ValidationResult
 
 #: Fields whose population is worth counting in the audit.
@@ -128,6 +128,19 @@ class AuditReport:
         return "\n".join(lines)
 
 
+def has_dating_evidence_basis(record: dict[str, Any]) -> bool:
+    """True only when ``dating_basis`` names at least one actual kind of evidence.
+
+    Milestone 7 fix: ``["not_available"]``, ``["unknown"]`` and ``["not_applicable"]``
+    (and any list made only of sentinels) mean *no* basis and are not counted. This
+    changes counting only; it never reinterprets or edits a record.
+    """
+    basis = record.get("dating_basis")
+    if not isinstance(basis, list):
+        return False
+    return any(isinstance(b, str) and b not in SENTINELS for b in basis)
+
+
 def is_research_source(path: Path | str) -> bool:
     """True only for the one canonical research dataset file."""
     try:
@@ -184,8 +197,7 @@ def audit(
         ):
             report.records_with_dating += 1
 
-        basis = rec.get("dating_basis")
-        if isinstance(basis, list) and basis and basis != ["unknown"]:
+        if has_dating_evidence_basis(rec):
             report.records_with_dating_basis += 1
 
     report.unique_artifacts = len(artifacts)

@@ -1,0 +1,15 @@
+# Knowledge base: scripts. Chronology is NOT duplicated here: the competing positions on
+# the earliest Tamil-Brahmi live in configs/project.yaml (chronology.tamil_brahmi_earliest_positions)
+# and are read from there by src/dating.
+
+kind: scripts
+entries:
+  - id: tamil_brahmi
+    names: ["Tamil-Brahmi", "Tamiḻi", "Damili"]
+    project_label: tamil_brahmi
+    chronology: "configs/project.yaml#chronology.tamil_brahmi_earliest_positions (competing, unverified positions)"
+    assertions:
+      - statement: "The script is also called Tamiḻi or Damili in the literature; the 2026 TNSDA corpus uses 'Tamiḻi'."
+        reference_ids: [S01]
+        locator: "Vol. II, preface"
+        verification_status: transcribed_unverified

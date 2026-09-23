@@ -1,0 +1,38 @@
+# Knowledge base: published readings of pottery inscriptions, transcribed VERBATIM as
+# printed in sources the project read. These are reference points for future annotation
+# and benchmarking. They are NOT linked to any image in this project, and NOT labels.
+
+kind: inscriptions
+entries:
+  - id: s03_keeladi_sathan
+    site: keezhadi
+    reading_as_printed: "sathan"
+    context_as_printed: "Layer 4, depth 2.16 m (ASI Keeladi, Locality II)"
+    interpretation_as_printed: "personal name (the article describes the inscriptions as names of individuals)"
+    reference_ids: [S03]
+    verification_status: transcribed_unverified
+  - id: s03_keeladi_eravathan
+    site: keezhadi
+    reading_as_printed: "eravathan"
+    context_as_printed: "Layer 5, depth 2.36 m; red ware lid (ASI Keeladi, Locality II)"
+    interpretation_as_printed: "personal name"
+    reference_ids: [S03]
+    locator: "Fig. 16"
+    verification_status: transcribed_unverified
+  - id: s03_keeladi_fig17
+    site: keezhadi
+    reading_as_printed: "ce n ta n a va (ta) thi"
+    context_as_printed: "black-and-red ware dish (ASI Keeladi)"
+    interpretation_as_printed: "not stated"
+    reference_ids: [S03]
+    locator: "Fig. 17"
+    verification_status: transcribed_unverified
+  - id: s01_kodumanal_visaki
+    site: kodumanal
+    reading_as_printed: "visāki"
+    alternative_readings_as_printed: ["visākanan (re-reading)"]
+    context_as_printed: "from a transepted cist"
+    interpretation_as_printed: "not stated"
+    reference_ids: [S01]
+    locator: "Vol. I, ch. 2"
+    verification_status: transcribed_unverified

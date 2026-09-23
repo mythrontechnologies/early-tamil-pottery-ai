@@ -1,0 +1,234 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://early-tamil-pottery-ai/schema/annotation.schema.json",
+  "title": "Early Tamil Pottery AI - Artifact Annotation",
+  "description": "One annotation of one ARTIFACT by one annotator at one time (Milestone 7). Annotations are APPEND-ONLY: a revision is a new record that names the one it supersedes; nothing is overwritten. Several annotators may annotate the same artifact; their records coexist so disagreement can be analysed. Source metadata (data/metadata/records.jsonl) and acquisition provenance are NEVER modified by annotation. Missing information uses the sentinels 'unknown' (not determined), 'not_available' (no information to determine it from) and 'not_applicable' (the question does not apply). Enumerated categories marked 'project annotation category' are working vocabulary for annotators, not archaeological classifications established in the literature.",
+  "annotation_schema_version": "1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+
+  "$defs": {
+    "text": { "type": "string", "minLength": 1 },
+    "sentinel": { "enum": ["unknown", "not_available", "not_applicable"] },
+    "yes_no_uncertain_unknown": { "enum": ["yes", "no", "uncertain", "unknown", "not_applicable"] },
+    "confidence": {
+      "description": "Annotator's confidence in the specific value. 'unknown' when not assessed.",
+      "enum": ["high", "moderate", "low", "very_low", "unknown", "not_applicable"]
+    },
+    "signed_year": {
+      "description": "Signed year: negative = BCE, positive = CE, no year 0. null = bound not established.",
+      "type": ["integer", "null"], "minimum": -3000, "maximum": 2100, "not": { "const": 0 }
+    },
+    "provenance_type": {
+      "description": "WHO asserts the values in this record. source_information = a project annotator transcribing what a cited source says (requires references). project_annotation = the project's own annotator examining the image. expert_annotation = a qualified archaeologist/epigraphist. ai_prediction = model output; never a label.",
+      "enum": ["source_information", "project_annotation", "expert_annotation", "ai_prediction"]
+    },
+    "ref_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$" },
+
+    "region": {
+      "type": "object", "additionalProperties": false,
+      "description": "A rectangle on one photograph, NORMALISED to that image: x, y (top-left) and width, height as fractions of the image width/height, measured on the original stored image in data/raw (EXIF orientation applied).",
+      "required": ["image_id", "x", "y", "width", "height", "label"],
+      "properties": {
+        "image_id": { "$ref": "#/$defs/text" },
+        "x": { "type": "number", "minimum": 0, "maximum": 1 },
+        "y": { "type": "number", "minimum": 0, "maximum": 1 },
+        "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "height": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "label": { "enum": ["inscription", "graffiti", "possible_inscription", "decoration_non_script", "damage", "other"] },
+        "note": { "$ref": "#/$defs/text" }
+      }
+    },
+
+    "alternative_reading": {
+      "type": "object", "additionalProperties": false,
+      "required": ["reading", "source"],
+      "properties": {
+        "reading": { "$ref": "#/$defs/text" },
+        "source": { "description": "ref_id of the reference proposing it, or 'this_annotator'.", "$ref": "#/$defs/text" },
+        "note": { "$ref": "#/$defs/text" }
+      }
+    },
+
+    "linguistic_feature": {
+      "type": "object", "additionalProperties": false,
+      "required": ["feature_type", "observation", "confidence", "source_reference"],
+      "properties": {
+        "feature_type": { "enum": ["word_form", "orthography", "phonology", "morphology", "vocabulary", "grammatical_feature"] },
+        "observation": { "$ref": "#/$defs/text" },
+        "significance": { "$ref": "#/$defs/text" },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "source_reference": { "description": "ref_id, or 'annotator_observation'.", "$ref": "#/$defs/text" }
+      }
+    },
+
+    "dating_evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["evidence_id", "evidence_type", "observation", "confidence", "source_reference"],
+      "properties": {
+        "evidence_id": { "type": "string", "pattern": "^E[0-9]{1,3}$" },
+        "evidence_type": {
+          "enum": ["palaeography", "linguistics", "pottery_typology", "archaeological_context",
+                   "stratigraphy", "absolute_dating", "associated_material", "historical_reference",
+                   "comparative_inscription"]
+        },
+        "observation": { "description": "What was observed, in words.", "$ref": "#/$defs/text" },
+        "supports_start_year": { "$ref": "#/$defs/signed_year" },
+        "supports_end_year": { "$ref": "#/$defs/signed_year" },
+        "supports": { "description": "What the observation supports, in words (e.g. 'consistent with the late forms in R1 table X').", "$ref": "#/$defs/text" },
+        "association": {
+          "description": "For stratigraphy/absolute_dating: how securely the dated material is tied to THIS object (docs/CHRONOLOGICAL_SCOPE.md Position D).",
+          "enum": ["direct", "same_context_secure", "same_context_insecure", "not_established", "not_applicable"]
+        },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "source_reference": { "description": "ref_id in this annotation's references, or 'annotator_observation'.", "$ref": "#/$defs/text" }
+      }
+    },
+
+    "reference": {
+      "type": "object", "additionalProperties": false,
+      "required": ["ref_id", "citation", "verification_status"],
+      "properties": {
+        "ref_id": { "$ref": "#/$defs/ref_id" },
+        "citation": { "$ref": "#/$defs/text" },
+        "locator": { "description": "Page, plate, figure, catalogue number.", "$ref": "#/$defs/text" },
+        "verification_status": {
+          "description": "verified_against_source = a human checked the claim in the physical publication. bibliographic_only = the work exists; the claim is not checked. unverified = neither.",
+          "enum": ["verified_against_source", "bibliographic_only", "unverified"]
+        }
+      }
+    },
+
+    "image_usability": {
+      "type": "object", "additionalProperties": false,
+      "description": "ARCHAEOLOGICAL usability of one photograph, judged by the annotator. Deliberately separate from the technical quality flags computed by preprocessing.",
+      "required": ["image_id"],
+      "properties": {
+        "image_id": { "$ref": "#/$defs/text" },
+        "sherd_visible": { "$ref": "#/$defs/yes_no_uncertain_unknown" },
+        "inscription_visible": { "$ref": "#/$defs/yes_no_uncertain_unknown" },
+        "characters_readable": { "$ref": "#/$defs/yes_no_uncertain_unknown" },
+        "morphology_visible": { "$ref": "#/$defs/yes_no_uncertain_unknown" },
+        "usable_for_annotation": { "$ref": "#/$defs/yes_no_uncertain_unknown" },
+        "note": { "$ref": "#/$defs/text" }
+      }
+    }
+  },
+
+  "required": ["annotation_schema_version", "annotation_id", "artifact_id", "image_ids",
+               "provenance_type", "annotator", "created_utc", "supersedes", "review_state",
+               "object", "inscription", "interpretation", "dating"],
+
+  "properties": {
+    "annotation_schema_version": { "type": "string", "pattern": "^1\\.[0-9]+\\.[0-9]+$" },
+    "annotation_id": { "type": "string", "pattern": "^ann_[a-f0-9]{16}$" },
+    "artifact_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{2,127}$" },
+    "image_ids": { "description": "Photographs of the artifact the annotator examined.", "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/text" } },
+    "provenance_type": { "$ref": "#/$defs/provenance_type" },
+    "annotator": {
+      "type": "object", "additionalProperties": false,
+      "required": ["annotator_id", "role"],
+      "properties": {
+        "annotator_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.@-]{1,63}$" },
+        "role": { "enum": ["project_annotator", "expert", "ai_model"] },
+        "qualification": { "description": "For experts: stated qualification and affiliation. Self-declared; recorded, not verified by software.", "$ref": "#/$defs/text" }
+      }
+    },
+    "created_utc": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+(Z|\\+00:00)$" },
+    "supersedes": { "description": "annotation_id this record revises (same annotator, same artifact), or null.", "type": ["string", "null"] },
+    "review_state": {
+      "description": "unreviewed | project_reviewed | expert_reviewed | disputed. Only expert_reviewed expert annotations can ever become ground truth.",
+      "enum": ["unreviewed", "project_reviewed", "expert_reviewed", "disputed"]
+    },
+
+    "object": {
+      "type": "object", "additionalProperties": false,
+      "required": ["object_type", "pottery_type"],
+      "properties": {
+        "object_type": { "enum": ["pottery_sherd", "complete_vessel", "lid", "ring_stand", "other", "unknown", "not_available"] },
+        "pottery_type": {
+          "description": "Same vocabulary as image_record.pottery_type (kept identical by a test).",
+          "enum": ["black_and_red_ware", "black_ware", "red_ware", "red_slipped_ware", "russet_coated_painted_ware",
+                   "rouletted_ware", "coarse_red_ware", "grey_ware", "amphora", "terra_sigillata", "other",
+                   "unknown", "not_available"]
+        },
+        "fabric": { "$ref": "#/$defs/text" },
+        "surface": { "$ref": "#/$defs/text" },
+        "manufacturing_characteristics": { "$ref": "#/$defs/text" },
+        "colour": { "$ref": "#/$defs/text" },
+        "decoration": { "$ref": "#/$defs/text" },
+        "condition": { "$ref": "#/$defs/text" }
+      }
+    },
+
+    "inscription": {
+      "type": "object", "additionalProperties": false,
+      "required": ["inscription_present", "inscription_type", "script_type", "script_confidence",
+                   "reading", "reading_confidence", "reading_source"],
+      "properties": {
+        "inscription_present": {
+          "description": "'uncertain' = examined, cannot tell. 'unknown' = not examined / not determined.",
+          "enum": ["yes", "no", "uncertain", "unknown"]
+        },
+        "inscription_type": {
+          "description": "PROJECT ANNOTATION CATEGORY describing what the mark does, where the annotator can tell. Not an established archaeological typology.",
+          "enum": ["personal_name", "word", "mark", "graffiti", "donative", "ownership", "symbol",
+                   "uncertain", "unknown", "not_applicable"]
+        },
+        "script_type": {
+          "description": "Same vocabulary as image_record.script_type (kept identical by a test).",
+          "enum": ["tamil_brahmi", "graffiti", "tamil_brahmi_and_graffiti", "none", "uncertain", "other_script", "unknown"]
+        },
+        "script_confidence": { "$ref": "#/$defs/confidence" },
+        "regions": { "type": "array", "items": { "$ref": "#/$defs/region" } },
+        "characters_visible": { "description": "Count of distinct characters/marks visible; null = not counted.", "type": ["integer", "null"], "minimum": 0 },
+        "reading": { "description": "Reading in Tamil script or Brahmi Unicode as the annotator/source gives it; editorial conventions preserved.", "$ref": "#/$defs/text" },
+        "transliteration": { "$ref": "#/$defs/text" },
+        "transliteration_scheme": { "enum": ["iso_15919", "mahadevan_2003", "other", "unknown", "not_available", "not_applicable"] },
+        "alternative_readings": { "type": "array", "items": { "$ref": "#/$defs/alternative_reading" } },
+        "reading_confidence": { "$ref": "#/$defs/confidence" },
+        "reading_source": { "description": "ref_id, 'this_annotator', or a sentinel.", "$ref": "#/$defs/text" }
+      }
+    },
+
+    "interpretation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["interpretation_type", "translation", "meaning", "translation_confidence", "translation_source"],
+      "properties": {
+        "interpretation_type": {
+          "description": "PROJECT ANNOTATION CATEGORY. 'not_translatable' = a reading exists but is not a translatable text (e.g. a sign). 'not_applicable' = there is no reading.",
+          "enum": ["lexical_word", "personal_name", "place_name", "title", "phrase", "symbol",
+                   "uncertain", "not_translatable", "unknown", "not_applicable"]
+        },
+        "translation": { "description": "English rendering, or a sentinel. A personal name takes 'not_applicable'.", "$ref": "#/$defs/text" },
+        "meaning": { "description": "Explanation in words, e.g. 'Proper name; no literal translation established.'", "$ref": "#/$defs/text" },
+        "translation_confidence": { "$ref": "#/$defs/confidence" },
+        "translation_source": { "$ref": "#/$defs/text" }
+      }
+    },
+
+    "linguistic_features": { "type": "array", "items": { "$ref": "#/$defs/linguistic_feature" } },
+
+    "dating": {
+      "type": "object", "additionalProperties": false,
+      "required": ["estimated_start_year", "estimated_end_year", "dating_confidence", "dating_basis", "dating_evidence"],
+      "properties": {
+        "estimated_start_year": { "$ref": "#/$defs/signed_year" },
+        "estimated_end_year": { "$ref": "#/$defs/signed_year" },
+        "dating_confidence": { "$ref": "#/$defs/confidence" },
+        "dating_basis": {
+          "type": "array", "minItems": 1,
+          "items": { "enum": ["palaeography", "linguistics", "pottery_typology", "archaeological_context",
+                              "stratigraphy", "absolute_dating", "associated_material", "historical_reference",
+                              "comparative_inscription", "not_available", "unknown"] }
+        },
+        "dating_evidence": { "type": "array", "items": { "$ref": "#/$defs/dating_evidence" } }
+      }
+    },
+
+    "image_usability": { "type": "array", "items": { "$ref": "#/$defs/image_usability" } },
+    "references": { "type": "array", "items": { "$ref": "#/$defs/reference" } },
+    "uncertainty_notes": { "$ref": "#/$defs/text" },
+    "notes": { "$ref": "#/$defs/text" }
+  }
+}
