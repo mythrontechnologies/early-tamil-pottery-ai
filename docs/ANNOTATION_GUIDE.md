@@ -3,7 +3,7 @@
 **For:** anyone annotating artifacts in this project: project annotators and experts.
 **Tool:** `streamlit run app/annotate.py`
 **Store:** `data/metadata/annotations/annotations.jsonl` (append-only; created on first save)
-**Schema:** `data/metadata/schema/annotation.schema.json`; rules N1–N13
+**Schema:** `data/metadata/schema/annotation.schema.json`; rules N1–N14
 (`python -m src.annotation rules`)
 
 > **The one rule.** Record what *you* can see or what a *cited source* says, and nothing
@@ -105,7 +105,10 @@ Keeladi's site-level AMS dates for an object whose context is not recorded.
 
 ### References
 Each needs a `ref_id`, a citation, a locator (page, plate, figure) and a verification status:
-- `verified_against_source`: you checked the claim in the physical publication;
+- `verified_against_source`: **only** if the verification registry records a human check of
+  this reference (`python -m src.knowledge status`). Rule N14 rejects a self-declared
+  `verified_against_source`, and the reasoning layer uses the registry's status either way
+  (Milestone 8, §7 below);
 - `bibliographic_only`: the work exists, the claim is not checked;
 - `unverified`.
 
@@ -145,11 +148,77 @@ usable, and a sharp one may show nothing. Do not skip photos because of a techni
 ## 6. After annotating
 
 ```powershell
-python -m src.annotation validate     # N1-N13 over the whole store + knowledge base K1-K5
+python -m src.annotation validate     # N1-N14 over the whole store + knowledge base K1-K5
 python -m src.annotation summary      # status and disagreements per artifact
 python -m src.reasoning analyze <artifact_id>   # what the reasoning layer concludes, and why
 ```
 
 Annotations do **not** change the training records. `script_type` in `records.jsonl` stays
-`unknown`, and training stays blocked, until expert labels are promoted in a separate,
-deliberate step (planned for Milestone 8).
+`unknown` until an expert label is promoted by the explicit, reviewed process in §9.
+
+## 7. The Milestone 8 pilot: six Keezhadi close-ups
+
+The pilot artifacts are `WMC_KEELADI_MUS_SHERD_105` … `_110` (Wikimedia Commons
+"Keeladi-archeological-site-photos" 105–110), listed in `configs/project.yaml`
+`annotation_pilot`. The sidebar's **"Pilot artifacts only"** box (on by default) restricts the
+artifact list to them.
+
+**They are not assumed to be Tamil-Brahmi.** For each one, decide from the photograph:
+
+| Decide | Values |
+|---|---|
+| inscription present | `yes` / `no` / `uncertain` |
+| script type | `tamil_brahmi`, `graffiti`, `tamil_brahmi_and_graffiti`, `none`, `uncertain`, `other_script` |
+| inscription region(s) | mark every mark you can see |
+| reading | **only if supported**; with alternatives and a confidence |
+| interpretation / inscription type | only if a reading supports it |
+| linguistic observations | with a source |
+| dating evidence | per item, with a source; **never** from the uploader's caption |
+| references | knowledge-base ids where they apply |
+| image usability | every photograph |
+| confidence and review state | experts: `expert_reviewed` when finished, `disputed` if unsure it can be settled |
+
+The uploader's caption for these photos dates the Keeladi deposit as a whole. That is a
+site-level statement. It is not a date for any of these sherds, and must not be entered as one.
+
+Two annotators per artifact are required: a **project annotator** and an **expert**, working
+independently. Do not look at each other's annotation before saving your own. Progress:
+
+```powershell
+python -m src.annotation pilot        # which tier is missing, which checklist items are unmet
+```
+
+The checklist asks whether presence and script are decided, a region is marked when an
+inscription is present, every photograph's usability is assessed, and (for experts) a review
+state is set. A reading is **not** on the checklist.
+
+## 8. Agreement
+
+```powershell
+python -m src.annotation agreement                 # project annotator vs expert, pilot artifacts
+python -m src.annotation agreement --rater-a ID1 --rater-b ID2
+```
+
+Each field gets its own measure. Presence, script, inscription type and interpretation type
+get raw agreement, a confusion matrix and Cohen's κ. Regions get IoU. Readings get exact match
+and character similarity. Dating evidence types get Jaccard. `unknown` is excluded from the
+comparison and counted as such. With six artifacts, κ is printed beside the raw counts but
+marked **not interpretable** (the threshold is `agreement.min_items_for_kappa`, 30). Agreement
+**never resolves** a disagreement. The artifact's resolution status is unchanged, and every
+disagreeing item is listed for an expert to settle.
+
+## 9. From expert annotation to training label (promotion)
+
+Only an expert can resolve a disagreement, by saving a revised annotation of their own. When
+an artifact's status is `expert_label`, it can be promoted:
+
+```powershell
+python -m src.annotation promote --pilot           # DRY RUN (default): before -> after, checks P1-P9
+python -m src.annotation promote --execute --approve <plan_digest> --approver <your id>
+python -m src.annotation promote --log             # audit trail
+python -m src.annotation promote --revert <promotion_id>   # dry run; add --execute --approve ...
+```
+
+Never promoted: disputed artifacts, project-only labels, AI predictions, experts without a
+stated qualification, and anything that would overwrite a label from another source. Expert
+readings or dates that differ are recorded as disputed, with every position kept.

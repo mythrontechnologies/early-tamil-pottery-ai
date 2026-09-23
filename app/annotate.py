@@ -1,4 +1,4 @@
-"""Annotation interface (Milestone 7).
+"""Annotation interface (Milestones 7-8).
 
     streamlit run app/annotate.py
 
@@ -7,6 +7,10 @@ inscription, reading, interpretation, linguistic features, dating evidence, refe
 image usability and uncertainty, then save. Saving APPENDS a new annotation record; it never
 edits source metadata or another annotator's record. Review previous annotations,
 disagreements and the reasoning output in the "Review" tab.
+
+Milestone 8 additions, and nothing more: a "pilot artifacts only" filter (the six Keezhadi
+close-ups by default), a gallery of every photograph of the selected artifact, a read-only
+table of the references' EFFECTIVE verification status, and a "Pilot & agreement" tab.
 
 The annotation store path can be overridden with ETPAI_ANNOTATIONS_PATH (used by tests).
 """
@@ -22,13 +26,17 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import streamlit as st
+from PIL import Image, ImageOps
 
+from src.annotation.agreement import compute_agreement, render_agreement
 from src.annotation.form import build_annotation, crop_view, draw_regions
 from src.annotation.model import ANNOTATIONS_PATH, load_annotation_schema
+from src.annotation.pilot import load_pilot, pilot_status, render_pilot
 from src.annotation.resolve import resolve_artifact
 from src.annotation.store import AnnotationRejected, AnnotationStore
 from src.dataset.convert import read_jsonl
 from src.dataset.schema import RESEARCH_DATA_ROOT, RESEARCH_RECORDS_PATH
+from src.knowledge.verification import effective_statuses, key_references
 from src.preprocessing.loader import load_image
 from src.preprocessing.transforms import apply_exif_orientation, to_rgb
 from src.reasoning.engine import analyze_artifact, render_text
@@ -43,6 +51,16 @@ YNU = D["yes_no_uncertain_unknown"]["enum"]
 
 def enum(section: str, field: str) -> list[str]:
     return P[section]["properties"][field]["enum"]
+
+
+@st.cache_data(show_spinner=False)
+def thumbnail(path: str, size: int = 360) -> Image.Image:
+    """A small copy for the gallery; the stored image is only read."""
+    with Image.open(path) as im:
+        im.draft("RGB", (size * 2, size * 2))
+        out = ImageOps.exif_transpose(im).convert("RGB")
+    out.thumbnail((size, size))
+    return out
 
 
 st.set_page_config(page_title="Pottery annotation", layout="wide")
@@ -72,7 +90,16 @@ with st.sidebar:
     qualification = ""
     if provenance_type == "expert_annotation":
         qualification = st.text_input("Qualification and affiliation (required for experts)")
-    artifact_id = st.selectbox("Artifact", sorted(by_artifact),
+    try:
+        pilot = load_pilot()
+    except ValueError:
+        pilot = None
+    pilot_ids = [a for a in (pilot.artifacts if pilot else ()) if a in by_artifact]
+    pilot_only = st.checkbox("Pilot artifacts only", value=bool(pilot_ids), disabled=not pilot_ids,
+                             help="The Milestone 8 pilot: six Keezhadi incised-sherd close-ups. "
+                                  "Not assumed to be Tamil-Brahmi.")
+    choices = pilot_ids if pilot_only and pilot_ids else sorted(by_artifact)
+    artifact_id = st.selectbox("Artifact", choices,
                                format_func=lambda a: f"{a}  ({len(by_artifact[a])} photo(s))")
 
 recs = by_artifact[artifact_id]
@@ -80,11 +107,19 @@ image_ids = [r["image_id"] for r in recs]
 st.session_state.setdefault("regions", {})
 regions: list[dict] = st.session_state["regions"].setdefault(artifact_id, [])
 
-tab_annotate, tab_review = st.tabs(["Annotate", "Review"])
+tab_annotate, tab_review, tab_pilot = st.tabs(["Annotate", "Review", "Pilot & agreement"])
 
 with tab_annotate:
     # -- photographs, zoom, regions ---------------------------------------------------
     st.subheader("Photographs")
+    with st.expander(f"All {len(recs)} photograph(s) of this artifact", expanded=len(recs) > 1):
+        cols = st.columns(min(len(recs), 4))
+        for i, r in enumerate(recs):
+            try:
+                cols[i % len(cols)].image(thumbnail(str(RESEARCH_DATA_ROOT / r["image_path"])),
+                                          caption=r["image_id"])
+            except OSError as exc:
+                cols[i % len(cols)].warning(f"{r['image_id']}: {exc}")
     st.caption("Source label (what the uploader said): " + " | ".join(sorted({r["notes"].split(
         "Source label (verbatim): ")[-1].split(". Artifact grouping")[0] for r in recs}))[:500])
     image_id = st.selectbox("Photograph", image_ids)
@@ -186,6 +221,9 @@ with tab_annotate:
         dating_confidence = dd3.selectbox("Dating confidence", CONF, index=CONF.index("unknown"))
 
         st.subheader("References")
+        st.caption("A reference is 'verified_against_source' only when the verification registry says "
+                   "so (python -m src.knowledge status); a self-declared status is rejected (rule N14). "
+                   "Cite knowledge-base ids (R1, S01, S03, ...) where they apply.")
         refs = st.data_editor([{"ref_id": "", "citation": "", "locator": "", "verification_status": "unverified"}],
                               num_rows="dynamic", key="refs",
                               column_config={"verification_status": st.column_config.SelectboxColumn(
@@ -241,6 +279,22 @@ with tab_annotate:
                 st.error("Not saved. Fix these problems:")
                 for p in exc.validation.problems:
                     st.write(f"- {p}")
+
+with tab_annotate, st.expander("Reference verification status (read-only)"):
+        keys = set(key_references())
+        st.dataframe([{"ref_id": rid, "key": rid in keys, "effective_status": s.effective_status,
+                       "verified_claims": len(s.verified_claims), "citation": s.citation}
+                      for rid, s in effective_statuses().items()])
+
+with tab_pilot:
+    if pilot is None:
+        st.info("No annotation pilot is configured (configs/project.yaml annotation_pilot).")
+    else:
+        all_current = store.current()
+        st.text(render_pilot(pilot_status(all_current, set(by_artifact), pilot)))
+        st.subheader("Agreement: project annotator vs expert")
+        st.caption("Agreement measures the annotators. It never resolves a disagreement.")
+        st.text(render_agreement(compute_agreement(all_current, pilot.artifacts)))
 
 with tab_review:
     current = store.current(artifact_id)

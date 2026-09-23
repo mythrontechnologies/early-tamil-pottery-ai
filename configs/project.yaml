@@ -191,3 +191,51 @@ preprocessing:
     low_contrast_std: 20.0
     clip_fraction: 0.05             # fraction of pixels at 0 or at 255
     max_aspect_ratio: 4.0
+
+# ---------------------------------------------------------------------------
+# Milestone 8 - expert annotation pilot, agreement, reference verification, promotion.
+# See docs/MILESTONE_8_REPORT.md. Nothing here is an archaeological claim.
+# ---------------------------------------------------------------------------
+annotation_pilot:
+  id: keezhadi_incised_sherds_m8
+  description: >-
+    Six Wikimedia Commons close-ups of incised sherds displayed at the Keezhadi site museum
+    ("Keeladi-archeological-site-photos" 105-110). Chosen because the photographs are close-ups
+    of marked sherds. They are NOT assumed to carry Tamil-Brahmi: presence, script, reading and
+    date are for the annotators to establish. The uploader's caption dates the Keeladi deposit
+    as a whole; that caption is a site-level statement, never a date for these objects.
+  artifacts:
+    - WMC_KEELADI_MUS_SHERD_105
+    - WMC_KEELADI_MUS_SHERD_106
+    - WMC_KEELADI_MUS_SHERD_107
+    - WMC_KEELADI_MUS_SHERD_108
+    - WMC_KEELADI_MUS_SHERD_109
+    - WMC_KEELADI_MUS_SHERD_110
+  # Each pilot artifact needs one current annotation from each of these provenance tiers.
+  required_tiers: [project_annotation, expert_annotation]
+
+agreement:
+  # Below this many paired items a chance-corrected statistic (Cohen's kappa) is still
+  # computed and shown beside the raw counts, but reported as NOT interpretable. This is an
+  # engineering convention for this project, not a statistical law: with a handful of items
+  # one changed judgement moves kappa by a large amount.
+  min_items_for_kappa: 30
+  # Two regions "match" when their intersection-over-union reaches this value.
+  region_iou_match: 0.5
+
+verification:
+  # References the Milestone 7 reasoning relies on. Verified only by a human against the
+  # physical or authorised publication; see knowledge/verification/README.md.
+  key_references: [R1, S01, S03]
+  registry: knowledge/verification/reference_verifications.jsonl
+
+promotion:
+  log: data/metadata/promotions/promotion_log.jsonl
+  # Record fields a promotion may write. Everything else (provenance, rights, image path,
+  # SHA-256, site, split, ...) is protected and checked unchanged before anything is written.
+  writable_fields: [inscription_present, script_type, label_source, label_confidence,
+                    inscription_regions, character_count_visible, transcription,
+                    transcription_encoding, transliteration, transliteration_scheme,
+                    translation_en, translation_ta, reading_status, alternative_readings, reading_source,
+                    dating_text, dating_lower_year, dating_upper_year, dating_basis,
+                    dating_reliability, dating_source, annotator, annotation_date, notes]

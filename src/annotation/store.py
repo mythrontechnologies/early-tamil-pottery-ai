@@ -57,19 +57,27 @@ class AnnotationStore:
         return [a for a in anns if a["annotation_id"] not in superseded]
 
     def validate(self, extra: list[dict[str, Any]] | None = None,
-                 knowledge_ref_ids: set[str] | None = None) -> AnnotationValidation:
+                 knowledge_ref_ids: set[str] | None = None,
+                 verified_ref_ids: set[str] | None = None) -> AnnotationValidation:
         return validate_annotations(self.all() + list(extra or []),
                                     artifact_images=artifact_images(self.records_path),
-                                    knowledge_ref_ids=knowledge_ref_ids)
+                                    knowledge_ref_ids=knowledge_ref_ids,
+                                    verified_ref_ids=verified_ref_ids)
 
-    def append(self, annotation: dict[str, Any], *, knowledge_ref_ids: set[str] | None = None
-               ) -> dict[str, Any]:
-        """Validate against the whole store, then append. Raises AnnotationRejected."""
+    def append(self, annotation: dict[str, Any], *, knowledge_ref_ids: set[str] | None = None,
+               verified_ref_ids: set[str] | None = None) -> dict[str, Any]:
+        """Validate against the whole store, then append. Raises AnnotationRejected.
+
+        Knowledge-base ids (N10) and registry-verified ids (N14) default to the live ones."""
         if knowledge_ref_ids is None:
             from src.knowledge.base import reference_ids
 
             knowledge_ref_ids = reference_ids()
-        result = self.validate([annotation], knowledge_ref_ids)
+        if verified_ref_ids is None:
+            from src.knowledge.verification import verified_ref_ids as _verified
+
+            verified_ref_ids = _verified()
+        result = self.validate([annotation], knowledge_ref_ids, verified_ref_ids)
         mine = [p for p in result.problems
                 if p.annotation_id in (annotation.get("annotation_id"), annotation.get("supersedes"))]
         if mine:

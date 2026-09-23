@@ -10,7 +10,13 @@ Layers, never merged, each value keeping its provenance:
 
 The reasoning basis is ONE human annotation, chosen by strength of provenance:
 expert_reviewed expert > other expert > source_information > project. Other annotators'
-views are not averaged in; disagreement is reported via ``annotation_status``.
+views are not averaged in; disagreement is reported via ``annotation_status``, and every
+human annotator's own dating range is passed through side by side (Milestone 8).
+
+Reference status is the EFFECTIVE status from the verification registry
+(``src.knowledge.verification``). An annotation cannot upgrade a reference by declaring it
+verified: a self-declared ``verified_against_source`` without a registry record is reported
+as ``unverified``.
 """
 
 from __future__ import annotations
@@ -23,6 +29,7 @@ from src.annotation.store import AnnotationStore
 from src.dataset.convert import read_jsonl
 from src.dataset.schema import RESEARCH_RECORDS_PATH
 from src.knowledge.base import default_kb
+from src.knowledge.verification import VERIFIED, effective_statuses
 
 from .types import (
     ArchaeologicalContext,
@@ -43,6 +50,38 @@ def _basis(current: list[dict[str, Any]]) -> dict[str, Any] | None:
     return min(humans, key=lambda a: (a["review_state"] != "expert_reviewed",
                                       PROVENANCE_RANK[a["provenance_type"]],
                                       a["created_utc"], a["annotation_id"]))
+
+
+def dating_positions(current: list[dict[str, Any]]) -> tuple[dict[str, Any], ...]:
+    """Each current human annotation's own dating range (or evidence), for side-by-side display."""
+    out = []
+    for a in sorted(current, key=lambda a: (a["annotator"]["annotator_id"], a["annotation_id"])):
+        d = a["dating"]
+        if a["provenance_type"] == "ai_prediction":
+            continue
+        if d["estimated_start_year"] is None and d["estimated_end_year"] is None and not d["dating_evidence"]:
+            continue
+        out.append({"annotation_id": a["annotation_id"], "annotator_id": a["annotator"]["annotator_id"],
+                    "provenance": a["provenance_type"], "start_year": d["estimated_start_year"],
+                    "end_year": d["estimated_end_year"],
+                    "basis": [b for b in d["dating_basis"] if b not in ("not_available", "unknown")],
+                    "confidence": d["dating_confidence"]})
+    return tuple(out)
+
+
+def _reference_infos(annotation: dict[str, Any] | None) -> dict[str, ReferenceInfo]:
+    kb = default_kb()
+    eff = effective_statuses(kb=kb)
+    refs = {rid: ReferenceInfo(rid, e["citation"], eff[rid].effective_status,
+                               tuple(v["claim"] for v in eff[rid].verified_claims))
+            for rid, e in kb.references.items()}
+    for r in (annotation or {}).get("references", []):
+        if r["ref_id"] in refs:                  # the registry, not the annotator, decides
+            continue
+        status = r["verification_status"]
+        refs[r["ref_id"]] = ReferenceInfo(r["ref_id"], r["citation"],
+                                          "unverified" if status == VERIFIED else status)
+    return refs
 
 
 def build_inputs(artifact_id: str, *, store: AnnotationStore | None = None,
@@ -74,17 +113,13 @@ def build_inputs(artifact_id: str, *, store: AnnotationStore | None = None,
                 "reading": x["inscription"]["reading"]}
                for x in current if x["provenance_type"] == "ai_prediction")
 
-    kb = default_kb()
-    refs: dict[str, ReferenceInfo] = {rid: ReferenceInfo(rid, e["citation"], e["verification_status"])
-                                      for rid, e in kb.references.items()}
     if a is None:
         return ReasoningInputs(artifact_id, VisualFeatures(source_label=" || ".join(labels) or "not_available"),
                                archaeological_context=ArchaeologicalContext(site, ctx_rel),
                                references={}, ai_predictions=ai, annotation_status=res.status)
 
+    refs = _reference_infos(a)
     pt = a["provenance_type"]
-    for r in a.get("references", []):
-        refs[r["ref_id"]] = ReferenceInfo(r["ref_id"], r["citation"], r["verification_status"])
     o, ins, it, d = a["object"], a["inscription"], a["interpretation"], a["dating"]
 
     def at(value: Any, conf: str = "unknown", src: str = "annotator_observation") -> Attributed:
@@ -123,7 +158,8 @@ def build_inputs(artifact_id: str, *, store: AnnotationStore | None = None,
         ai_predictions=ai,
         annotation_status=res.status,
         disagreements=res.disagreements,
+        annotator_dating_positions=dating_positions(current),
     )
 
 
-__all__ = ["build_inputs"]
+__all__ = ["build_inputs", "dating_positions"]

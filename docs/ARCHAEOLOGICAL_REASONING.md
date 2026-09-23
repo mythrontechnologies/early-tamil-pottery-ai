@@ -114,6 +114,19 @@ The overall level never exceeds the best individual evidence item's own confiden
 **Today every reference in the knowledge base is unverified, so nothing can exceed `low`.**
 That is intended.
 
+A reference's status is its **effective** status from the verification registry (Milestone 8,
+§8.1). An annotation that declares a knowledge-base reference `verified_against_source` does
+not change it. A local reference self-declared as verified is treated as `unverified`.
+When a verified reference is cited, the output lists **which claims** were verified. Other
+claims citing the same work remain unverified.
+
+### 3.7 Annotators' chronological positions (Milestone 8)
+The reasoning basis is still one annotation. Every current human annotator's own range is
+also passed through (`annotator_dating_positions`) and shown side by side. If the ranges
+differ, the output says "Conflicting chronological positions / requires expert resolution",
+lists each position with its provenance and basis, caps confidence at `low`, and **never
+averages** them or picks one.
+
 ### 3.6 Period label
 A range is described against `chronology.periods` in `project.yaml` (currently "Early
 Historic Tamil Nadu", about 300 BCE – 400 CE, **unverified**) as "within", "overlaps" or
@@ -140,8 +153,31 @@ Historic Tamil Nadu", about 300 BCE – 400 CE, **unverified**) as "within", "ov
 | **"No translation established."** | anything else, including any AI-generated gloss |
 
 ## 6. Output
-`render_text` produces the layout from the Milestone 7 brief: likely period, estimated age,
-script, reading, meaning, **WHY?** (every line traced to an input, evidence ids in brackets),
+`render_text` produces the layout from the Milestone 7 brief, extended in Milestone 8:
+**STATUS** (the fixed phrases "Insufficient evidence", "Disputed / requires expert
+resolution", "Alternative reading(s) recorded", "Conflicting chronological positions …"),
+likely period, estimated age, then a **DATING** block:
+
+```text
+DATING
+  Estimated period: approximately 200 BCE – 100 CE      (or: Insufficient evidence)
+  Basis: [E1] palaeography: …                           (only evidence actually used)
+  Confidence: low
+  Important uncertainty: conflicts, unused evidence, unverified references, disputes
+  Position: <annotator> (<provenance>): <range>; basis …; confidence …   (one line each)
+```
+
+`dating_summary.evidence_by_category` sorts the evidence into the seven categories:
+object/context (pottery typology, associated material), palaeographic (incl. comparative
+inscriptions), linguistic, archaeological context (incl. stratigraphy), absolute dating,
+publication attribution (every citation, with its effective verification status), and
+uncertainty. The word "approximately" appears only in front of an evidence-based range. The
+site's date, or an uploader's caption, is never an input.
+
+Then SCRIPT, **READING (transcription)** with transliteration and every alternative reading,
+**TRANSLATION** (the sourced translation, "Not applicable (proper name)", or "No translation
+established.") kept apart from **INTERPRETATION** (what the inscription appears to represent),
+then **WHY?** (every line traced to an input, evidence ids in brackets),
 confidence, AI predictions (separately), limitations, and the disclaimer:
 
 > This is an AI-assisted research estimate built from recorded evidence. It is not a
@@ -166,9 +202,30 @@ The output never uses "definitely" or "certainly" (tested).
 Expert verification is what the system is built to wait for:
 - only an `expert_reviewed` expert annotation can make an artifact `ground_truth_eligible`;
 - only verified references allow confidence above `low`;
-- training stays blocked until expert labels are promoted into the records (Milestone 8).
+- training stays blocked until expert labels are promoted into the records **and** the
+  class minimums are met. Milestone 8 built the promotion; the minimums are unchanged.
+
+### 8.1 Reference verification registry (Milestone 8)
+`knowledge/verification/reference_verifications.jsonl`, append-only, schema
+`reference_verification.schema.json`, rules V1–V8 and K6 (`src/knowledge/verification.py`).
+One record = one human check of **one claim** against **one reference**: ref id, citation,
+claim (and knowledge-base claim id), status (`verified_against_source`, `discrepancy_found`,
+`source_unavailable`, `unverified`), verifier and role (no AI role exists), date, page/plate/
+catalogue locator, where the copy is held, and how it was accessed. A verified record needs all
+of them. A citation found online, or an unauthorised copy, is not verification.
+`python -m src.knowledge status` shows the key references (R1, S01, S03);
+`python -m src.knowledge claims --ref S03` lists what the project relies on S03 for;
+`python -m src.knowledge verify … [--commit]` records a check, and is a dry run by default.
+
+### 8.2 Label promotion
+Promotion (`src/annotation/promote.py`) is the only route from annotation to training record.
+It is dry-run by default, needs a human approver and the reviewed plan digest, rewrites the
+records atomically, logs full before/after states, and can be reverted. See
+`ANNOTATION_GUIDE.md` §9 and `MILESTONE_8_REPORT.md`.
 
 ## 9. Current behaviour on the real data
-All 17 artifacts return: script **not determined**, reading **none**, meaning "No reading
-established", age **Insufficient evidence**, confidence **unknown**. That is correct: no
-annotation exists yet.
+All 17 artifacts return: STATUS **Insufficient evidence**, script **not determined**, reading
+**none**, translation "No translation established.", age and estimated period **Insufficient
+evidence**, confidence **unknown**. That is correct: no annotation exists yet (Milestone 8
+built the pilot workflow; no expert has annotated). This includes the six pilot sherds, even
+though the uploader's caption gives a date for the Keeladi deposit.

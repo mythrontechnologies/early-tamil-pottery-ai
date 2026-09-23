@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://early-tamil-pottery-ai/schema/reference_verification.schema.json",
+  "title": "Early Tamil Pottery AI - Reference Verification Record",
+  "description": "One check of ONE claim against ONE reference by ONE human, at one time (Milestone 8). APPEND-ONLY: a later check is a new record that supersedes the earlier one; nothing is overwritten. A reference counts as verified only for the claims a human actually checked in the physical or authorised publication. A citation existing online is not verification. Rules V1-V8: src/knowledge/verification.py.",
+  "verification_schema_version": "1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "$defs": {
+    "text": { "type": "string", "minLength": 1 },
+    "date_or_na": {
+      "oneOf": [
+        { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+        { "const": "not_applicable" }
+      ]
+    }
+  },
+  "required": ["verification_schema_version", "verification_id", "ref_id", "citation", "claim",
+               "claim_id", "status", "verifier", "verification_date", "locator", "source_location",
+               "source_access", "created_utc", "supersedes"],
+  "properties": {
+    "verification_schema_version": { "type": "string", "pattern": "^1\\.[0-9]+\\.[0-9]+$" },
+    "verification_id": { "type": "string", "pattern": "^ver_[a-f0-9]{16}$" },
+    "ref_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$" },
+    "citation": { "description": "Bibliographic citation as checked (snapshot of the knowledge-base citation, corrected by the verifier if the publication differs).", "$ref": "#/$defs/text" },
+    "claim": { "description": "The specific statement checked, in words.", "$ref": "#/$defs/text" },
+    "claim_id": { "description": "Knowledge-base claim id (see `python -m src.knowledge claims`), or 'not_applicable' for a claim not in the knowledge base.", "$ref": "#/$defs/text" },
+    "status": {
+      "description": "verified_against_source = the claim was found as stated in the publication. discrepancy_found = the publication says something different (see notes); the claim must not be used. source_unavailable = the publication could not be consulted; the claim stays unverified. unverified = recorded for tracking only; nothing was checked.",
+      "enum": ["verified_against_source", "discrepancy_found", "source_unavailable", "unverified"]
+    },
+    "verifier": { "description": "Stable id of the HUMAN who checked, or 'not_applicable' when nothing was checked.", "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.@-]{1,63}$" },
+    "verifier_role": { "description": "There is deliberately no AI option: software cannot verify a reference.", "enum": ["project_member", "expert", "not_applicable"] },
+    "verification_date": { "$ref": "#/$defs/date_or_na" },
+    "locator": { "description": "Page, plate, figure or catalogue number where the claim appears, exactly as found. 'not_available' only when nothing was checked.", "$ref": "#/$defs/text" },
+    "source_location": { "description": "Where the copy consulted is held (library and shelfmark, institutional repository, the publisher's open-access URL).", "$ref": "#/$defs/text" },
+    "source_access": {
+      "description": "How the publication was consulted. Unauthorised copies are not an acceptable basis (docs/DATA_SOURCE_AUDIT.md).",
+      "enum": ["physical_copy", "authorised_digital_copy", "open_access_publication", "not_accessed"]
+    },
+    "notes": { "$ref": "#/$defs/text" },
+    "created_utc": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+(Z|\\+00:00)$" },
+    "supersedes": { "type": ["string", "null"] }
+  }
+}

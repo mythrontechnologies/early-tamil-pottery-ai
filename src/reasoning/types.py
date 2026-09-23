@@ -86,7 +86,8 @@ class ArchaeologicalContext:
 class ReferenceInfo:
     ref_id: str
     citation: str
-    verification_status: str
+    verification_status: str                     # EFFECTIVE status (registry-backed, Milestone 8)
+    verified_claims: tuple[str, ...] = ()        # the only claims a human verified
 
 
 @dataclass
@@ -101,6 +102,10 @@ class ReasoningInputs:
     ai_predictions: tuple[dict[str, Any], ...] = ()
     annotation_status: str = "unannotated"        # from src.annotation.resolve
     disagreements: dict[str, Any] = field(default_factory=dict)
+    # Milestone 8: every current human annotator's own dating range, side by side. Shown and
+    # compared, never averaged. Each: annotation_id, annotator_id, provenance, start_year,
+    # end_year, basis, confidence.
+    annotator_dating_positions: tuple[dict[str, Any], ...] = ()
 
 
 def min_confidence(*levels: str) -> str:

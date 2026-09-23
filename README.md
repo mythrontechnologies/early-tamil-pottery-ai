@@ -46,11 +46,12 @@ An LLM-generated explanation is not evidence and is never presented as such.
 | Research images | **30** (17 artifacts), Wikimedia Commons, CC BY / CC BY-SA — see [`docs/PUBLIC_DATASET_AUDIT.md`](docs/PUBLIC_DATASET_AUDIT.md) |
 | Expert-labelled images | **0** — every record has `script_type = unknown` pending annotation |
 | Supporting images | 15 in `data/external/` (out-of-region pottery, Tamil-Brahmi rock inscriptions) |
-| Verified references | **0** — see [`docs/CHRONOLOGICAL_SCOPE.md`](docs/CHRONOLOGICAL_SCOPE.md) |
+| Verified references | **0** — verification registry built (Milestone 8); R1, S01, S03 not yet checked against the publications (`python -m src.knowledge status`) |
 | Models | none — the training framework exists and has never run on data |
 | Training ready | **false** — blocked by `src/dataset/readiness.py` (gates G1–G11) |
-| Annotations | **0** — annotation tool and evidence-based reasoning layer ready ([`docs/ANNOTATION_GUIDE.md`](docs/ANNOTATION_GUIDE.md)) |
-| Tests | 569 passing |
+| Annotations | **0** — annotation tool, evidence-based reasoning, expert pilot (six Keezhadi close-ups) ready ([`docs/ANNOTATION_GUIDE.md`](docs/ANNOTATION_GUIDE.md)) |
+| Label promotion | built, dry-run by default, reversible; **0 promotions** ([`docs/MILESTONE_8_REPORT.md`](docs/MILESTONE_8_REPORT.md)) |
+| Tests | 679 passing |
 
 No dataset has been fabricated. A synthetic pottery corpus would produce a model that is confident
 and baseless — the exact failure this project exists to avoid.
@@ -105,10 +106,17 @@ python -m src.acquisition registry                # what has been acquired, by l
 
 ```bash
 streamlit run app/annotate.py                     # annotation interface (append-only)
-python -m src.annotation validate                 # rules N1-N13 + knowledge base K1-K5
+python -m src.annotation validate                 # rules N1-N14 + knowledge base K1-K5
 python -m src.annotation summary                  # per-artifact status, disagreements
 python -m src.annotation quality                  # technical quality vs archaeological usability
 python -m src.reasoning analyze <artifact_id>     # evidence-based identification / reading / age
+python -m src.annotation pilot                    # Milestone 8 expert pilot progress
+python -m src.annotation agreement                # inter-annotator agreement (never resolves)
+python -m src.annotation promote --pilot          # DRY RUN of expert-label promotion
+python -m src.annotation promote --execute --approve <digest> --approver <id>   # human-approved write
+python -m src.annotation promote --revert <promotion_id>                       # reversal (dry run)
+python -m src.knowledge status                    # reference verification (R1, S01, S03)
+python -m src.knowledge verify ... [--commit]     # record a human check (dry run by default)
 ```
 
 ### Training and evaluation commands
@@ -152,19 +160,22 @@ early-tamil-pottery-ai/
 │       ├── records.jsonl     research image records (30, all unlabelled)
 │       ├── acquisition/      provenance registry, dataset manifests, ingested batches
 │       ├── splits/           split manifests (tracked; none yet)
+│       ├── annotations/      append-only annotation store (created on first save)
+│       ├── promotions/       promotion audit log (created on first promotion)
 │       └── schema/
 │           ├── image_record.schema.json    ← the contract
 │           └── _example_record.json        ← fictitious structural example
 ├── knowledge/                referenced knowledge base (references, sites, scripts, published readings)
+│   └── verification/         human reference-verification registry (empty)
 ├── src/
 │   ├── dataset/              ingestion, validation, loader, splits, sampling, stats, gate
 │   ├── preprocessing/        loader, transforms, quality, pipeline
 │   ├── acquisition/          licence policy, Commons adapter, provenance, acquisition pipeline
-│   ├── annotation/           annotation schema rules, append-only store, resolution, UI helpers
+│   ├── annotation/           annotation rules, store, resolution, pilot, agreement, promotion
 │   ├── reasoning/            deterministic evidence-based analysis (engine, inputs, CLI)
 │   ├── dating/               signed-year chronology (no year 0), evidence-based age ranges
 │   ├── translation/          interpretation: "no translation established" unless sourced
-│   ├── knowledge/            knowledge-base loader and validator
+│   ├── knowledge/            knowledge-base loader/validator, reference verification
 │   ├── training/             config, augmentation, model, engine, checkpoints, experiments
 │   ├── evaluation/           metrics, artifact aggregation, blocked reports
 │   ├── classification/  detection/  ocr/
@@ -201,7 +212,8 @@ early-tamil-pottery-ai/
     ├── MILESTONE_6_REPORT.md
     ├── ANNOTATION_GUIDE.md      what to label and what not to
     ├── ARCHAEOLOGICAL_REASONING.md  evidence hierarchy, dating, confidence, translation limits
-    └── MILESTONE_7_REPORT.md
+    ├── MILESTONE_7_REPORT.md
+    └── MILESTONE_8_REPORT.md    expert pilot, agreement, verification, promotion
 ```
 
 Data files are git-ignored; **the metadata describing them is committed**, so the dataset is
@@ -273,6 +285,7 @@ checks them against the physical publications.
 | 5 | Dataset & training framework | ✅ **complete** — loader, splits, gates, trainer, metrics; never run on data |
 | 6 | Public dataset acquisition | ✅ **complete** — 30 research + 15 supporting images, all openly licensed, none labelled |
 | 7 | Annotation + archaeological reasoning layer | ✅ **complete** — annotation UI, multi-annotator store, evidence-based reasoning; 0 annotations |
+| 8 | Expert annotation pilot + verification + reversible promotion | ✅ **complete** — workflow built; awaiting an expert; 0 expert labels, 0 verified references |
 | — | Classifier training *(originally M4)* | blocked on authorised data |
 | — | Evaluation and error analysis *(originally M5)* | infrastructure built; blocked on data |
 | — | Inscription-region detection *(originally M6)* | blocked |
@@ -298,7 +311,7 @@ Verified on this machine, 2026-09-23:
 | Python | 3.13.7 (3.10 also available) |
 | GPU | NVIDIA RTX 4050 Laptop, 6 GiB |
 | torch | `2.14.0+cu126` in `.venv` — **CUDA available: True** |
-| `.venv` | fully provisioned; all 569 tests run from it |
+| `.venv` | fully provisioned; all 679 tests run from it |
 
 Use `.venv\Scripts\python.exe`, not the global interpreter. The dataset layer needs only
 the standard library plus `jsonschema` and `PyYAML`; preprocessing adds Pillow and NumPy.

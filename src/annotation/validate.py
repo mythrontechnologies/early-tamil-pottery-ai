@@ -1,4 +1,4 @@
-"""Annotation validation: JSON Schema plus cross-field rules N1-N13.
+"""Annotation validation: JSON Schema plus cross-field rules N1-N14.
 
 ``N*`` rules encode the Milestone 7 annotation discipline: provenance never blurred,
 unknown vs uncertain kept apart, no translation without a reading, no date without
@@ -37,6 +37,8 @@ RULES: dict[str, str] = {
     "N11": "a revision supersedes an existing annotation by the same annotator of the same artifact",
     "N12": "annotation ids are unique",
     "N13": "image usability entries name examined photographs",
+    "N14": "a cited reference claims verified_against_source only if the verification registry "
+           "verified it (Milestone 8)",
 }
 
 
@@ -87,8 +89,11 @@ def validate_annotation(
     *,
     artifact_images: dict[str, set[str]] | None = None,
     knowledge_ref_ids: set[str] | None = None,
+    verified_ref_ids: set[str] | None = None,
 ) -> list[Problem]:
-    """Problems with one annotation (N1-N10, N13). Empty list = valid."""
+    """Problems with one annotation (N1-N10, N13, N14). Empty list = valid.
+
+    ``verified_ref_ids`` (from ``src.knowledge.verification``) enables N14; ``None`` skips it."""
     aid = a.get("annotation_id") if isinstance(a, dict) else None
     out: list[Problem] = []
 
@@ -231,6 +236,14 @@ def validate_annotation(
     for u in a.get("image_usability", []):
         if u["image_id"] not in images:
             add("N13", f"image_usability names {u['image_id']!r}, which is not in image_ids")
+
+    # N14 - an annotator cannot self-certify a reference as verified.
+    if verified_ref_ids is not None:
+        for r in a.get("references", []):
+            if r["verification_status"] == "verified_against_source" and r["ref_id"] not in verified_ref_ids:
+                add("N14", f"reference {r['ref_id']!r} is marked verified_against_source, but the "
+                           "verification registry holds no verified claim for it "
+                           "(python -m src.knowledge status)")
     return out
 
 
@@ -239,13 +252,15 @@ def validate_annotations(
     *,
     artifact_images: dict[str, set[str]] | None = None,
     knowledge_ref_ids: set[str] | None = None,
+    verified_ref_ids: set[str] | None = None,
 ) -> AnnotationValidation:
     anns = list(annotations)
     result = AnnotationValidation(count=len(anns))
     by_id: dict[str, dict[str, Any]] = {}
     for a in anns:
         result.problems += validate_annotation(a, artifact_images=artifact_images,
-                                               knowledge_ref_ids=knowledge_ref_ids)
+                                               knowledge_ref_ids=knowledge_ref_ids,
+                                               verified_ref_ids=verified_ref_ids)
         aid = a.get("annotation_id") if isinstance(a, dict) else None
         if isinstance(aid, str):
             if aid in by_id:

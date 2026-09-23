@@ -164,3 +164,22 @@ converted or modified.
 2. Add it to `APPROVED_SOURCES`, with the reason the source can be treated as original.
 3. Extend `build_provenance` if the source has different identifiers.
 4. Add tests with a fake fetcher. Never let a test touch the network or `data/`.
+
+## 10. After acquisition: labels (Milestone 8)
+
+Acquisition never labels. An acquired image enters with `script_type = unknown` and
+`label_source = unknown`, whatever the source's title or caption says. The only route to a
+label is:
+
+1. independent annotation (project annotator + expert) in `app/annotate.py`;
+2. expert resolution (`expert_label`);
+3. a dry-run promotion plan, reviewed and approved by a human
+   (`python -m src.annotation promote`), which writes only label fields and leaves every
+   acquisition field untouched: source, source reference, licence, rights, image path,
+   **SHA-256**, site-as-stated, collection. It checks this (P8), and verifies the file's
+   SHA-256 on disk before writing (P7).
+
+The provenance registry (`data/metadata/acquisition/provenance.jsonl`) is never modified by
+promotion. A promoted record names its source annotations in `annotator` and `notes`, and
+the promotion log keeps its full before and after state, so the promotion can be reversed.
+See `docs/MILESTONE_8_REPORT.md`.
