@@ -25,7 +25,7 @@ prints a `SOURCE IS NOT THE RESEARCH DATASET` banner, and
 
 ```
 valid/
-  base_record.json            one complete, fully-populated valid record (all 59 fields)
+  base_record.json            one complete, fully-populated valid record (all 61 fields, schema 1.1.0)
   minimal_record.json         only the 10 required fields — valid, but warns under R15
   multi_photo_artifact.jsonl  three photographs of one artifact, one split (R3/R4 happy path)
   unknown_heavy_record.json   correct use of unknown / not_available / not_applicable

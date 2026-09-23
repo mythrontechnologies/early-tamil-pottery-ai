@@ -1,0 +1,111 @@
+# Early Tamil Pottery AI: training configuration (Milestone 5)
+#
+# Every value here is an ENGINEERING default. None of it is an archaeological judgement,
+# and none of it has been tuned: no authorised training data exists yet. Defaults are
+# chosen to fit an RTX 4050 Laptop GPU (6 GB VRAM) comfortably, and to be conservative.
+#
+# The class list, split proportions, split seed and per-class artifact threshold are NOT
+# here. They live in configs/project.yaml, which stays the single source of truth for
+# methodology. This file only controls how a model is fitted.
+#
+# See docs/TRAINING_FRAMEWORK.md for the reasoning behind each section.
+
+config_version: "1.0.0"
+
+model:
+  name: resnet18               # resnet18 | resnet34 | efficientnet_b0 | mobilenet_v3_large
+  # num_classes is derived from configs/project.yaml classification.classes (4 today).
+  # Set it here ONLY to assert that expectation; a mismatch is an error, not an override.
+  num_classes: 4
+  pretrained: true             # ImageNet weights from torchvision; downloaded on first real run
+  freeze_backbone: true        # start by training only the classification head
+  unfreeze_backbone_at_epoch: 5   # null = never unfreeze
+  dropout: 0.2                 # applied before the final linear layer
+
+data:
+  image_size: 224              # must equal preprocessing.target_size in project.yaml
+  batch_size: 16               # conservative for 6 GB at 224 px with AMP
+  num_workers: 2               # Windows spawns workers; keep this small
+  pin_memory: true
+  # Artifact-level split manifest to train from. null = the newest manifest for the
+  # current dataset fingerprint under data/metadata/splits/.
+  split_manifest: null
+
+optimization:
+  epochs: 30
+  optimizer: adamw             # adamw | adam | sgd
+  learning_rate: 0.0003
+  backbone_learning_rate: 0.00003   # used once the backbone is unfrozen
+  weight_decay: 0.0001
+  momentum: 0.9                # sgd only
+  scheduler: cosine            # cosine | step | plateau | none
+  step_size: 10                # step only
+  gamma: 0.1                   # step / plateau
+  plateau_patience: 3          # plateau only
+  gradient_clip_norm: 1.0      # null = no clipping
+  label_smoothing: 0.0
+
+early_stopping:
+  enabled: true
+  monitor: balanced_accuracy   # balanced_accuracy | macro_f1 | loss
+  mode: max                    # max for accuracy/F1, min for loss
+  patience: 7
+  min_delta: 0.001
+
+# Class imbalance. Choose ONE strategy. Applying both weighted loss and weighted sampling
+# double-counts the correction; the config loader rejects that combination.
+imbalance:
+  strategy: class_weighted_loss   # none | class_weighted_loss | weighted_sampler
+  # Count unit for class frequencies. 'artifact' matches the evaluation unit. 'image'
+  # would let one heavily photographed sherd dominate the weights.
+  count_unit: artifact
+  # weighted_sampler only: also divide by images-per-artifact, so every artifact is drawn
+  # equally often regardless of how many photographs it has.
+  equalise_artifacts: true
+
+runtime:
+  seed: 20260923
+  device: auto                 # auto | cuda | cpu. auto = cuda if available, else cpu
+  mixed_precision: true        # fp16 autocast; honoured only on CUDA
+  deterministic: true          # cudnn.deterministic + deterministic algorithms (warn only)
+
+checkpoint:
+  directory: models/checkpoints   # git-ignored
+  save_last: true
+  save_best: true
+
+experiments:
+  directory: models/experiments   # one JSON report per run; git-ignored
+
+# Training augmentation. Evaluation transforms are fixed and never random.
+# Every transformation below was checked against one question: could it change the
+# evidence a specialist would use? See docs/TRAINING_FRAMEWORK.md §4.
+augmentation:
+  enabled: true
+
+  # OFF, deliberately. Mirroring reverses letter forms. Tamil-Brahmi is written left to
+  # right, and a mirrored glyph is not a valid character (some mirror onto a DIFFERENT
+  # character). Graffiti signs are also orientation-bearing. Enabling this requires an
+  # explicit override and logs a warning.
+  horizontal_flip: false
+  # Vertical flip is not offered at all.
+
+  # Small rotation only: a photographer's hand, not a reorientation of the text.
+  # Applied with expand=True BEFORE letterboxing, so the sherd's corners are never cut.
+  rotation_degrees: 5
+
+  # Photometric jitter. Hue is fixed at 0 and saturation kept tiny, because surface
+  # colour carries ware information (black-and-red ware vs red ware vs black ware).
+  brightness: 0.15
+  contrast: 0.15
+  saturation: 0.05
+  hue: 0.0
+
+  # Scale-and-shift inside the letterbox. The shift is capped by the margin the downscale
+  # frees up, so no part of the sherd leaves the frame. This replaces a random crop,
+  # which could cut off an inscription near a break or rim.
+  min_scale: 0.90
+  translate: true
+
+  # Explicitly excluded (not implemented, on purpose): random resized crop, perspective,
+  # elastic/grid distortion, cutout/random erasing, blur, strong hue shift, vertical flip.

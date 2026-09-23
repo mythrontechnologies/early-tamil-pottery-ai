@@ -57,6 +57,79 @@ def make_record(_base_record_raw: dict[str, Any]) -> Callable[..., dict[str, Any
     return _make
 
 
+def _script_fields(label: str) -> dict[str, Any]:
+    """Field values that keep a synthetic record consistent with rules R5/R6."""
+    if label == "none":
+        return {"inscription_present": "no", "transcription": "not_applicable",
+                "transliteration": "not_applicable", "translation_en": "not_applicable",
+                "translation_ta": "not_applicable", "inscription_regions": []}
+    if label == "uncertain":
+        return {"inscription_present": "uncertain", "inscription_regions": []}
+    if label == "other_script":
+        return {"inscription_present": "yes", "inscription_regions": [],
+                "script_type_other_detail": "FIXTURE_OTHER_SCRIPT_PLACEHOLDER"}
+    return {"inscription_present": "yes", "inscription_regions": []}
+
+
+@pytest.fixture
+def synthetic_corpus(_base_record_raw: dict[str, Any]) -> Callable[..., dict[str, Any]]:
+    """Write a SYNTHETIC records.jsonl + tiny generated images into a temp directory.
+
+    Everything produced is marked FIXTURE/SYNTHETIC and lives under pytest's tmp_path,
+    never under data/. Images are flat-colour squares with a pixel pattern that makes
+    every file unique (so hashes differ). They are not photographs of anything.
+
+    Returns ``{"records_path", "data_root", "records"}``.
+    """
+    import hashlib
+
+    from PIL import Image
+
+    def _build(
+        root: Path,
+        per_class: dict[str, int],
+        *,
+        images_per_artifact: int = 1,
+        sites: tuple[str, ...] = ("FIXTURE_SITE_A", "FIXTURE_SITE_B"),
+        overrides: dict[str, Any] | None = None,
+        size: int = 40,
+    ) -> dict[str, Any]:
+        data_root = root / "raw"
+        (data_root / "fixture").mkdir(parents=True, exist_ok=True)
+        records: list[dict[str, Any]] = []
+        n = 0
+        for label, count in per_class.items():
+            for a in range(count):
+                aid = f"FIXTURE_{label.upper()}_{a:03d}"
+                for v in range(images_per_artifact):
+                    n += 1
+                    iid = f"{aid}__exterior__{v + 1}"
+                    rel = f"fixture/{iid}.png"
+                    img = Image.new("RGB", (size, size), (40 * (n % 6), 90, 140))
+                    img.putpixel((n % size, (n // size) % size), (255, 255, 255))
+                    img.putpixel((0, 0), (n % 256, (n // 256) % 256, 7))
+                    img.save(data_root / rel)
+                    rec = deepcopy(_base_record_raw)
+                    rec.update(_script_fields(label))
+                    rec.update({
+                        "image_id": iid, "artifact_id": aid, "image_path": rel,
+                        "image_sha256": hashlib.sha256((data_root / rel).read_bytes()).hexdigest(),
+                        "image_width_px": size, "image_height_px": size,
+                        "script_type": label, "site": sites[a % len(sites)],
+                        "split": "unassigned",
+                        "notes": "SYNTHETIC TEST FIXTURE generated in tmp_path. Not data.",
+                    })
+                    if overrides:
+                        rec.update(overrides)
+                    records.append(rec)
+        records_path = root / "records.jsonl"
+        records_path.write_text(
+            "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in records), encoding="utf-8")
+        return {"records_path": records_path, "data_root": data_root, "records": records}
+
+    return _build
+
+
 @pytest.fixture
 def load_fixture() -> Callable[[str], list[dict[str, Any]]]:
     """Load a fixture file under ``tests/fixtures/`` by relative path."""

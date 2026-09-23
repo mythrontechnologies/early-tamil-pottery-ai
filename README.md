@@ -6,7 +6,8 @@ inscriptions and graffiti.
 > **This system provides AI-assisted archaeological analysis and is not a substitute for expert
 > epigraphic or archaeological assessment.**
 
-**Status: Milestones 1–3 of 13 complete — structure, schema, ingestion/validation, preprocessing.**
+**Status: Milestones 1–5 complete — structure, schema, ingestion/validation, preprocessing,
+data source audit, dataset & training framework.**
 There is **no data and no trained model.** The system cannot analyse an image yet, and no part of
 it should be presented as if it could. Training is blocked in code by a readiness gate.
 
@@ -42,9 +43,9 @@ An LLM-generated explanation is not evidence and is never presented as such.
 | Images | **0** — see [`docs/DATA_INVENTORY.md`](docs/DATA_INVENTORY.md) |
 | Records | **0** |
 | Verified references | **0** — see [`docs/CHRONOLOGICAL_SCOPE.md`](docs/CHRONOLOGICAL_SCOPE.md) |
-| Models | none |
-| Training ready | **false** — blocked by `src/dataset/readiness.py` |
-| Tests | 255 passing |
+| Models | none — the training framework exists and has never run on data |
+| Training ready | **false** — blocked by `src/dataset/readiness.py` (gates G1–G11) |
+| Tests | 398 passing |
 
 No dataset has been fabricated. A synthetic pottery corpus would produce a model that is confident
 and baseless — the exact failure this project exists to avoid.
@@ -82,6 +83,17 @@ python -m src.dataset ingest   <file> --commit    # default is a dry run
 python -m src.dataset audit                       # what is in the dataset
 python -m src.dataset readiness                   # may training proceed? (no)
 python -m src.dataset convert  in.jsonl out.csv   # CSV <-> JSONL, lossless
+python -m src.dataset stats                       # artifacts, images, classes, splits, readiness
+python -m src.dataset split                       # artifact-level split manifest (refused: no data)
+```
+
+### Training and evaluation commands
+
+```bash
+python -m src.training device                     # CUDA / GPU / AMP report
+python -m src.training config                     # validated training configuration
+python -m src.training train                      # gate first; exit 3 "Training blocked" today
+python -m src.evaluation evaluate --checkpoint P  # "NO REAL DATA — EVALUATION BLOCKED" today
 ```
 
 ### Preprocessing commands
@@ -113,24 +125,30 @@ early-tamil-pottery-ai/
 │   │                         pretraining — kept strictly separate from our pottery data
 │   └── metadata/
 │       ├── README.md         ← every field, explained
+│       ├── splits/           split manifests (tracked; none yet)
 │       └── schema/
 │           ├── image_record.schema.json    ← the contract
 │           └── _example_record.json        ← fictitious structural example
 ├── knowledge/                structured KB (Milestone 11) — dirs only, empty
 ├── src/
-│   ├── dataset/              ingestion, validation, conversion, audit, gate
+│   ├── dataset/              ingestion, validation, loader, splits, sampling, stats, gate
 │   ├── preprocessing/        loader, transforms, quality, pipeline
+│   ├── training/             config, augmentation, model, engine, checkpoints, experiments
+│   ├── evaluation/           metrics, artifact aggregation, blocked reports
 │   ├── classification/  detection/  ocr/
-│   ├── translation/     dating/     knowledge/  evaluation/
+│   ├── translation/     dating/     knowledge/
 ├── app/                      Streamlit UI (Milestone 12) — not built
-├── configs/project.yaml      chronology, splits, integrity gates
+├── configs/project.yaml      chronology, classes, splits, integrity gates
+├── configs/training.yaml     model, optimiser, augmentation, runtime (untuned defaults)
 ├── scripts/check_env.py
 ├── tests/
 │   ├── fixtures/             SYNTHETIC test data — never research data
 │   │   └── images/           26 generated patterns, not photographs
 │   ├── test_schema.py        test_validation.py
 │   ├── test_conversion.py    test_ingest_audit_readiness.py
-│   └── test_preprocessing.py
+│   ├── test_preprocessing.py test_dataset_layer.py
+│   ├── test_readiness_gates.py
+│   └── test_training_framework.py  test_evaluation_metrics.py
 ├── notebooks/
 ├── models/                   (git-ignored)
 └── docs/
@@ -139,7 +157,12 @@ early-tamil-pottery-ai/
     ├── SPLIT_METHODOLOGY.md     leakage prevention + the 15 validation rules
     ├── MILESTONE_1_REPORT.md
     ├── MILESTONE_2_REPORT.md
-    └── MILESTONE_3_REPORT.md
+    ├── MILESTONE_3_REPORT.md
+    ├── DATA_SOURCE_AUDIT.md     where defensible data can come from, and on what terms
+    ├── MILESTONE_4_REPORT.md    source audit (research only)
+    ├── DATASET_SPLIT.md         the artifact-level split algorithm
+    ├── TRAINING_FRAMEWORK.md    training, augmentation, gates, evaluation, reproducibility
+    └── MILESTONE_5_REPORT.md
 ```
 
 Data files are git-ignored; **the metadata describing them is committed**, so the dataset is
@@ -177,9 +200,11 @@ disagreement rather than resolving it. See
 [`docs/CHRONOLOGICAL_SCOPE.md`](docs/CHRONOLOGICAL_SCOPE.md).
 
 **6. Training is gated, not merely discouraged.**
-`assert_training_ready()` raises until real data exists, passes validation, and clears the
-per-class artifact threshold. Fixtures cannot satisfy it. Every training entry point from
-Milestone 4 must call it.
+`assert_training_ready()` raises until real data exists, passes validation, is split by
+artifact without leakage, carries `research_usable = yes` for every training image, and clears
+the per-class artifact threshold (gates G1–G11). It has no relaxing parameter and only
+evaluates the canonical dataset, so fixtures cannot satisfy it. `python -m src.training train`
+calls it before anything else.
 
 **7. Raw images are never modified.**
 Preprocessing opens sources read-only and raises `RawImmutabilityError` on any attempt to
@@ -205,32 +230,36 @@ checks them against the physical publications.
 | 1 | Project structure, environment, dataset schema | ✅ **complete** |
 | 2 | Dataset ingestion and validation | ✅ **complete** — tooling built and tested; ingestion of real data blocked |
 | 3 | Preprocessing pipeline | ✅ **complete** — deterministic, tested on synthetic fixtures |
-| 4 | Tamil-Brahmi / graffiti / no-inscription classifier | blocked on data — next once images exist |
-| 5 | Evaluation and error analysis | blocked |
-| 6 | Inscription-region detection | blocked |
-| 7 | Character recognition | blocked |
-| 8 | Transcription + transliteration | blocked |
-| 9 | Translation | blocked |
-| 10 | Chronological reasoning engine | partly unblocked (structure) |
-| 11 | Knowledge base + retrieval | partly unblocked (structure) |
-| 12 | Streamlit integration | shell buildable; must not display fabricated results |
-| 13 | End-to-end testing | blocked |
+| 4 | Research data acquisition & source audit | ✅ **complete** — no data acquired; permission request is the next action |
+| 5 | Dataset & training framework | ✅ **complete** — loader, splits, gates, trainer, metrics; never run on data |
+| — | Classifier training *(originally M4)* | blocked on authorised data |
+| — | Evaluation and error analysis *(originally M5)* | infrastructure built; blocked on data |
+| — | Inscription-region detection *(originally M6)* | blocked |
+| — | Character recognition *(originally M7)* | blocked |
+| — | Transcription + transliteration *(originally M8)* | blocked |
+| — | Translation *(originally M9)* | blocked |
+| — | Chronological reasoning engine *(originally M10)* | partly unblocked (structure) |
+| — | Knowledge base + retrieval *(originally M11)* | partly unblocked (structure) |
+| — | Streamlit integration *(originally M12)* | shell buildable; must not display fabricated results |
+| — | End-to-end testing *(originally M13)* | blocked |
 
-Milestones are not skipped to make the UI look finished.
+Milestones are not skipped to make the UI look finished. Remaining milestones keep their
+original numbers in brackets because code comments and earlier reports refer to them.
 
 ---
 
 ## Environment
 
-Verified on this machine, 2026-09-22:
+Verified on this machine, 2026-09-23:
 
 | | |
 |---|---|
 | Python | 3.13.7 (3.10 also available) |
 | GPU | NVIDIA RTX 4050 Laptop, 6 GiB |
 | torch | `2.14.0+cu126` in `.venv` — **CUDA available: True** |
-| `.venv` | fully provisioned; all 255 tests run from it |
+| `.venv` | fully provisioned; all 398 tests run from it |
 
 Use `.venv\Scripts\python.exe`, not the global interpreter. The dataset layer needs only
 the standard library plus `jsonschema` and `PyYAML`; preprocessing adds Pillow and NumPy.
-6 GiB of VRAM comfortably fits ResNet18 / EfficientNet-B0 / ConvNeXt-Tiny at 224 px.
+Measured: one ResNet18 training step at 224 px, batch 16, fp16 autocast peaks at 383 MiB of
+GPU memory with the backbone unfrozen (random tensors; see `docs/TRAINING_FRAMEWORK.md` §2).

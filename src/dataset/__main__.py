@@ -6,8 +6,11 @@
     python -m src.dataset readiness [--out PATH]
     python -m src.dataset convert   <in> <out>
     python -m src.dataset rules
+    python -m src.dataset stats     [--json]
+    python -m src.dataset split     [--strategy auto|holdout|grouped_kfold] [--seed N]
+                                    [--adopt-existing] [--dry-run]
 
-Exit codes: 0 success, 1 validation/ingestion failure, 2 usage or I/O error.
+Exit codes: 0 success, 1 validation/ingestion failure or refused split, 2 usage or I/O error.
 """
 
 from __future__ import annotations
@@ -23,6 +26,9 @@ from .ingest import ingest
 from .readiness import evaluate, write_report
 from .schema import RESEARCH_DATA_ROOT, RESEARCH_RECORDS_PATH
 from .validation import RULE_TITLES, validate_records
+from .loader import LOADER_RULES, DatasetLoadError, load_dataset
+from .splits import SplitError, SplitSettings, adopt_existing_split, make_split
+from .statistics import compute_statistics
 
 EXIT_OK, EXIT_FAIL, EXIT_USAGE = 0, 1, 2
 
@@ -185,6 +191,73 @@ def cmd_rules(args: argparse.Namespace) -> int:
         RULE_TITLES.items(), key=lambda kv: (kv[0][0] != "R", int(kv[0][1:]))
     ):
         print(f"  {rule:<4} {title}")
+    print()
+    print("  L* - loader checks added in Milestone 5 (engineering, applied before training)")
+    print()
+    for rule, title in LOADER_RULES.items():
+        print(f"  {rule:<4} {title}")
+    return EXIT_OK
+
+
+def cmd_stats(args: argparse.Namespace) -> int:
+    try:
+        stats = compute_statistics(args.records, args.data_root, manifest_path=args.manifest,
+                                   verify_hashes=not args.no_verify)
+    except (DatasetLoadError, OSError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    print(json.dumps(stats.to_dict(), indent=2, ensure_ascii=False) if args.json
+          else stats.render())
+    return EXIT_OK
+
+
+def cmd_split(args: argparse.Namespace) -> int:
+    """Validate, then split by artifact. Refuses rather than fabricate or mislead."""
+    try:
+        dataset = load_dataset(args.records, args.data_root)
+    except DatasetLoadError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    print(f"Source            : {dataset.source}")
+    print(f"Records           : {dataset.raw_record_count}")
+    print(f"Accepted          : {len(dataset.records)}")
+    print(f"Rejected          : {len(dataset.rejections)}")
+    for rej in dataset.rejections[:20]:
+        print(f"    {rej}")
+    if len(dataset.rejections) > 20:
+        print(f"    ... and {len(dataset.rejections) - 20} more")
+
+    try:
+        manifest = (adopt_existing_split(dataset, seed=args.seed) if args.adopt_existing
+                    else make_split(dataset, strategy=args.strategy, seed=args.seed))
+    except SplitError as exc:
+        print()
+        print("SPLIT REFUSED")
+        for problem in exc.problems:
+            print(f"  - {problem}")
+        print()
+        print("No split manifest was written.")
+        return EXIT_FAIL
+
+    print()
+    print(f"Strategy          : {manifest.strategy}")
+    print(f"Seed              : {manifest.seed}")
+    print(f"Dataset fingerprint: {manifest.dataset_fingerprint}")
+    print(f"Split digest      : {manifest.digest}")
+    for part, entry in manifest.summary.items():
+        print(f"  {part:<8} {entry['artifacts']:>5} artifacts {entry['images']:>6} images  "
+              f"{entry['artifacts_by_class']}")
+    for w in manifest.warnings:
+        print(f"warning: {w}")
+    if args.dry_run:
+        print()
+        print("(dry run - manifest not written)")
+        return EXIT_OK
+    out_dir = args.out_dir or SplitSettings.from_config().manifest_dir
+    written = manifest.save(Path(out_dir) / manifest.default_filename())
+    print()
+    print(f"written: {written}")
     return EXIT_OK
 
 
@@ -229,6 +302,25 @@ def build_parser() -> argparse.ArgumentParser:
 
     ru = sub.add_parser("rules", help="list the validation rules")
     ru.set_defaults(func=cmd_rules)
+
+    st = sub.add_parser("stats", help="dataset statistics, splits and training readiness")
+    st.add_argument("--records", type=Path, default=None)
+    st.add_argument("--data-root", type=Path, default=None)
+    st.add_argument("--manifest", type=Path, default=None)
+    st.add_argument("--no-verify", action="store_true", help="skip SHA-256 recomputation")
+    st.add_argument("--json", action="store_true")
+    st.set_defaults(func=cmd_stats)
+
+    sp = sub.add_parser("split", help="artifact-level, deterministic split manifest")
+    sp.add_argument("--records", type=Path, default=None)
+    sp.add_argument("--data-root", type=Path, default=None)
+    sp.add_argument("--strategy", choices=["auto", "holdout", "grouped_kfold"], default="auto")
+    sp.add_argument("--seed", type=int, default=None, help="default: split.seed in project.yaml")
+    sp.add_argument("--adopt-existing", action="store_true",
+                    help="build the manifest from split values already in the records")
+    sp.add_argument("--out-dir", type=Path, default=None)
+    sp.add_argument("--dry-run", action="store_true")
+    sp.set_defaults(func=cmd_split)
 
     return p
 

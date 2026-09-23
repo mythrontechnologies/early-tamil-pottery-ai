@@ -6,7 +6,7 @@
 
 project:
   name: early-tamil-pottery-ai
-  schema_version: "1.0.0"
+  schema_version: "1.1.0"
   description: >-
     AI-assisted analysis of Early Historic Tamil Nadu pottery, with emphasis on
     Tamil-Brahmi/Tamili inscriptions and graffiti. Research prototype.
@@ -104,6 +104,11 @@ split:
   min_artifacts_per_class_for_holdout: 20
   fallback_strategy: grouped_k_fold
   k_folds: 5
+  # Milestone 5. Approximate secondary balance, applied WITHIN each script_type class by
+  # interleaving whole artifacts. Never overrides artifact grouping. 'period' is absent
+  # because the schema records no period field (docs/DATASET_SPLIT.md §5).
+  balance_secondary: [inscription_present, site]
+  manifest_dir: data/metadata/splits
 
 # ---------------------------------------------------------------------------
 # Transliteration / encoding defaults

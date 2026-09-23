@@ -103,8 +103,10 @@ Constraints:
 - If the artifact count is small enough that a 15% test split contains only a handful of objects
   per class, **report grouped k-fold cross-validation instead of a single split**, and say so. A
   test set of six objects does not support a quoted accuracy figure.
-- The split assignment is written into `data/metadata/records.jsonl` and committed, so results are
-  reproducible. It is generated from a fixed seed recorded in `configs/project.yaml`.
+- The split assignment is recorded and committed, so results are reproducible. It is generated
+  from a fixed seed recorded in `configs/project.yaml`. *(Milestone 5: the assignment lives in a
+  verified split manifest under `data/metadata/splits/`, not in `records.jsonl`, so records stay
+  unmodified. See [`DATASET_SPLIT.md`](DATASET_SPLIT.md) §7.)*
 - **The test split is not looked at during development.** Re-splitting after seeing test results
   invalidates them.
 

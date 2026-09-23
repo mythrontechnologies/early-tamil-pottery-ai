@@ -1,8 +1,15 @@
 # Dataset Documentation — Early Tamil Pottery AI
 
-**Schema version:** 1.0.0
+**Schema version:** 1.1.0 (1.0.0 records remain valid; see "Schema changes" below)
 **Status:** schema defined, **no data ingested yet** (see [`../../docs/DATA_INVENTORY.md`](../../docs/DATA_INVENTORY.md))
 **Authoritative schema file:** [`schema/image_record.schema.json`](schema/image_record.schema.json)
+
+### Schema changes
+
+| Version | Milestone | Change |
+|---|---|---|
+| 1.0.0 | 1 | Initial schema, 59 fields. |
+| 1.1.0 | 5 | Added optional `research_usable` and `commercially_usable` (`yes`/`no`/`unknown`), after the Milestone 4 source audit showed that rights must be recorded as separate questions. The training readiness gate (G8) requires `research_usable = yes`; absent or `unknown` counts as not permitted. Backward compatible: the validator checks only the major version. |
 
 This document explains every field in a dataset record. The JSON Schema is the machine-readable
 contract; this README is the human-readable explanation of intent. Where the two disagree, the
@@ -122,6 +129,8 @@ Any leading-underscore key is a comment and is stripped before validation. This 
 | `catalogue_reference` | text | | Accession / corpus number **as printed**. Never construct one. |
 | `license` | string | ✔ | Verbatim rights status. Recommended: SPDX id (`CC-BY-4.0`), `public_domain`, `permission_granted_see_rights_notes`, `rights_reserved_no_redistribution`, `permission_pending`, `unknown`. |
 | `redistributable` | `yes`/`no`/`unknown` | ✔ | Whether the image may ship with the dataset. **`unknown` is treated as `no`.** Most Indian excavation-report plates and museum photographs are *not* freely redistributable; assume restriction until confirmed. |
+| `research_usable` | `yes`/`no`/`unknown` | | *Schema 1.1.0.* Whether the image may be used to **train and evaluate** this project's models. Separate from `redistributable`: permission to train is not permission to republish. **Absent or `unknown` is treated as `no` by the training readiness gate.** |
+| `commercially_usable` | `yes`/`no`/`unknown` | | *Schema 1.1.0.* Whether commercial use is permitted. Not needed by the research prototype; `unknown` is treated as `no`. |
 | `rights_notes` | text | | Permission correspondence, embargo terms, attribution required. |
 
 ### 4.3 Archaeological context

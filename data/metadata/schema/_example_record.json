@@ -1,7 +1,7 @@
 {
   "_WARNING": "STRUCTURAL EXAMPLE ONLY - NOT REAL ARCHAEOLOGICAL DATA. Every identifier, site name, reading, date and citation below is a deliberately fictitious placeholder (note the EXAMPLE_ prefixes and the 0000 numbers). This file exists solely to show the shape of a record. It is NOT loaded by any data pipeline: files under data/metadata/schema/ beginning with an underscore are ignored by the ingestion layer. Do not copy its values into a real record. NOTE: this object carries a leading-underscore key, so it will NOT validate against the schema as written (additionalProperties: false) - the validator strips leading-underscore keys before checking. See data/metadata/README.md.",
 
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
 
   "image_id": "EXAMPLE_ART_0000__exterior__1",
   "artifact_id": "EXAMPLE_ART_0000",
@@ -18,6 +18,8 @@
   "catalogue_reference": "not_available",
   "license": "unknown",
   "redistributable": "no",
+  "research_usable": "unknown",
+  "commercially_usable": "no",
   "rights_notes": "Placeholder record. redistributable is 'no' because rights are unknown; unknown rights default to non-redistributable.",
 
   "site": "EXAMPLE_SITE_A",
