@@ -6,9 +6,11 @@
     python -m src.knowledge verify --ref S03 --claim-id s03_keeladi_sathan --status verified_against_source \
         --verifier ID --role expert --date YYYY-MM-DD --locator "p. 12, Fig. 16" \
         --source-location "LIBRARY, shelfmark" --access physical_copy [--notes TEXT] [--commit]
+    python -m src.knowledge import-checklist verification_checklist.csv [--commit]
 
-``verify`` is a DRY RUN unless ``--commit`` is given: it prints the record and the rule check
-and writes nothing. Only a human who has checked the claim in the publication should commit.
+``verify`` and ``import-checklist`` are DRY RUNS unless ``--commit`` is given: they print the
+records and the rule check and write nothing. ``import-checklist`` is all-or-nothing. Only a
+human who has checked the claim in the publication should commit.
 
 Exit codes: 0 ok, 1 validation failure / rejected record.
 """
@@ -18,6 +20,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 
 from .base import load
 from .verification import (
@@ -26,7 +29,9 @@ from .verification import (
     VerificationRegistry,
     VerificationRejected,
     claims,
+    commit_checklist,
     effective_statuses,
+    import_checklist,
     key_references,
     new_verification,
 )
@@ -114,6 +119,27 @@ def cmd_verify(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_import_checklist(args: argparse.Namespace) -> int:
+    reg = VerificationRegistry()
+    imp = import_checklist(args.path, reg)
+    print(f"Rows with a status: {len(imp.records)}; blank rows skipped: {imp.skipped}")
+    for v in imp.records:
+        print(f"  {v['ref_id']:<5} {v['claim_id']:<40} {v['status']:<24} "
+              f"{v['locator']} by {v['verifier']} on {v['verification_date']}"
+              + (f" (supersedes {v['supersedes']})" if v["supersedes"] else ""))
+    for p in imp.problems:
+        print(f"  {p}")
+    if not imp.ok:
+        print("REJECTED: nothing written. Fix the rows above; the import is all-or-nothing.")
+        return 1
+    if not args.commit:
+        print("DRY RUN: nothing written. Add --commit to append these records.")
+        return 0
+    n = commit_checklist(imp, reg)
+    print(f"Appended {n} record(s) to {reg.path}")
+    return 0
+
+
 def cmd_rules(args: argparse.Namespace) -> int:
     for k, v in RULES.items():
         print(f"  {k:<4} {v}")
@@ -137,6 +163,10 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--json", action="store_true")
     s.set_defaults(func=cmd_status)
     sub.add_parser("rules").set_defaults(func=cmd_rules)
+    ic = sub.add_parser("import-checklist", help="import a filled verification checklist (dry run unless --commit)")
+    ic.add_argument("path", type=Path)
+    ic.add_argument("--commit", action="store_true")
+    ic.set_defaults(func=cmd_import_checklist)
     v = sub.add_parser("verify", help="record a human check of one claim (dry run unless --commit)")
     v.add_argument("--ref", required=True)
     v.add_argument("--claim-id", default=NA)

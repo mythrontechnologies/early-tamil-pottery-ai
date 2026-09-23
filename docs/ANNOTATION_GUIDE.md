@@ -158,6 +158,9 @@ Annotations do **not** change the training records. `script_type` in `records.js
 
 ## 7. The Milestone 8 pilot: six Keezhadi close-ups
 
+The brief to hand to the expert and annotator is `docs/PILOT_HANDOFF.md`
+(`python -m src.annotation handoff` writes the blank worksheets).
+
 The pilot artifacts are `WMC_KEELADI_MUS_SHERD_105` … `_110` (Wikimedia Commons
 "Keeladi-archeological-site-photos" 105–110), listed in `configs/project.yaml`
 `annotation_pilot`. The sidebar's **"Pilot artifacts only"** box (on by default) restricts the

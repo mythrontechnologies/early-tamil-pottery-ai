@@ -297,6 +297,13 @@ confirms the gate still blocks. No threshold, class or rule was relaxed.
 
 ## 12. Next recommended milestone
 
+**Handoff pack (added after the milestone commit).** `docs/PILOT_HANDOFF.md` is the brief for
+the expert, the project annotator and the reference verifier. `python -m src.annotation handoff`
+writes blank worksheets and a 10-claim verification checklist to `outputs/pilot_handoff/`
+(git-ignored). `python -m src.knowledge import-checklist` imports a filled checklist through
+V1–V8: a dry run by default, all-or-nothing, and a re-check supersedes the earlier record.
+
+
 **Milestone 9: run the pilot with a real expert, and grow the labelled set.**
 1. Recruit one qualified epigraphist or archaeologist and one project annotator. Annotate the
    six pilot sherds independently, then run `agreement` and resolve every disagreement.

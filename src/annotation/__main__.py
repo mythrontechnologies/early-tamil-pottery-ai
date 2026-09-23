@@ -10,6 +10,7 @@
     python -m src.annotation promote    --execute --approve <plan_digest> --approver <id>
     python -m src.annotation promote    --revert <promotion_id> [--execute --approve <digest> --approver <id>]
     python -m src.annotation promote    --log
+    python -m src.annotation handoff    [--out DIR]                   # blank worksheets for the expert pack
 
 ``promote`` is a DRY RUN unless ``--execute`` is given together with the digest printed by
 the dry run and the approving human's id. Nothing else in this CLI writes anything.
@@ -171,6 +172,17 @@ def cmd_promote(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_handoff(args: argparse.Namespace) -> int:
+    from .handoff import DEFAULT_OUT, build_handoff
+
+    pack = build_handoff(_records(), args.out or DEFAULT_OUT)
+    print(f"Handoff pack in {pack.out_dir}: {pack.photos} pilot photograph(s), {pack.claims} claim(s) to verify")
+    for f in pack.files:
+        print(f"  {f.name}")
+    print("Judgement and verification columns are blank by design. Brief: docs/PILOT_HANDOFF.md")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     for s in (sys.stdout, sys.stderr):
         try:
@@ -200,7 +212,9 @@ def main(argv: list[str] | None = None) -> int:
     pr.add_argument("--approver", help="id of the human approving this write")
     pr.add_argument("--revert", metavar="PROMOTION_ID")
     pr.add_argument("--log", action="store_true", help="list the promotion audit log")
-    for sp, fn in ((pl, cmd_pilot), (ag, cmd_agreement), (pr, cmd_promote)):
+    ho = sub.add_parser("handoff", help="write blank pilot worksheets + verification checklist")
+    ho.add_argument("--out", type=Path, help="output directory (default outputs/pilot_handoff, git-ignored)")
+    for sp, fn in ((pl, cmd_pilot), (ag, cmd_agreement), (pr, cmd_promote), (ho, cmd_handoff)):
         sp.add_argument("--store", type=Path, default=ANNOTATIONS_PATH)
         sp.add_argument("--json", action="store_true")
         sp.set_defaults(func=fn)

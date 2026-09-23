@@ -365,8 +365,93 @@ def verified_ref_ids(current: list[dict[str, Any]] | None = None) -> set[str]:
     return {rid for rid, s in effective_statuses(current=current).items() if s.verified}
 
 
-__all__ = ["NA", "RULES", "SCHEMA_PATH", "VERIFIED", "Claim", "ReferenceStatus", "VProblem",
-           "VerificationRegistry", "VerificationRejected", "VerificationValidation", "claims",
-           "current_records", "effective_statuses", "key_references", "new_verification",
-           "reference_status", "registry_path", "validate_registry", "validate_verification",
-           "verified_ref_ids"]
+def _column(row: dict[str, str], prefix: str) -> str:
+    """Value of the checklist column whose header starts with ``prefix`` ('' if blank)."""
+    for k, v in row.items():
+        if k and k.split(" (")[0].strip() == prefix:
+            return (v or "").strip()
+    return ""
+
+
+@dataclass
+class ChecklistImport:
+    records: list[dict[str, Any]]
+    skipped: int
+    problems: list[VProblem]
+
+    @property
+    def ok(self) -> bool:
+        return not self.problems
+
+
+def import_checklist(path: Path, registry: VerificationRegistry, *, kb: KnowledgeBase | None = None,
+                     today: date | None = None) -> ChecklistImport:
+    """Turn a filled verification_checklist.csv into registry records and validate them all.
+
+    Rows with a blank status are skipped (not checked yet). A row for a claim that already has a
+    current record supersedes it. Nothing is written here; see ``commit_checklist``."""
+    import csv
+
+    kb = kb or default_kb()
+    current = {_claim_key(v): v["verification_id"] for v in registry.current()}
+    out, skipped = [], 0
+    with Path(path).open(encoding="utf-8-sig", newline="") as fh:
+        for row in csv.DictReader(fh):
+            status = _column(row, "status")
+            if not status:
+                skipped += 1
+                continue
+            rec = new_verification(
+                ref_id=_column(row, "ref_id"),
+                citation=_column(row, "citation_as_checked") or _column(row, "citation") or "not_available",
+                claim=_column(row, "claim") or "not_available", claim_id=_column(row, "claim_id") or NA,
+                status=status, verifier=_column(row, "verifier_id") or NA,
+                verifier_role=_column(row, "verifier_role") or NA,
+                verification_date=_column(row, "verification_date") or NA,
+                locator=_column(row, "locator_found") or "not_available",
+                source_location=_column(row, "source_location") or "not_available",
+                source_access=_column(row, "source_access") or "not_accessed",
+                notes=_column(row, "notes") or None)
+            rec["supersedes"] = current.get(_claim_key(rec))
+            out.append(rec)
+    res = registry.validate(out, kb=kb, today=today)
+    mine = {v["verification_id"] for v in out} | {v["supersedes"] for v in out if v["supersedes"]}
+    return ChecklistImport(out, skipped, [p for p in res.problems if p.verification_id in mine
+                                          or p.verification_id is None])
+
+
+def commit_checklist(imp: ChecklistImport, registry: VerificationRegistry, *,
+                     kb: KnowledgeBase | None = None, today: date | None = None) -> int:
+    """Append every imported record, or nothing if any is invalid (all-or-nothing)."""
+    if not imp.ok:
+        raise VerificationRejected(imp.problems)
+    for rec in imp.records:
+        registry.append(rec, kb=kb, today=today)
+    return len(imp.records)
+
+
+__all__ = [
+    "NA",
+    "RULES",
+    "SCHEMA_PATH",
+    "VERIFIED",
+    "ChecklistImport",
+    "Claim",
+    "ReferenceStatus",
+    "VProblem",
+    "VerificationRegistry",
+    "VerificationRejected",
+    "VerificationValidation",
+    "claims",
+    "commit_checklist",
+    "current_records",
+    "effective_statuses",
+    "import_checklist",
+    "key_references",
+    "new_verification",
+    "reference_status",
+    "registry_path",
+    "validate_registry",
+    "validate_verification",
+    "verified_ref_ids",
+]

@@ -51,7 +51,7 @@ An LLM-generated explanation is not evidence and is never presented as such.
 | Training ready | **false** — blocked by `src/dataset/readiness.py` (gates G1–G11) |
 | Annotations | **0** — annotation tool, evidence-based reasoning, expert pilot (six Keezhadi close-ups) ready ([`docs/ANNOTATION_GUIDE.md`](docs/ANNOTATION_GUIDE.md)) |
 | Label promotion | built, dry-run by default, reversible; **0 promotions** ([`docs/MILESTONE_8_REPORT.md`](docs/MILESTONE_8_REPORT.md)) |
-| Tests | 679 passing |
+| Tests | 686 passing |
 
 No dataset has been fabricated. A synthetic pottery corpus would produce a model that is confident
 and baseless — the exact failure this project exists to avoid.
@@ -117,6 +117,8 @@ python -m src.annotation promote --execute --approve <digest> --approver <id>   
 python -m src.annotation promote --revert <promotion_id>                       # reversal (dry run)
 python -m src.knowledge status                    # reference verification (R1, S01, S03)
 python -m src.knowledge verify ... [--commit]     # record a human check (dry run by default)
+python -m src.annotation handoff                  # blank pilot worksheets + verification checklist
+python -m src.knowledge import-checklist <csv> [--commit]   # import a filled checklist (all-or-nothing)
 ```
 
 ### Training and evaluation commands
@@ -213,7 +215,8 @@ early-tamil-pottery-ai/
     ├── ANNOTATION_GUIDE.md      what to label and what not to
     ├── ARCHAEOLOGICAL_REASONING.md  evidence hierarchy, dating, confidence, translation limits
     ├── MILESTONE_7_REPORT.md
-    └── MILESTONE_8_REPORT.md    expert pilot, agreement, verification, promotion
+    ├── MILESTONE_8_REPORT.md    expert pilot, agreement, verification, promotion
+    └── PILOT_HANDOFF.md         brief for the expert, the annotator and the reference verifier
 ```
 
 Data files are git-ignored; **the metadata describing them is committed**, so the dataset is
@@ -311,7 +314,7 @@ Verified on this machine, 2026-09-23:
 | Python | 3.13.7 (3.10 also available) |
 | GPU | NVIDIA RTX 4050 Laptop, 6 GiB |
 | torch | `2.14.0+cu126` in `.venv` — **CUDA available: True** |
-| `.venv` | fully provisioned; all 679 tests run from it |
+| `.venv` | fully provisioned; all 686 tests run from it |
 
 Use `.venv\Scripts\python.exe`, not the global interpreter. The dataset layer needs only
 the standard library plus `jsonschema` and `PyYAML`; preprocessing adds Pillow and NumPy.

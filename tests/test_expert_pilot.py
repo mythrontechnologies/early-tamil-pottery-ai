@@ -1072,3 +1072,118 @@ class TestLiveIntegrity:
                 assert "FIXTURE" not in p.name and "SYNTHETIC" not in p.name
         if RESEARCH_RECORDS_PATH.exists():
             assert "FIXTURE" not in RESEARCH_RECORDS_PATH.read_text(encoding="utf-8")
+
+
+# --------------------------------------------------------------------------- #
+# Expert handoff pack: blank worksheets and the verification-checklist import
+# --------------------------------------------------------------------------- #
+
+
+def _csv(path):
+    import csv
+
+    with path.open(encoding="utf-8-sig", newline="") as fh:
+        return list(csv.DictReader(fh))
+
+
+class TestHandoffPack:
+    def test_worksheets_carry_identity_only(self, tmp_path, live_research):
+        from src.annotation.handoff import (
+            ANNOTATION_COLUMNS,
+            EXPERT_COLUMNS,
+            build_handoff,
+        )
+
+        pack = build_handoff(live_research["records"], tmp_path / "pack")
+        rows = _csv(tmp_path / "pack" / "pilot_worksheet_expert.csv")
+        assert len(rows) == pack.photos == (6 if live_research["records"] else 0)
+        for r in rows:
+            assert all(r[c] == "" for c in (*EXPERT_COLUMNS, *ANNOTATION_COLUMNS))
+            assert r["source_page"].startswith("https://commons.wikimedia.org/")
+            assert "century" not in json.dumps(r)          # the uploader's dating caption stays out
+        assert {r["artifact_id"] for r in rows} <= set(load_pilot().artifacts)
+
+    def test_checklist_lists_key_reference_claims_blank(self, tmp_path, live_research):
+        from src.annotation.handoff import VERIFICATION_COLUMNS, build_handoff
+
+        build_handoff(live_research["records"], tmp_path / "pack")
+        rows = _csv(tmp_path / "pack" / "verification_checklist.csv")
+        assert {r["ref_id"] for r in rows} == {"R1", "S01", "S03"}
+        assert all(r[c] == "" for r in rows for c in VERIFICATION_COLUMNS)
+        assert "s03_keeladi_sathan" in {r["claim_id"] for r in rows}
+
+    def test_handoff_cli_writes_only_to_out(self, tmp_path, capsys):
+        from src.annotation.__main__ import main
+
+        before = RESEARCH_RECORDS_PATH.read_bytes() if RESEARCH_RECORDS_PATH.exists() else b""
+        assert main(["handoff", "--out", str(tmp_path / "o")]) == 0
+        assert (tmp_path / "o" / "verification_checklist.csv").exists()
+        assert (RESEARCH_RECORDS_PATH.read_bytes() if RESEARCH_RECORDS_PATH.exists() else b"") == before
+
+
+def _filled_checklist(tmp_path, **fill):
+    import csv
+
+    from src.annotation.handoff import build_handoff
+
+    build_handoff([], tmp_path / "pack")
+    path = tmp_path / "pack" / "verification_checklist.csv"
+    rows = _csv(path)
+    for r in rows:
+        if r["claim_id"] == "s03_keeladi_sathan":
+            for k in r:
+                if k.split(" (")[0] in fill:
+                    r[k] = fill[k.split(" (")[0]]
+    with path.open("w", encoding="utf-8-sig", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=list(rows[0]))
+        w.writeheader()
+        w.writerows(rows)
+    return path
+
+
+GOOD_ROW = {"status": "verified_against_source", "locator_found": "SYNTHETIC p. 0",
+            "verifier_id": "SYN_verifier", "verifier_role": "expert", "verification_date": "2026-01-02",
+            "source_location": "SYNTHETIC library", "source_access": "physical_copy"}
+
+
+class TestChecklistImport:
+    def test_blank_checklist_imports_nothing(self, tmp_path):
+        from src.knowledge.verification import import_checklist
+
+        imp = import_checklist(_filled_checklist(tmp_path), VerificationRegistry(tmp_path / "r.jsonl"))
+        assert imp.ok and imp.records == [] and imp.skipped == 10
+
+    def test_filled_row_validates_and_commits(self, tmp_path):
+        from src.knowledge.verification import commit_checklist, import_checklist
+
+        reg = VerificationRegistry(tmp_path / "r.jsonl")
+        imp = import_checklist(_filled_checklist(tmp_path, **GOOD_ROW), reg, today=date(2026, 9, 23))
+        assert imp.ok and len(imp.records) == 1 and imp.records[0]["ref_id"] == "S03"
+        assert not reg.path.exists()                                     # import alone writes nothing
+        assert commit_checklist(imp, reg, today=date(2026, 9, 23)) == 1
+        assert reference_status("S03", current=reg.current()).verified
+
+    def test_incomplete_row_rejects_whole_import(self, tmp_path):
+        from src.knowledge.verification import commit_checklist, import_checklist
+
+        reg = VerificationRegistry(tmp_path / "r.jsonl")
+        imp = import_checklist(_filled_checklist(tmp_path, **{**GOOD_ROW, "locator_found": ""}), reg,
+                               today=date(2026, 9, 23))
+        assert not imp.ok and "V3" in {p.rule for p in imp.problems}
+        with pytest.raises(VerificationRejected):
+            commit_checklist(imp, reg, today=date(2026, 9, 23))
+        assert not reg.path.exists()
+
+    def test_recheck_supersedes_previous_record(self, tmp_path):
+        from src.knowledge.verification import commit_checklist, import_checklist
+
+        reg = VerificationRegistry(tmp_path / "r.jsonl")
+        first = commit_checklist(import_checklist(_filled_checklist(tmp_path, **GOOD_ROW), reg,
+                                                  today=date(2026, 9, 23)), reg, today=date(2026, 9, 23))
+        assert first == 1
+        again = import_checklist(_filled_checklist(tmp_path, **{**GOOD_ROW, "status": "discrepancy_found",
+                                                                "notes": "SYNTHETIC: differs"}),
+                                 reg, today=date(2026, 9, 23))
+        assert again.ok and again.records[0]["supersedes"] == reg.all()[0]["verification_id"]
+        commit_checklist(again, reg, today=date(2026, 9, 23))
+        assert reference_status("S03", current=reg.current()).effective_status == "discrepancy_found"
