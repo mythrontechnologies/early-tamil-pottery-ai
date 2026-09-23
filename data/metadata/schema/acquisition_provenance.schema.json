@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://early-tamil-pottery-ai/schema/acquisition_provenance.schema.json",
+  "title": "Early Tamil Pottery AI - Acquisition Provenance Record",
+  "description": "One record per file acquired from an external source (Milestone 6). Records WHERE a file came from, UNDER WHAT LICENCE (as stated by the original source at download time), and WHAT THE SOURCE SAID ABOUT IT, kept strictly apart from anything the project asserts. Research images additionally get an image_record in data/metadata/records.jsonl; supporting (external) files get only this record.",
+  "provenance_version": "1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+
+  "$defs": {
+    "text": { "type": "string", "minLength": 1 },
+    "yes_no_unknown": { "enum": ["yes", "no", "unknown"] }
+  },
+
+  "required": [
+    "provenance_version", "image_id", "target", "dataset_id", "dataset_name",
+    "source_name", "source_url", "dataset_record_id", "original_image_url",
+    "download_date", "license", "license_url", "license_verbatim", "license_verified_from",
+    "copyright_holder", "attribution_text", "attribution_required", "share_alike_required",
+    "redistribution_allowed", "research_usable", "commercially_usable",
+    "source_label", "project_label", "project_label_basis",
+    "geographic_scope", "find_site", "archaeological_period", "object_type",
+    "script_scope", "image_sha256", "source_checksum", "source_checksum_verified",
+    "file_size_bytes", "mime_type", "width_px", "height_px", "local_path",
+    "artifact_group_id", "grouping_basis", "curation_note", "curator"
+  ],
+
+  "properties": {
+    "provenance_version": { "const": "1.0.0" },
+    "image_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{2,127}$" },
+    "target": {
+      "description": "'research' = primary Tamil Nadu pottery dataset under data/raw/ (also has an image_record). 'external' = supporting material under data/external/, never mixed with research data.",
+      "enum": ["research", "external"]
+    },
+    "dataset_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_]{2,63}$" },
+    "dataset_name": { "$ref": "#/$defs/text" },
+    "source_name": { "$ref": "#/$defs/text" },
+    "source_url": {
+      "description": "Human-readable page at the ORIGINAL source that states the licence (e.g. the Commons file page).",
+      "type": "string", "pattern": "^https://"
+    },
+    "dataset_record_id": { "description": "Identifier of the item at the source (e.g. Commons page id).", "$ref": "#/$defs/text" },
+    "original_image_url": { "type": "string", "pattern": "^https://" },
+    "download_date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+    "license": {
+      "description": "Normalised licence id. Only licences on the acquisition allow-list can appear here.",
+      "enum": ["CC0-1.0", "CC-BY-2.0", "CC-BY-2.5", "CC-BY-3.0", "CC-BY-4.0",
+               "CC-BY-SA-2.0", "CC-BY-SA-2.5", "CC-BY-SA-3.0", "CC-BY-SA-4.0"]
+    },
+    "license_url": { "type": "string", "pattern": "^https?://" },
+    "license_verbatim": { "description": "Licence string exactly as returned by the source API.", "$ref": "#/$defs/text" },
+    "license_verified_from": { "description": "Where the licence was read, e.g. 'wikimedia_commons_api:extmetadata'. Never a search engine or third party.", "$ref": "#/$defs/text" },
+    "copyright_holder": { "$ref": "#/$defs/text" },
+    "attribution_text": { "$ref": "#/$defs/text" },
+    "attribution_required": { "type": "boolean" },
+    "share_alike_required": { "type": "boolean" },
+    "redistribution_allowed": { "$ref": "#/$defs/yes_no_unknown" },
+    "research_usable": { "$ref": "#/$defs/yes_no_unknown" },
+    "commercially_usable": { "$ref": "#/$defs/yes_no_unknown" },
+
+    "source_label": {
+      "description": "What the SOURCE says the file shows: title and description, verbatim. Never edited.",
+      "$ref": "#/$defs/text"
+    },
+    "source_categories": { "type": "array", "items": { "type": "string" } },
+    "project_label": {
+      "description": "The project's script_type label. 'unknown' until an epigraphist or archaeologist assigns one. Never derived from the source caption or from AI observation.",
+      "type": "string", "minLength": 1
+    },
+    "project_label_basis": { "$ref": "#/$defs/text" },
+    "geographic_scope": {
+      "description": "Scope of the FIND, as far as the source establishes it. 'unknown' when the source names only a holding museum.",
+      "enum": ["tamil_nadu", "puducherry", "south_india_outside_tamil_nadu", "india_outside_south_india",
+               "south_asia_outside_india", "outside_south_asia", "unknown"]
+    },
+    "find_site": { "$ref": "#/$defs/text" },
+    "archaeological_period": { "$ref": "#/$defs/text" },
+    "object_type": { "description": "Object type as stated or evidently named by the source.", "$ref": "#/$defs/text" },
+    "script_scope": {
+      "description": "Script the SOURCE says is present, verbatim or 'not_stated_by_source'. Not a project label.",
+      "$ref": "#/$defs/text"
+    },
+
+    "image_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "source_checksum": { "description": "Checksum published by the source, e.g. 'sha1:<hex>'.", "$ref": "#/$defs/text" },
+    "source_checksum_verified": { "type": "boolean" },
+    "file_size_bytes": { "type": "integer", "exclusiveMinimum": 0 },
+    "mime_type": { "$ref": "#/$defs/text" },
+    "width_px": { "type": "integer", "exclusiveMinimum": 0 },
+    "height_px": { "type": "integer", "exclusiveMinimum": 0 },
+    "local_path": { "description": "Project-relative POSIX path under data/raw/ or data/external/.", "type": "string", "pattern": "^data/(raw|external)/[A-Za-z0-9_./-]+$" },
+
+    "artifact_group_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{2,127}$" },
+    "grouping_basis": { "$ref": "#/$defs/text" },
+    "curation_note": {
+      "description": "Why the file was selected. Anything describing image content here is an AI-ASSISTED OBSERVATION made during curation, NOT a label, and must never be used as ground truth.",
+      "$ref": "#/$defs/text"
+    },
+    "curator": { "$ref": "#/$defs/text" },
+    "notes": { "$ref": "#/$defs/text" }
+  }
+}

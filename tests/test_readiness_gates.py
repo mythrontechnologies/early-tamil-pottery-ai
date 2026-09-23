@@ -43,12 +43,16 @@ def _eval(c, manifest=None, **kw):
 
 
 class TestLiveState:
-    def test_zero_data_is_blocked(self):
+    def test_live_dataset_is_blocked(self, live_research):
         report = evaluate()
         assert not report.training_ready
-        assert report.reason == NO_DATA_REASON
-        assert report.record_count == 0 and report.image_files_present == 0
-        assert _gates(report)["G2"] is False and _gates(report)["G3"] is False
+        if not live_research["records"]:
+            assert report.reason == NO_DATA_REASON
+            assert _gates(report)["G2"] is False and _gates(report)["G3"] is False
+        else:
+            # Acquired images are valid and permitted, but carry no expert labels.
+            assert _gates(report)["G9"] is False
+            assert all(n == 0 for n in report.artifacts_by_class.values())
 
     def test_assert_training_ready_raises(self):
         with pytest.raises(NotTrainingReadyError, match="Training is blocked"):
@@ -57,8 +61,10 @@ class TestLiveState:
     def test_every_gate_is_reported(self):
         assert [g["id"] for g in evaluate().gates] == list(GATES)
 
-    def test_unevaluated_gates_do_not_count_as_passed(self):
-        report = evaluate()
+    def test_unevaluated_gates_do_not_count_as_passed(self, tmp_path):
+        """With no records most gates cannot be evaluated; that must not read as a pass."""
+        report = evaluate(tmp_path / "absent.jsonl", tmp_path / "raw",
+                          permit_noncanonical_source=True)
         assert any(g["passed"] is None for g in report.gates)
         assert not report.training_ready
 

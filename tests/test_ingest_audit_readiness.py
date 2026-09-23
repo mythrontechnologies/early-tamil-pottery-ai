@@ -210,15 +210,15 @@ class TestAudit:
 
 
 class TestReadinessGate:
-    def test_real_dataset_is_not_training_ready(self):
-        """The live state of the project: no data, so no training."""
+    def test_real_dataset_is_not_training_ready(self, live_research):
+        """The live state of the project: no expert-labelled data, so no training."""
         report = evaluate()
         assert report.training_ready is False
-        assert report.research_data_present is False
-        assert report.record_count == 0
+        assert report.record_count == len(live_research["records"])
 
-    def test_real_dataset_has_no_images(self):
-        assert count_images(RESEARCH_DATA_ROOT) == 0
+    def test_every_real_image_is_recorded(self, live_research):
+        """Every image under data/raw is described by exactly one research record."""
+        assert count_images(RESEARCH_DATA_ROOT) == len(live_research["records"])
 
     def test_assert_training_ready_raises_today(self):
         with pytest.raises(NotTrainingReadyError, match="Training is blocked"):
@@ -281,13 +281,29 @@ class TestReadinessGate:
 
 
 class TestNoFabricatedData:
-    def test_research_dataset_is_empty(self):
-        assert not RESEARCH_RECORDS_PATH.exists() or not RESEARCH_RECORDS_PATH.read_text(
-            encoding="utf-8"
-        ).strip()
+    def test_research_dataset_contains_no_fixtures(self, live_research):
+        """Real records only: nothing synthetic, nothing without acquisition provenance."""
+        for rec in live_research["records"]:
+            blob = json.dumps(rec)
+            assert "FIXTURE" not in blob and "SYNTHETIC" not in blob
+            assert rec["image_id"] in live_research["provenance"]
 
-    def test_no_images_under_data(self):
-        assert count_images(RESEARCH_DATA_ROOT) == 0
+    def test_research_records_carry_no_invented_labels(self, live_research):
+        """Acquired images arrive unlabelled; a label needs an expert source (Milestone 6)."""
+        for rec in live_research["records"]:
+            if live_research["provenance"][rec["image_id"]]["project_label"] == "unknown":
+                assert rec["script_type"] == "unknown"
+                assert rec["inscription_present"] == "unknown"
+                assert rec["label_source"] == "unknown"
+                assert rec["transcription"] == "not_available"
+
+    def test_no_unrecorded_images_under_data(self, live_research):
+        from src.dataset.readiness import IMAGE_SUFFIXES
+
+        recorded = {rec["image_path"] for rec in live_research["records"]}
+        on_disk = {p.relative_to(RESEARCH_DATA_ROOT).as_posix()
+                   for p in RESEARCH_DATA_ROOT.rglob("*") if p.suffix.lower() in IMAGE_SUFFIXES}
+        assert on_disk == recorded
 
     def test_fixtures_live_outside_data(self, fixtures_dir):
         from src.dataset.schema import ROOT

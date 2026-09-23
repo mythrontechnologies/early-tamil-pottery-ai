@@ -37,6 +37,12 @@ EXTENSION_FORMATS: dict[str, str] = {
     ".webp": "WEBP",
 }
 
+#: Formats Pillow reports that are variants of a supported format (Milestone 6).
+#: MPO ("multi-picture object") is a baseline JPEG, written by many cameras, with extra
+#: frames (previews, stereo pairs) appended. Pillow decodes the primary frame by default,
+#: which is the photograph; the extra frames are ignored and an info issue records that.
+FORMAT_ALIASES: dict[str, str] = {"MPO": "JPEG"}
+
 ISSUE_TITLES: dict[str, str] = {
     "P1": "file exists, is a regular file, and is non-empty",
     "P2": "image format is supported",
@@ -177,7 +183,14 @@ def load_image(
             return result
 
         # -- P2: supported format --------------------------------------------
-        if result.detected_format not in supported:
+        base_format = FORMAT_ALIASES.get(result.detected_format or "", result.detected_format)
+        if base_format != result.detected_format:
+            result.issues.append(
+                Issue("P2", "info",
+                      f"{result.detected_format} is a {base_format} variant; the primary frame "
+                      "is used and any additional frames are ignored")
+            )
+        if base_format not in supported:
             result.issues.append(
                 Issue("P2", "error",
                       f"format {result.detected_format!r} is not supported",
@@ -187,7 +200,7 @@ def load_image(
 
         # -- P7: extension honesty (warning, not an error) --------------------
         expected = EXTENSION_FORMATS.get(path.suffix.lower())
-        if expected and expected != result.detected_format:
+        if expected and expected != base_format:
             result.issues.append(
                 Issue("P7", "warning",
                       f"extension says {expected} but the file is {result.detected_format}",

@@ -1,6 +1,6 @@
 # Dataset Documentation — Early Tamil Pottery AI
 
-**Schema version:** 1.1.0 (1.0.0 records remain valid; see "Schema changes" below)
+**Schema version:** 1.2.0 (1.0.0 and 1.1.0 records remain valid; see "Schema changes" below)
 **Status:** schema defined, **no data ingested yet** (see [`../../docs/DATA_INVENTORY.md`](../../docs/DATA_INVENTORY.md))
 **Authoritative schema file:** [`schema/image_record.schema.json`](schema/image_record.schema.json)
 
@@ -10,6 +10,7 @@
 |---|---|---|
 | 1.0.0 | 1 | Initial schema, 59 fields. |
 | 1.1.0 | 5 | Added optional `research_usable` and `commercially_usable` (`yes`/`no`/`unknown`), after the Milestone 4 source audit showed that rights must be recorded as separate questions. The training readiness gate (G8) requires `research_usable = yes`; absent or `unknown` counts as not permitted. Backward compatible: the validator checks only the major version. |
+| 1.2.0 | 6 | Added `unknown` to `script_type` and `inscription_present`: *not yet examined by any annotator*, for acquired public images awaiting expert labels. `unknown` is held out of training (`configs/project.yaml`) and is never inferred by the project or a model. Distinct from `uncertain` (examined, cannot be assigned). Acquisition provenance lives in a separate schema, `schema/acquisition_provenance.schema.json`. |
 
 This document explains every field in a dataset record. The JSON Schema is the machine-readable
 contract; this README is the human-readable explanation of intent. Where the two disagree, the
@@ -159,7 +160,7 @@ This block carries the **target label for Milestone 4**.
 
 | Field | Type | Req. | Notes |
 |---|---|:--:|---|
-| `inscription_present` | `yes`/`no`/`uncertain` | ✔ | Any deliberate mark, script or not. |
+| `inscription_present` | `yes`/`no`/`uncertain`/`unknown` | ✔ | Any deliberate mark, script or not. `uncertain` = examined, cannot tell; `unknown` = not yet examined (1.2.0). |
 | `script_type` | enum | ✔ | **The classifier label.** See below. |
 | `script_type_other_detail` | text | | Which script, when `script_type = other_script`. |
 | `label_source` | enum | ✔ | `published_epigraphic_corpus`, `excavation_report`, `museum_catalogue`, `expert_annotation`, `project_annotation_unverified`, `unknown`. **Determines whether the label is usable as ground truth.** |
@@ -179,6 +180,7 @@ This block carries the **target label for Milestone 4**.
 | `none` | No visible deliberate mark. |
 | `uncertain` | A mark is present but cannot be assigned. |
 | `other_script` | A different script — Prakrit-Brahmi, Vatteluttu, Grantha, later Tamil. |
+| `unknown` | *(1.2.0)* No label assigned yet, e.g. an acquired public photograph awaiting expert annotation. Held out; never trained on. |
 
 Milestone 4 trains a **4-class** classifier over `tamil_brahmi`, `graffiti`, `none`, `uncertain`.
 `other_script` and `tamil_brahmi_and_graffiti` records are **held out** of that first model rather

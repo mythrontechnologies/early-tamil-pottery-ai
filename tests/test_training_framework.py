@@ -393,10 +393,14 @@ class TestEngine:
 
 
 class TestTrainingIsBlocked:
-    def test_run_training_is_blocked(self):
+    def test_run_training_is_blocked(self, live_research):
         outcome = run_training()
         assert outcome.status == "blocked"
-        assert outcome.message == BLOCKED_NO_DATA
+        assert outcome.message.startswith("Training blocked:")
+        if not live_research["records"]:
+            assert outcome.message == BLOCKED_NO_DATA
+        else:
+            assert "No expert-labelled training images are available" in outcome.message
         assert not outcome.experiments
 
     def test_train_command_stops_safely(self, capsys):
@@ -404,9 +408,7 @@ class TestTrainingIsBlocked:
             warnings.simplefilter("error")        # no warnings, no crash
             code = training_cli(["train"])
         assert code == EXIT_BLOCKED
-        out = capsys.readouterr().out
-        assert "Training blocked:" in out
-        assert "No authorized archaeological images are available." in out
+        assert "Training blocked:" in capsys.readouterr().out
 
     def test_no_checkpoint_or_experiment_was_written(self):
         from src.dataset.schema import ROOT

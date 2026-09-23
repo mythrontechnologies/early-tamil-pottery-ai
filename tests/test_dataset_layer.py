@@ -183,7 +183,7 @@ class TestRightsFields:
         for f in ("research_usable", "commercially_usable"):
             assert f in schema["properties"]
             assert f not in schema["required"]
-        assert schema["schema_version"] == "1.1.0"
+        assert tuple(map(int, schema["schema_version"].split("."))) >= (1, 1, 0)  # added in 1.1.0
 
     def test_new_fields_use_yes_no_unknown(self, make_record):
         from src.dataset.validation import validate_records
@@ -208,7 +208,7 @@ class TestClasses:
     def test_spec_matches_project_config(self):
         spec = ClassSpec.from_config()
         assert spec.trainable == FOUR
-        assert set(spec.held_out) == {"other_script", "tamil_brahmi_and_graffiti"}
+        assert set(spec.held_out) == {"other_script", "tamil_brahmi_and_graffiti", "unknown"}
         assert spec.num_classes == 4
 
     def test_held_out_labels_are_never_collapsed(self):
@@ -230,7 +230,7 @@ class TestClasses:
     def test_availability_is_explicit_for_every_label(self, tmp_path, synthetic_corpus):
         c = synthetic_corpus(tmp_path, {"tamil_brahmi": 2, "other_script": 1})
         rows = {a.label: a for a in class_availability(c["records"], ClassSpec.from_config())}
-        assert set(rows) == set(FOUR) | {"other_script", "tamil_brahmi_and_graffiti"}
+        assert set(rows) == set(FOUR) | {"other_script", "tamil_brahmi_and_graffiti", "unknown"}
         assert rows["tamil_brahmi"].available and not rows["none"].available
         assert rows["other_script"].status == "held_out" and rows["other_script"].artifacts == 1
 
@@ -484,11 +484,14 @@ class TestSampling:
 
 
 class TestStatisticsAndCli:
-    def test_live_dataset_statistics_are_zero_and_blocked(self):
+    def test_live_dataset_statistics_match_records_and_are_blocked(self, live_research):
         s = compute_statistics()
-        assert s.artifacts == 0 and s.images == 0 and not s.training_ready
+        assert s.artifacts == len(live_research["artifacts"])
+        assert s.images == len(live_research["records"])
+        assert not s.training_ready
         text = s.render()
-        for line in ("Artifacts: 0", "Images: 0", "Training readiness: BLOCKED"):
+        for line in (f"Artifacts: {s.artifacts}", f"Images: {s.images}",
+                     "Training readiness: BLOCKED"):
             assert line in text
 
     def test_statistics_on_a_synthetic_corpus(self, tmp_path, synthetic_corpus):
@@ -498,12 +501,14 @@ class TestStatisticsAndCli:
         assert "SOURCE IS NOT THE RESEARCH DATASET" in s.render()
         assert not s.training_ready
 
-    def test_stats_command(self, capsys):
+    def test_stats_command(self, capsys, live_research):
         assert dataset_cli(["stats"]) == 0
         out = capsys.readouterr().out
-        assert "Artifacts: 0" in out and "Training readiness: BLOCKED" in out
+        assert f"Artifacts: {len(live_research['artifacts'])}" in out
+        assert "Training readiness: BLOCKED" in out
 
-    def test_split_command_refuses_empty_dataset(self, capsys, tmp_path):
+    def test_split_command_refuses_the_live_dataset(self, capsys, tmp_path):
+        """Empty, or populated only with unlabelled acquired images: no split either way."""
         assert dataset_cli(["split", "--out-dir", str(tmp_path)]) == 1
         assert "SPLIT REFUSED" in capsys.readouterr().out
         assert not list(tmp_path.iterdir())
@@ -517,5 +522,11 @@ class TestStatisticsAndCli:
         [written] = list(out.iterdir())
         assert SplitManifest.load(written).strategy == "holdout"
 
-    def test_research_dataset_still_absent(self):
-        assert not RESEARCH_RECORDS_PATH.exists()
+    def test_every_live_research_record_was_acquired_with_provenance(self, live_research):
+        for rec in live_research["records"]:
+            prov = live_research["provenance"].get(rec["image_id"])
+            assert prov is not None, f"{rec['image_id']} has no acquisition provenance"
+            assert prov["target"] == "research"
+            assert prov["image_sha256"] == rec["image_sha256"]
+            assert prov["research_usable"] == rec["research_usable"] == "yes"
+        assert RESEARCH_RECORDS_PATH.exists() == bool(live_research["records"])

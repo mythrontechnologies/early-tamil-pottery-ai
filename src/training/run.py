@@ -60,7 +60,12 @@ class RunOutcome:
 def blocked_message(report: ReadinessReport) -> str:
     if report.reason == NO_DATA_REASON:
         return BLOCKED_NO_DATA
-    return "Training blocked:\n" + "\n".join(f"  - {b}" for b in report.blockers)
+    head = "Training blocked:"
+    if report.record_count and not any(report.artifacts_by_class.values()):
+        head += (f"\nNo expert-labelled training images are available: {report.record_count} "
+                 "acquired image(s) carry no project label (script_type=unknown) and await "
+                 "expert annotation.")
+    return head + "\n" + "\n".join(f"  - {b}" for b in report.blockers)
 
 
 def _resolve(path: str) -> Path:

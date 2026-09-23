@@ -6,7 +6,7 @@
 
 project:
   name: early-tamil-pottery-ai
-  schema_version: "1.1.0"
+  schema_version: "1.2.0"
   description: >-
     AI-assisted analysis of Early Historic Tamil Nadu pottery, with emphasis on
     Tamil-Brahmi/Tamili inscriptions and graffiti. Research prototype.
@@ -84,7 +84,7 @@ chronology:
 classification:
   task: script_type
   classes: [tamil_brahmi, graffiti, none, uncertain]
-  held_out_labels: [other_script, tamil_brahmi_and_graffiti]
+  held_out_labels: [other_script, tamil_brahmi_and_graffiti, unknown]
   held_out_reason: >-
     Real categories, but too few expected examples to model at first and a poor fit for any
     of the four classes. Retained in the dataset, excluded from the initial model.

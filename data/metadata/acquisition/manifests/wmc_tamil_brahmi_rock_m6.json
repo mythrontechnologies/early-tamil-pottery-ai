@@ -1,0 +1,65 @@
+{
+  "manifest_version": "1.0.0",
+  "dataset_id": "wmc_tamil_brahmi_rock_m6",
+  "dataset_name": "Tamil-Brahmi rock and cave inscription photographs from Wikimedia Commons (Milestone 6)",
+  "target": "external",
+  "source_name": "Wikimedia Commons",
+  "source_url": "https://commons.wikimedia.org/wiki/Category:Tamil_Brahmi_inscriptions",
+  "local_directory": "data/external/tamil_brahmi_inscriptions/wikimedia_commons",
+  "license": [
+    "CC-BY-SA-3.0",
+    "CC-BY-SA-4.0"
+  ],
+  "license_url": [
+    "https://creativecommons.org/licenses/by-sa/3.0",
+    "https://creativecommons.org/licenses/by-sa/4.0"
+  ],
+  "rights_holder": [
+    "Ms Sarah Welch",
+    "PJeganathan",
+    "Tnexplore",
+    "Udhayan1983"
+  ],
+  "download_date": [
+    "2026-09-23"
+  ],
+  "number_of_files": 7,
+  "number_of_artifacts": 4,
+  "number_of_unique_images": 7,
+  "geographic_scope": [
+    "tamil_nadu"
+  ],
+  "period_scope": [
+    "2nd century BCE (as stated in source title; uploader's attribution, not verified)",
+    "not_stated_by_source"
+  ],
+  "object_scope": [
+    "rock / cave inscription (not pottery)"
+  ],
+  "script_scope": [
+    "Tamil-Brahmi (as stated in source title)"
+  ],
+  "project_labels": [
+    "unknown"
+  ],
+  "research_usable": [
+    "yes"
+  ],
+  "redistribution_allowed": [
+    "yes"
+  ],
+  "commercially_usable": [
+    "yes"
+  ],
+  "attribution_requirements": [
+    "\"2nd century BCE Tamil Brahmi inscription Arittapatti Madurai India.jpg\" by Ms Sarah Welch, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:2nd_century_BCE_Tamil_Brahmi_inscription_Arittapatti_Madurai_India.jpg",
+    "\"Jambai Tamil Brahmi.jpg\" by Tnexplore, CC-BY-SA-3.0 (https://creativecommons.org/licenses/by-sa/3.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Jambai_Tamil_Brahmi.jpg",
+    "\"Kongar puliyankulam Tamil Brahmi Script.jpg\" by Udhayan1983, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Kongar_puliyankulam_Tamil_Brahmi_Script.jpg",
+    "\"Nehanurpatti Tamil Brahmi inscription.JPG\" by Tnexplore, CC-BY-SA-3.0 (https://creativecommons.org/licenses/by-sa/3.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Nehanurpatti_Tamil_Brahmi_inscription.JPG",
+    "\"Tamil Brahmi inscription Arittapatti JEG5883.JPG\" by PJeganathan, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Tamil_Brahmi_inscription_Arittapatti_JEG5883.JPG",
+    "\"Tamil Brahmi inscription Arittapatti JEG5886.JPG\" by PJeganathan, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Tamil_Brahmi_inscription_Arittapatti_JEG5886.JPG",
+    "\"Tamil Brahmi inscription Arittapatti JEG5887.JPG\" by PJeganathan, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Tamil_Brahmi_inscription_Arittapatti_JEG5887.JPG"
+  ],
+  "share_alike_required": true,
+  "notes": "NOT pottery. Supporting material for future OCR work; never mixed with the pottery dataset."
+}

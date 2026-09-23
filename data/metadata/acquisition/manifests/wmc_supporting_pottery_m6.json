@@ -1,0 +1,81 @@
+{
+  "manifest_version": "1.0.0",
+  "dataset_id": "wmc_supporting_pottery_m6",
+  "dataset_name": "Supporting pottery photographs outside the primary scope, from Wikimedia Commons (Milestone 6)",
+  "target": "external",
+  "source_name": "Wikimedia Commons",
+  "source_url": "https://commons.wikimedia.org/wiki/Category:Pattanam_excavation_museum ; https://commons.wikimedia.org/wiki/Category:Arikamedu ; https://commons.wikimedia.org/wiki/Category:Black_and_Red_Ware",
+  "local_directory": "data/external/supporting_pottery/wikimedia_commons",
+  "license": [
+    "CC-BY-4.0",
+    "CC-BY-SA-3.0",
+    "CC-BY-SA-4.0"
+  ],
+  "license_url": [
+    "https://creativecommons.org/licenses/by-sa/3.0",
+    "https://creativecommons.org/licenses/by-sa/4.0",
+    "https://creativecommons.org/licenses/by/4.0"
+  ],
+  "rights_holder": [
+    "Kanatonian",
+    "KannanVM",
+    "Metta79",
+    "PHGCOM",
+    "Vinayaraj",
+    "Yercaud-elango"
+  ],
+  "download_date": [
+    "2026-09-23"
+  ],
+  "number_of_files": 8,
+  "number_of_artifacts": 8,
+  "number_of_unique_images": 8,
+  "geographic_scope": [
+    "puducherry",
+    "south_asia_outside_india",
+    "south_india_outside_tamil_nadu",
+    "unknown"
+  ],
+  "period_scope": [
+    "1st Century CE (as stated by source; not verified)",
+    "1st to 2nd century CE (as stated by source; not verified)",
+    "not_stated_by_source"
+  ],
+  "object_scope": [
+    "'Ancient Roman pottery found in Arikamedu' (as stated by source)",
+    "'Grey Pottery With Engravings' (as stated by source)",
+    "'Painted Potsherds' (as stated by source)",
+    "'South Indian type Black and Red ware pot shreds' (as stated by source)",
+    "display of inscribed sherds (per source title: 'Tamil Brahmi writings')",
+    "inscribed potsherd displayed with a reading card (per source title: 'Tamil-Brahmi Inscription')",
+    "potsherd (per source title)"
+  ],
+  "script_scope": [
+    "Tamil-Brahmi (as stated in source title)",
+    "not_stated_by_source"
+  ],
+  "project_labels": [
+    "unknown"
+  ],
+  "research_usable": [
+    "yes"
+  ],
+  "redistribution_allowed": [
+    "yes"
+  ],
+  "commercially_usable": [
+    "yes"
+  ],
+  "attribution_requirements": [
+    "\"ArikameduRomanCeramic.jpg\" by PHGCOM, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:ArikameduRomanCeramic.jpg",
+    "\"Black and Red ware.jpg\" by Kanatonian, CC-BY-SA-3.0 (https://creativecommons.org/licenses/by-sa/3.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Black_and_Red_ware.jpg",
+    "\"GreyPotteryWithEngravingsVirampatnamArikamedu1stCenturyCE.jpg\" by PHGCOM, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:GreyPotteryWithEngravingsVirampatnamArikamedu1stCenturyCE.jpg",
+    "\"Painted Potsherds-1-Govt Museum-egmore-chennai-India.jpg\" by Yercaud-elango, CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Painted_Potsherds-1-Govt_Museum-egmore-chennai-India.jpg",
+    "\"Painted Potsherds-2-Govt Museum-egmore-chennai-India.jpg\" by Yercaud-elango, CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Painted_Potsherds-2-Govt_Museum-egmore-chennai-India.jpg",
+    "\"Tamil Brahmi potsherd Tissamaharama.jpg\" by Metta79, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Tamil_Brahmi_potsherd_Tissamaharama.jpg",
+    "\"Tamil Brahmi writings found Muziris excavation sites.jpg\" by KannanVM, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Tamil_Brahmi_writings_found_Muziris_excavation_sites.jpg",
+    "\"Tamil-Brahmi Inscription, Pattanam excavation museum, Kottappuram, Kodungallur.jpg\" by Vinayaraj, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Tamil-Brahmi_Inscription,_Pattanam_excavation_museum,_Kottappuram,_Kodungallur.jpg"
+  ],
+  "share_alike_required": true,
+  "notes": "NOT Tamil Nadu ground truth. Kerala, Puducherry, Sri Lanka and unknown-provenance pottery kept for comparison only."
+}

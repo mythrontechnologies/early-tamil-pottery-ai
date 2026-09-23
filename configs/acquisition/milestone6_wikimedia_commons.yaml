@@ -1,0 +1,644 @@
+# Milestone 6 acquisition plan: Wikimedia Commons.
+#
+# CURATED BY AN AI ASSISTANT; EVERY SELECTION IS PENDING HUMAN REVIEW.
+# This file lists candidates and records what the curator decided about each. It does
+# NOT contain licences: the pipeline reads every licence from the Commons API at run
+# time, and the policy (src/acquisition/policy.py) accepts or rejects each file.
+# `curation_note` text describing image content is an AI-assisted observation, never a
+# label. Items under `excluded` are listed so the report records why they were rejected.
+#
+#   python -m src.acquisition plan configs/acquisition/milestone6_wikimedia_commons.yaml            # dry run
+#   python -m src.acquisition plan configs/acquisition/milestone6_wikimedia_commons.yaml --commit
+
+
+curator: Claude (AI-assisted curation, Milestone 6); every selection pending human review
+max_file_mb: 40
+max_total_mb: 500
+datasets:
+- dataset_id: wmc_tamil_nadu_pottery_m6
+  dataset_name: Tamil Nadu archaeological pottery photographs from Wikimedia Commons (Milestone 6)
+  target: research
+  subdir: tamil_nadu_pottery/wikimedia_commons
+  source: wikimedia_commons
+  source_name: Wikimedia Commons
+  source_url: https://commons.wikimedia.org/wiki/Category:Keezhadi_archeological_site ; https://commons.wikimedia.org/wiki/Category:Adichanallur_earthenware_burial_urns
+    ; https://commons.wikimedia.org/wiki/Category:Sivakalai_archaeological_site
+  geographic_scope: tamil_nadu
+  archaeological_period: not_stated_by_source
+  script_scope: not_stated_by_source
+  items:
+  - title: File:Keeladi-archeological-site-photos 26.jpg
+    artifact_group: WMC_KEELADI_MUS_CASE_26
+    grouping_basis: one photograph of a display; no other acquired photo appears to show the same object(s)
+    object_type: pottery vessels in a museum display case (not described by source)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: several complete vessels in a showcase.'
+    find_site: not_stated_by_source (uploader categorises the photo under the Keezhadi site and museum; the photographed
+      object's find-site is not stated, and museum displays can include material from other sites or replicas)
+    geographic_scope: unknown
+    record:
+      collection: displayed in the Keezhadi/Keeladi site museum, per the uploader's categories
+      site: not_available
+      site_state: not_available
+      context_reliability: unknown
+  - title: File:Keeladi-archeological-site-photos 28.jpg
+    artifact_group: WMC_KEELADI_MUS_RED_SLIPPED_DISPLAY
+    grouping_basis: 'conservative grouping: photos 28 and 30 by this uploader and the CC BY ''Red-Slipped-Pots-Keezhadi''
+      photo may show the same ''Red slipped pots'' showcase'
+    object_type: pottery vessels in a museum display case (not described by source)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: showcase of complete red vessels; case signage
+      reads ''Red slipped pots''.'
+    find_site: not_stated_by_source (uploader categorises the photo under the Keezhadi site and museum; the photographed
+      object's find-site is not stated, and museum displays can include material from other sites or replicas)
+    geographic_scope: unknown
+    record:
+      collection: displayed in the Keezhadi/Keeladi site museum, per the uploader's categories
+      site: not_available
+      site_state: not_available
+      context_reliability: unknown
+  - title: File:Keeladi-archeological-site-photos 29.jpg
+    artifact_group: WMC_KEELADI_MUS_BROKEN_VESSEL_29
+    grouping_basis: one photograph of a display; no other acquired photo appears to show the same object(s)
+    object_type: fragmentary large vessel (not described by source)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: large broken vessel with loose fragments on a
+      sand bed.'
+    find_site: not_stated_by_source (uploader categorises the photo under the Keezhadi site and museum; the photographed
+      object's find-site is not stated, and museum displays can include material from other sites or replicas)
+    geographic_scope: unknown
+    record:
+      collection: displayed in the Keezhadi/Keeladi site museum, per the uploader's categories
+      site: not_available
+      site_state: not_available
+      context_reliability: unknown
+  - title: File:Keeladi-archeological-site-photos 30.jpg
+    artifact_group: WMC_KEELADI_MUS_RED_SLIPPED_DISPLAY
+    grouping_basis: conservative grouping with photo 28 and 'Red-Slipped-Pots-Keezhadi' (same showcase possible)
+    object_type: pottery vessels in a museum display case (not described by source)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: showcase of small red vessels; signage reads
+      ''Red slipped pots''.'
+    find_site: not_stated_by_source (uploader categorises the photo under the Keezhadi site and museum; the photographed
+      object's find-site is not stated, and museum displays can include material from other sites or replicas)
+    geographic_scope: unknown
+    record:
+      collection: displayed in the Keezhadi/Keeladi site museum, per the uploader's categories
+      site: not_available
+      site_state: not_available
+      context_reliability: unknown
+  - title: File:Keeladi-archeological-site-photos 31.jpg
+    artifact_group: WMC_KEELADI_MUS_GREY_POT_31
+    grouping_basis: one photograph of a display; no other acquired photo appears to show the same object(s)
+    object_type: single pottery vessel on a plinth (not described by source)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: single grey globular pot on a plinth.'
+    find_site: not_stated_by_source (uploader categorises the photo under the Keezhadi site and museum; the photographed
+      object's find-site is not stated, and museum displays can include material from other sites or replicas)
+    geographic_scope: unknown
+    record:
+      collection: displayed in the Keezhadi/Keeladi site museum, per the uploader's categories
+      site: not_available
+      site_state: not_available
+      context_reliability: unknown
+  - title: File:Keeladi-archeological-site-photos 66.jpg
+    artifact_group: WMC_KEELADI_MUS_SHERD_66
+    grouping_basis: one photograph of a display; no other acquired photo appears to show the same object(s)
+    object_type: single potsherd in a display case (not described by source)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: single small sherd, out of focus.'
+    find_site: not_stated_by_source (uploader categorises the photo under the Keezhadi site and museum; the photographed
+      object's find-site is not stated, and museum displays can include material from other sites or replicas)
+    geographic_scope: unknown
+    record:
+      collection: displayed in the Keezhadi/Keeladi site museum, per the uploader's categories
+      site: not_available
+      site_state: not_available
+      context_reliability: unknown
+  - title: File:Keeladi-archeological-site-photos 68.jpg
+    artifact_group: WMC_KEELADI_MUS_SHERD_DISPLAY_68
+    grouping_basis: one photograph of a display; no other acquired photo appears to show the same object(s)
+    object_type: potsherds arranged in a display case (not described by source)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: about twenty sherds arranged in a ring in a showcase.'
+    find_site: not_stated_by_source (uploader categorises the photo under the Keezhadi site and museum; the photographed
+      object's find-site is not stated, and museum displays can include material from other sites or replicas)
+    geographic_scope: unknown
+    record:
+      collection: displayed in the Keezhadi/Keeladi site museum, per the uploader's categories
+      site: not_available
+      site_state: not_available
+      context_reliability: unknown
+  - title: File:Keeladi-archeological-site-photos 99.jpg
+    artifact_group: WMC_KEELADI_MUS_SMALL_POTS_CASE
+    grouping_basis: 'conservative grouping: photos 99 and 100 may show the same showcase'
+    object_type: small pottery vessels in a display case (not described by source)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: two small vessels (one footed) in a showcase.'
+    find_site: not_stated_by_source (uploader categorises the photo under the Keezhadi site and museum; the photographed
+      object's find-site is not stated, and museum displays can include material from other sites or replicas)
+    geographic_scope: unknown
+    record:
+      collection: displayed in the Keezhadi/Keeladi site museum, per the uploader's categories
+      site: not_available
+      site_state: not_available
+      context_reliability: unknown
+  - title: File:Keeladi-archeological-site-photos 100.jpg
+    artifact_group: WMC_KEELADI_MUS_SMALL_POTS_CASE
+    grouping_basis: conservative grouping with photo 99
+    object_type: small pottery vessels in a display case (not described by source)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: two small vessels, one black-topped, in a showcase.'
+    find_site: not_stated_by_source (uploader categorises the photo under the Keezhadi site and museum; the photographed
+      object's find-site is not stated, and museum displays can include material from other sites or replicas)
+    geographic_scope: unknown
+    record:
+      collection: displayed in the Keezhadi/Keeladi site museum, per the uploader's categories
+      site: not_available
+      site_state: not_available
+      context_reliability: unknown
+  - title: File:Keeladi-archeological-site-photos 105.jpg
+    artifact_group: WMC_KEELADI_MUS_SHERD_105
+    grouping_basis: one photograph of a display; no other acquired photo appears to show the same object(s)
+    object_type: single potsherd (not described by source)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: close-up of a dark sherd with incised marks.
+      Whether these are script, graffiti or other marks is NOT determined.'
+    find_site: not_stated_by_source (uploader categorises the photo under the Keezhadi site and museum; the photographed
+      object's find-site is not stated, and museum displays can include material from other sites or replicas)
+    geographic_scope: unknown
+    record:
+      collection: displayed in the Keezhadi/Keeladi site museum, per the uploader's categories
+      site: not_available
+      site_state: not_available
+      context_reliability: unknown
+  - title: File:Keeladi-archeological-site-photos 106.jpg
+    artifact_group: WMC_KEELADI_MUS_SHERD_106
+    grouping_basis: one photograph of a display; no other acquired photo appears to show the same object(s)
+    object_type: single potsherd (not described by source)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: close-up of a two-tone sherd; faint marks may
+      be present. NOT determined.'
+    find_site: not_stated_by_source (uploader categorises the photo under the Keezhadi site and museum; the photographed
+      object's find-site is not stated, and museum displays can include material from other sites or replicas)
+    geographic_scope: unknown
+    record:
+      collection: displayed in the Keezhadi/Keeladi site museum, per the uploader's categories
+      site: not_available
+      site_state: not_available
+      context_reliability: unknown
+  - title: File:Keeladi-archeological-site-photos 107.jpg
+    artifact_group: WMC_KEELADI_MUS_SHERD_107
+    grouping_basis: one photograph of a display; no other acquired photo appears to show the same object(s)
+    object_type: single potsherd (not described by source)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: close-up of a two-tone sherd with a row of incised
+      marks. Script identity NOT determined.'
+    find_site: not_stated_by_source (uploader categorises the photo under the Keezhadi site and museum; the photographed
+      object's find-site is not stated, and museum displays can include material from other sites or replicas)
+    geographic_scope: unknown
+    record:
+      collection: displayed in the Keezhadi/Keeladi site museum, per the uploader's categories
+      site: not_available
+      site_state: not_available
+      context_reliability: unknown
+  - title: File:Keeladi-archeological-site-photos 108.jpg
+    artifact_group: WMC_KEELADI_MUS_SHERD_108
+    grouping_basis: one photograph of a display; no other acquired photo appears to show the same object(s)
+    object_type: single potsherd (not described by source)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: close-up of a red sherd (two joined pieces) with
+      incised marks. NOT determined.'
+    find_site: not_stated_by_source (uploader categorises the photo under the Keezhadi site and museum; the photographed
+      object's find-site is not stated, and museum displays can include material from other sites or replicas)
+    geographic_scope: unknown
+    record:
+      collection: displayed in the Keezhadi/Keeladi site museum, per the uploader's categories
+      site: not_available
+      site_state: not_available
+      context_reliability: unknown
+  - title: File:Keeladi-archeological-site-photos 109.jpg
+    artifact_group: WMC_KEELADI_MUS_SHERD_109
+    grouping_basis: one photograph of a display; no other acquired photo appears to show the same object(s)
+    object_type: single potsherd (not described by source)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: close-up of a long red sherd with a row of incised
+      marks. Script identity NOT determined.'
+    find_site: not_stated_by_source (uploader categorises the photo under the Keezhadi site and museum; the photographed
+      object's find-site is not stated, and museum displays can include material from other sites or replicas)
+    geographic_scope: unknown
+    record:
+      collection: displayed in the Keezhadi/Keeladi site museum, per the uploader's categories
+      site: not_available
+      site_state: not_available
+      context_reliability: unknown
+  - title: File:Keeladi-archeological-site-photos 110.jpg
+    artifact_group: WMC_KEELADI_MUS_SHERD_110
+    grouping_basis: one photograph of a display; no other acquired photo appears to show the same object(s)
+    object_type: potsherd(s) in a display case (not described by source)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: sherd(s) with incised marks near the rim. NOT
+      determined.'
+    find_site: not_stated_by_source (uploader categorises the photo under the Keezhadi site and museum; the photographed
+      object's find-site is not stated, and museum displays can include material from other sites or replicas)
+    geographic_scope: unknown
+    record:
+      collection: displayed in the Keezhadi/Keeladi site museum, per the uploader's categories
+      site: not_available
+      site_state: not_available
+      context_reliability: unknown
+  - title: File:Keeladi-archeological-site-photos 116.jpg
+    artifact_group: WMC_KEELADI_MUS_SHERDS_116
+    grouping_basis: one photograph of a display; no other acquired photo appears to show the same object(s)
+    object_type: two potsherds in a display case (not described by source)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: two small sherds on a stand.'
+    find_site: not_stated_by_source (uploader categorises the photo under the Keezhadi site and museum; the photographed
+      object's find-site is not stated, and museum displays can include material from other sites or replicas)
+    geographic_scope: unknown
+    record:
+      collection: displayed in the Keezhadi/Keeladi site museum, per the uploader's categories
+      site: not_available
+      site_state: not_available
+      context_reliability: unknown
+  - title: File:Keeladi-archeological-site-photos 118.jpg
+    artifact_group: WMC_KEELADI_MUS_JARS_DISPLAY
+    grouping_basis: 'conservative grouping: photo 118 may show one of the jars in photo 124'
+    object_type: storage jar on a stand (not described by source)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: single tall jar on a metal stand.'
+    find_site: not_stated_by_source (uploader categorises the photo under the Keezhadi site and museum; the photographed
+      object's find-site is not stated, and museum displays can include material from other sites or replicas)
+    geographic_scope: unknown
+    record:
+      collection: displayed in the Keezhadi/Keeladi site museum, per the uploader's categories
+      site: not_available
+      site_state: not_available
+      context_reliability: unknown
+  - title: File:Keeladi-archeological-site-photos 124.jpg
+    artifact_group: WMC_KEELADI_MUS_JARS_DISPLAY
+    grouping_basis: conservative grouping with photo 118
+    object_type: storage jars on stands (not described by source)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: three tall jars on metal stands.'
+    find_site: not_stated_by_source (uploader categorises the photo under the Keezhadi site and museum; the photographed
+      object's find-site is not stated, and museum displays can include material from other sites or replicas)
+    geographic_scope: unknown
+    record:
+      collection: displayed in the Keezhadi/Keeladi site museum, per the uploader's categories
+      site: not_available
+      site_state: not_available
+      context_reliability: unknown
+  - title: File:Red-Slipped-Pots-Keezhadi-Madurai-TamilNadu-India.jpg
+    artifact_group: WMC_KEELADI_MUS_RED_SLIPPED_DISPLAY
+    grouping_basis: conservative grouping with Keeladi site photos 28 and 30 (same showcase possible)
+    object_type: red slipped pots (as stated by source)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: showcase of complete red vessels labelled ''Red
+      slipped pots''.'
+    find_site: 'Keezhadi (as stated by source: ''excavated from Archialogical Site at Keezhadi'')'
+    geographic_scope: tamil_nadu
+    record:
+      collection: displayed in the Keezhadi site museum (per source)
+      site: Keezhadi (as stated by source)
+      site_state: Tamil Nadu
+      pottery_type: red_slipped_ware
+      context_reliability: unknown
+  - title: File:Adichanallur earthenware burial urns.jpg
+    artifact_group: WMC_ADICHANALLUR_INSITU_URNS
+    grouping_basis: 'conservative grouping: all acquired Adichanallur photos show open burial pits at one site;
+      which urns recur across photographs cannot be established'
+    object_type: earthenware burial urns in situ (as stated by source title)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: urns and vessels in open excavation pits.'
+    find_site: 'Adichanallur (as stated by source: ''Adichanallur archaeological site'')'
+    geographic_scope: tamil_nadu
+    record:
+      site: Adichanallur (as stated by source)
+      site_state: Tamil Nadu
+      collection: not_applicable (in situ at the site, per source)
+      context_reliability: unknown
+  - title: File:Adichanallur earthenware burial urns 1.jpg
+    artifact_group: WMC_ADICHANALLUR_INSITU_URNS
+    grouping_basis: 'conservative grouping: all acquired Adichanallur photos show open burial pits at one site;
+      which urns recur across photographs cannot be established'
+    object_type: earthenware burial urns in situ (as stated by source title)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: urns and vessels in open excavation pits.'
+    find_site: 'Adichanallur (as stated by source: ''Adichanallur archaeological site'')'
+    geographic_scope: tamil_nadu
+    record:
+      site: Adichanallur (as stated by source)
+      site_state: Tamil Nadu
+      collection: not_applicable (in situ at the site, per source)
+      context_reliability: unknown
+  - title: File:Adichanallur earthenware burial urns 2.jpg
+    artifact_group: WMC_ADICHANALLUR_INSITU_URNS
+    grouping_basis: 'conservative grouping: all acquired Adichanallur photos show open burial pits at one site;
+      which urns recur across photographs cannot be established'
+    object_type: earthenware burial urns in situ (as stated by source title)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: urns and vessels in open excavation pits.'
+    find_site: 'Adichanallur (as stated by source: ''Adichanallur archaeological site'')'
+    geographic_scope: tamil_nadu
+    record:
+      site: Adichanallur (as stated by source)
+      site_state: Tamil Nadu
+      collection: not_applicable (in situ at the site, per source)
+      context_reliability: unknown
+  - title: File:Adichanallur earthenware burial urns 3.jpg
+    artifact_group: WMC_ADICHANALLUR_INSITU_URNS
+    grouping_basis: 'conservative grouping: all acquired Adichanallur photos show open burial pits at one site;
+      which urns recur across photographs cannot be established'
+    object_type: earthenware burial urns in situ (as stated by source title)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: urns and vessels in open excavation pits.'
+    find_site: 'Adichanallur (as stated by source: ''Adichanallur archaeological site'')'
+    geographic_scope: tamil_nadu
+    record:
+      site: Adichanallur (as stated by source)
+      site_state: Tamil Nadu
+      collection: not_applicable (in situ at the site, per source)
+      context_reliability: unknown
+  - title: File:Adichanallur earthenware burial urns 4.jpg
+    artifact_group: WMC_ADICHANALLUR_INSITU_URNS
+    grouping_basis: 'conservative grouping: all acquired Adichanallur photos show open burial pits at one site;
+      which urns recur across photographs cannot be established'
+    object_type: earthenware burial urns in situ (as stated by source title)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: urns and vessels in open excavation pits.'
+    find_site: 'Adichanallur (as stated by source: ''Adichanallur archaeological site'')'
+    geographic_scope: tamil_nadu
+    record:
+      site: Adichanallur (as stated by source)
+      site_state: Tamil Nadu
+      collection: not_applicable (in situ at the site, per source)
+      context_reliability: unknown
+  - title: File:Adichanallur earthenware burial urns 5.jpg
+    artifact_group: WMC_ADICHANALLUR_INSITU_URNS
+    grouping_basis: 'conservative grouping: all acquired Adichanallur photos show open burial pits at one site;
+      which urns recur across photographs cannot be established'
+    object_type: earthenware burial urns in situ (as stated by source title)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: urns and vessels in open excavation pits.'
+    find_site: 'Adichanallur (as stated by source: ''Adichanallur archaeological site'')'
+    geographic_scope: tamil_nadu
+    record:
+      site: Adichanallur (as stated by source)
+      site_state: Tamil Nadu
+      collection: not_applicable (in situ at the site, per source)
+      context_reliability: unknown
+  - title: File:Adichanallur earthenware burial urns 6.jpg
+    artifact_group: WMC_ADICHANALLUR_INSITU_URNS
+    grouping_basis: 'conservative grouping: all acquired Adichanallur photos show open burial pits at one site;
+      which urns recur across photographs cannot be established'
+    object_type: earthenware burial urns in situ (as stated by source title)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: urns and vessels in open excavation pits.'
+    find_site: 'Adichanallur (as stated by source: ''Adichanallur archaeological site'')'
+    geographic_scope: tamil_nadu
+    record:
+      site: Adichanallur (as stated by source)
+      site_state: Tamil Nadu
+      collection: not_applicable (in situ at the site, per source)
+      context_reliability: unknown
+  - title: File:Adichanallur earthenware burial urns 7.jpg
+    artifact_group: WMC_ADICHANALLUR_INSITU_URNS
+    grouping_basis: 'conservative grouping: all acquired Adichanallur photos show open burial pits at one site;
+      which urns recur across photographs cannot be established'
+    object_type: earthenware burial urns in situ (as stated by source title)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: urns and vessels in open excavation pits.'
+    find_site: 'Adichanallur (as stated by source: ''Adichanallur archaeological site'')'
+    geographic_scope: tamil_nadu
+    record:
+      site: Adichanallur (as stated by source)
+      site_state: Tamil Nadu
+      collection: not_applicable (in situ at the site, per source)
+      context_reliability: unknown
+  - title: File:Adichanallur earthenware burial urns 8.jpg
+    artifact_group: WMC_ADICHANALLUR_INSITU_URNS
+    grouping_basis: 'conservative grouping: all acquired Adichanallur photos show open burial pits at one site;
+      which urns recur across photographs cannot be established'
+    object_type: earthenware burial urns in situ (as stated by source title)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: urns and vessels in open excavation pits.'
+    find_site: 'Adichanallur (as stated by source: ''Adichanallur archaeological site'')'
+    geographic_scope: tamil_nadu
+    record:
+      site: Adichanallur (as stated by source)
+      site_state: Tamil Nadu
+      collection: not_applicable (in situ at the site, per source)
+      context_reliability: unknown
+  - title: File:Adichanallur Urn.jpg
+    artifact_group: WMC_ADICHANALLUR_INSITU_URNS
+    grouping_basis: 'conservative grouping: all acquired Adichanallur photos show open burial pits at one site;
+      which urns recur across photographs cannot be established'
+    object_type: earthenware burial urns in situ (as stated by source title)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: urns and vessels in open excavation pits.'
+    find_site: 'Adichanallur (as stated by source: ''Adichanallur archaeological site'')'
+    geographic_scope: tamil_nadu
+    record:
+      site: Adichanallur (as stated by source)
+      site_state: Tamil Nadu
+      collection: not_applicable (in situ at the site, per source)
+      context_reliability: unknown
+  - title: File:Urn in Sivakalai Archeology site.jpg
+    artifact_group: WMC_SIVAKALAI_URN
+    grouping_basis: one photograph of a display; no other acquired photo appears to show the same object(s)
+    object_type: broken urn (as stated by source)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: a broken urn at an excavation site.'
+    find_site: 'Sivakalai (as stated by source: ''Sivakalai Archaeological site in Tamil Nadu'')'
+    geographic_scope: tamil_nadu
+    record:
+      site: Sivakalai (as stated by source)
+      site_state: Tamil Nadu
+      collection: not_applicable (at the site, per source)
+      context_reliability: unknown
+  - title: File:Archaeological Excavation, Kodumanal.jpg
+    artifact_group: WMC_REJECTED_CANDIDATE
+    grouping_basis: not acquired
+    object_type: not_applicable
+    curation_note: Tamil Nadu site photo; GODL-India asserted by a re-uploader, credited to TNSDA
+  - title: File:கோவை கௌசிகா நதியில்... தமிழ் பிராமி எழுத்துக்கள்.....jpg
+    artifact_group: WMC_REJECTED_CANDIDATE
+    grouping_basis: not acquired
+    object_type: not_applicable
+    curation_note: low-resolution image with a press-style scale bar; 'own work' claim is doubtful; needs human
+      rights review
+  excluded:
+    File:Archaeological Excavation, Kodumanal.jpg: Tamil Nadu site photo; GODL-India asserted by a re-uploader,
+      credited to TNSDA
+    File:கோவை கௌசிகா நதியில்... தமிழ் பிராமி எழுத்துக்கள்.....jpg: low-resolution image with a press-style scale
+      bar; 'own work' claim is doubtful; needs human rights review
+  notes: Photographs by Wikimedia contributors (own work). No project labels assigned. Museum photographs do not
+    state the find-site of the object shown; those records carry geographic_scope 'unknown' and site 'not_available'.
+- dataset_id: wmc_supporting_pottery_m6
+  dataset_name: Supporting pottery photographs outside the primary scope, from Wikimedia Commons (Milestone 6)
+  target: external
+  subdir: supporting_pottery/wikimedia_commons
+  source: wikimedia_commons
+  source_name: Wikimedia Commons
+  source_url: https://commons.wikimedia.org/wiki/Category:Pattanam_excavation_museum ; https://commons.wikimedia.org/wiki/Category:Arikamedu
+    ; https://commons.wikimedia.org/wiki/Category:Black_and_Red_Ware
+  geographic_scope: unknown
+  archaeological_period: not_stated_by_source
+  script_scope: not_stated_by_source
+  items:
+  - title: File:Tamil-Brahmi Inscription, Pattanam excavation museum, Kottappuram, Kodungallur.jpg
+    artifact_group: WMC_PATTANAM_TB_SHERD
+    grouping_basis: one photograph of a display; no other acquired photo appears to show the same object(s)
+    object_type: 'inscribed potsherd displayed with a reading card (per source title: ''Tamil-Brahmi Inscription'')'
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: sherd with incised marks below a hand-drawn card.'
+    find_site: Pattanam, Kerala (displayed at the Pattanam excavation museum, per source)
+    geographic_scope: south_india_outside_tamil_nadu
+    script_scope: Tamil-Brahmi (as stated in source title)
+    archaeological_period: not_stated_by_source
+  - title: File:Tamil Brahmi writings found Muziris excavation sites.jpg
+    artifact_group: WMC_MUZIRIS_TB_DISPLAY
+    grouping_basis: one photograph of a display; no other acquired photo appears to show the same object(s)
+    object_type: 'display of inscribed sherds (per source title: ''Tamil Brahmi writings'')'
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: showcase of sherds with a label card.'
+    find_site: Muziris (Pattanam) excavation sites, Kerala (as stated by source)
+    geographic_scope: south_india_outside_tamil_nadu
+    script_scope: Tamil-Brahmi (as stated in source title)
+    archaeological_period: not_stated_by_source
+  - title: File:Tamil Brahmi potsherd Tissamaharama.jpg
+    artifact_group: WMC_TISSAMAHARAMA_TB_SHERD
+    grouping_basis: one photograph of a display; no other acquired photo appears to show the same object(s)
+    object_type: potsherd (per source title)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: a potsherd; marks not assessed.'
+    find_site: Tissamaharama, Sri Lanka (as stated by source)
+    geographic_scope: south_asia_outside_india
+    script_scope: Tamil-Brahmi (as stated in source title)
+    archaeological_period: not_stated_by_source
+  - title: File:Black and Red ware.jpg
+    artifact_group: WMC_SRILANKA_BRW_SHERDS
+    grouping_basis: one photograph of a display; no other acquired photo appears to show the same object(s)
+    object_type: '''South Indian type Black and Red ware pot shreds'' (as stated by source)'
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: several black-and-red sherds in a case.'
+    find_site: found in Sri Lanka; displayed at the National Museum, Colombo (as stated by source)
+    geographic_scope: south_asia_outside_india
+    script_scope: not_stated_by_source
+    archaeological_period: 1st to 2nd century CE (as stated by source; not verified)
+  - title: File:Painted Potsherds-1-Govt Museum-egmore-chennai-India.jpg
+    artifact_group: WMC_EGMORE_PAINTED_SHERDS_1
+    grouping_basis: one photograph of a display; no other acquired photo appears to show the same object(s)
+    object_type: '''Painted Potsherds'' (as stated by source)'
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: painted sherds in a showcase.'
+    find_site: not_stated_by_source (held at Government Museum, Egmore, Chennai, per source title)
+    geographic_scope: unknown
+    script_scope: not_stated_by_source
+    archaeological_period: not_stated_by_source
+  - title: File:Painted Potsherds-2-Govt Museum-egmore-chennai-India.jpg
+    artifact_group: WMC_EGMORE_PAINTED_SHERDS_2
+    grouping_basis: one photograph of a display; no other acquired photo appears to show the same object(s)
+    object_type: '''Painted Potsherds'' (as stated by source)'
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: painted sherds in a showcase; may overlap with
+      file 1.'
+    find_site: not_stated_by_source (held at Government Museum, Egmore, Chennai, per source title)
+    geographic_scope: unknown
+    script_scope: not_stated_by_source
+    archaeological_period: not_stated_by_source
+  - title: File:GreyPotteryWithEngravingsVirampatnamArikamedu1stCenturyCE.jpg
+    artifact_group: WMC_ARIKAMEDU_GREY_POTTERY
+    grouping_basis: one photograph of a display; no other acquired photo appears to show the same object(s)
+    object_type: '''Grey Pottery With Engravings'' (as stated by source)'
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: two dark objects with engraved figures.'
+    find_site: Virampatnam, Arikamedu (as stated by source; photographed at Musée Guimet)
+    geographic_scope: puducherry
+    script_scope: not_stated_by_source
+    archaeological_period: 1st Century CE (as stated by source; not verified)
+  - title: File:ArikameduRomanCeramic.jpg
+    artifact_group: WMC_ARIKAMEDU_ROMAN_CERAMIC
+    grouping_basis: one photograph of a display; no other acquired photo appears to show the same object(s)
+    object_type: '''Ancient Roman pottery found in Arikamedu'' (as stated by source)'
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: a red sherd with stamped/incised letters.'
+    find_site: Arikamedu (as stated by source; photographed at Musée Guimet)
+    geographic_scope: puducherry
+    script_scope: not_stated_by_source
+    archaeological_period: not_stated_by_source
+  - title: File:Tamil-Brahmi Inscription, Pattanam excavation museum, Kottappuram, Kodungallur (cropped).jpg
+    artifact_group: WMC_REJECTED_CANDIDATE
+    grouping_basis: not acquired
+    object_type: not_applicable
+    curation_note: crop of an already-acquired photograph; a near-duplicate adds no evidence
+  excluded:
+    File:Tamil-Brahmi Inscription, Pattanam excavation museum, Kottappuram, Kodungallur (cropped).jpg: crop of an
+      already-acquired photograph; a near-duplicate adds no evidence
+  notes: NOT Tamil Nadu ground truth. Kerala, Puducherry, Sri Lanka and unknown-provenance pottery kept for comparison
+    only.
+- dataset_id: wmc_tamil_brahmi_rock_m6
+  dataset_name: Tamil-Brahmi rock and cave inscription photographs from Wikimedia Commons (Milestone 6)
+  target: external
+  subdir: tamil_brahmi_inscriptions/wikimedia_commons
+  source: wikimedia_commons
+  source_name: Wikimedia Commons
+  source_url: https://commons.wikimedia.org/wiki/Category:Tamil_Brahmi_inscriptions
+  geographic_scope: tamil_nadu
+  archaeological_period: not_stated_by_source
+  script_scope: Tamil-Brahmi (as stated by source)
+  items:
+  - title: File:Jambai Tamil Brahmi.jpg
+    artifact_group: WMC_JAMBAI_INSCRIPTION
+    grouping_basis: photographs of one inscribed rock face are grouped
+    object_type: rock / cave inscription (not pottery)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: inscribed rock surface; supporting material for
+      future script-recognition work only.'
+    find_site: Jambai (as stated by source)
+    geographic_scope: tamil_nadu
+    script_scope: Tamil-Brahmi (as stated in source title)
+    archaeological_period: not_stated_by_source
+  - title: File:Nehanurpatti Tamil Brahmi inscription.JPG
+    artifact_group: WMC_NEHANURPATTI_INSCRIPTION
+    grouping_basis: photographs of one inscribed rock face are grouped
+    object_type: rock / cave inscription (not pottery)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: inscribed rock surface; supporting material for
+      future script-recognition work only.'
+    find_site: Nehanurpatti (as stated by source)
+    geographic_scope: tamil_nadu
+    script_scope: Tamil-Brahmi (as stated in source title)
+    archaeological_period: not_stated_by_source
+  - title: File:Tamil Brahmi inscription Arittapatti JEG5883.JPG
+    artifact_group: WMC_ARITTAPATTI_INSCRIPTION
+    grouping_basis: photographs of one inscribed rock face are grouped
+    object_type: rock / cave inscription (not pottery)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: inscribed rock surface; supporting material for
+      future script-recognition work only.'
+    find_site: Arittapatti (as stated by source)
+    geographic_scope: tamil_nadu
+    script_scope: Tamil-Brahmi (as stated in source title)
+    archaeological_period: not_stated_by_source
+  - title: File:Tamil Brahmi inscription Arittapatti JEG5886.JPG
+    artifact_group: WMC_ARITTAPATTI_INSCRIPTION
+    grouping_basis: photographs of one inscribed rock face are grouped
+    object_type: rock / cave inscription (not pottery)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: inscribed rock surface; supporting material for
+      future script-recognition work only.'
+    find_site: Arittapatti (as stated by source)
+    geographic_scope: tamil_nadu
+    script_scope: Tamil-Brahmi (as stated in source title)
+    archaeological_period: not_stated_by_source
+  - title: File:Tamil Brahmi inscription Arittapatti JEG5887.JPG
+    artifact_group: WMC_ARITTAPATTI_INSCRIPTION
+    grouping_basis: photographs of one inscribed rock face are grouped
+    object_type: rock / cave inscription (not pottery)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: inscribed rock surface; supporting material for
+      future script-recognition work only.'
+    find_site: Arittapatti (as stated by source)
+    geographic_scope: tamil_nadu
+    script_scope: Tamil-Brahmi (as stated in source title)
+    archaeological_period: not_stated_by_source
+  - title: File:2nd century BCE Tamil Brahmi inscription Arittapatti Madurai India.jpg
+    artifact_group: WMC_ARITTAPATTI_INSCRIPTION
+    grouping_basis: photographs of one inscribed rock face are grouped
+    object_type: rock / cave inscription (not pottery)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: inscribed rock surface; supporting material for
+      future script-recognition work only.'
+    find_site: Arittapatti, Madurai (as stated by source)
+    geographic_scope: tamil_nadu
+    script_scope: Tamil-Brahmi (as stated in source title)
+    archaeological_period: 2nd century BCE (as stated in source title; uploader's attribution, not verified)
+  - title: File:Kongar puliyankulam Tamil Brahmi Script.jpg
+    artifact_group: WMC_KONGARPULIYANKULAM_INSCRIPTION
+    grouping_basis: photographs of one inscribed rock face are grouped
+    object_type: rock / cave inscription (not pottery)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: inscribed rock surface; supporting material for
+      future script-recognition work only.'
+    find_site: Kongar Puliyankulam (as stated by source)
+    geographic_scope: tamil_nadu
+    script_scope: Tamil-Brahmi (as stated in source title)
+    archaeological_period: not_stated_by_source
+  - title: File:Arittapatti inscriptions in Tamil Brahmi mentioning Paravar.jpg
+    artifact_group: WMC_REJECTED_CANDIDATE
+    grouping_basis: not acquired
+    object_type: not_applicable
+    curation_note: description reproduces a news article ('MADURAI SEPT.14 ...'); own-work claim doubtful
+  - title: File:Mangulam inscription.jpg
+    artifact_group: WMC_REJECTED_CANDIDATE
+    grouping_basis: not acquired
+    object_type: not_applicable
+    curation_note: photograph of a MODEL (replica) of the inscription, per source; not the original
+  - title: File:Mangulam Tamil Inscriptions 01.jpg
+    artifact_group: WMC_REJECTED_CANDIDATE
+    grouping_basis: not acquired
+    object_type: not_applicable
+    curation_note: photograph of a MODEL (replica) of the inscription, per source
+  excluded:
+    File:Arittapatti inscriptions in Tamil Brahmi mentioning Paravar.jpg: description reproduces a news article
+      ('MADURAI SEPT.14 ...'); own-work claim doubtful
+    File:Mangulam inscription.jpg: photograph of a MODEL (replica) of the inscription, per source; not the original
+    File:Mangulam Tamil Inscriptions 01.jpg: photograph of a MODEL (replica) of the inscription, per source
+  notes: NOT pottery. Supporting material for future OCR work; never mixed with the pottery dataset.

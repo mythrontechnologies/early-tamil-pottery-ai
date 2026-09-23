@@ -6,10 +6,12 @@ inscriptions and graffiti.
 > **This system provides AI-assisted archaeological analysis and is not a substitute for expert
 > epigraphic or archaeological assessment.**
 
-**Status: Milestones 1–5 complete — structure, schema, ingestion/validation, preprocessing,
-data source audit, dataset & training framework.**
-There is **no data and no trained model.** The system cannot analyse an image yet, and no part of
-it should be presented as if it could. Training is blocked in code by a readiness gate.
+**Status: Milestones 1–6 complete — structure, schema, ingestion/validation, preprocessing,
+data source audit, dataset & training framework, public dataset acquisition.**
+The project holds **30 real, openly licensed photographs of Tamil Nadu archaeological pottery**
+(17 artifacts), but **none carries an expert label**, so there is **no trained model**. The
+system cannot analyse an image yet, and no part of it should be presented as if it could.
+Training is blocked in code by a readiness gate.
 
 ---
 
@@ -40,12 +42,13 @@ An LLM-generated explanation is not evidence and is never presented as such.
 
 | | |
 |---|---|
-| Images | **0** — see [`docs/DATA_INVENTORY.md`](docs/DATA_INVENTORY.md) |
-| Records | **0** |
+| Research images | **30** (17 artifacts), Wikimedia Commons, CC BY / CC BY-SA — see [`docs/PUBLIC_DATASET_AUDIT.md`](docs/PUBLIC_DATASET_AUDIT.md) |
+| Expert-labelled images | **0** — every record has `script_type = unknown` pending annotation |
+| Supporting images | 15 in `data/external/` (out-of-region pottery, Tamil-Brahmi rock inscriptions) |
 | Verified references | **0** — see [`docs/CHRONOLOGICAL_SCOPE.md`](docs/CHRONOLOGICAL_SCOPE.md) |
 | Models | none — the training framework exists and has never run on data |
 | Training ready | **false** — blocked by `src/dataset/readiness.py` (gates G1–G11) |
-| Tests | 398 passing |
+| Tests | 453 passing |
 
 No dataset has been fabricated. A synthetic pottery corpus would produce a model that is confident
 and baseless — the exact failure this project exists to avoid.
@@ -87,6 +90,15 @@ python -m src.dataset stats                       # artifacts, images, classes, 
 python -m src.dataset split                       # artifact-level split manifest (refused: no data)
 ```
 
+### Acquisition commands
+
+```bash
+python -m src.acquisition rules                   # licence allow-list, blocked sources, A1-A9
+python -m src.acquisition plan configs/acquisition/milestone6_wikimedia_commons.yaml           # dry run
+python -m src.acquisition plan configs/acquisition/milestone6_wikimedia_commons.yaml --commit  # acquire
+python -m src.acquisition registry                # what has been acquired, by licence and scope
+```
+
 ### Training and evaluation commands
 
 ```bash
@@ -125,6 +137,8 @@ early-tamil-pottery-ai/
 │   │                         pretraining — kept strictly separate from our pottery data
 │   └── metadata/
 │       ├── README.md         ← every field, explained
+│       ├── records.jsonl     research image records (30, all unlabelled)
+│       ├── acquisition/      provenance registry, dataset manifests, ingested batches
 │       ├── splits/           split manifests (tracked; none yet)
 │       └── schema/
 │           ├── image_record.schema.json    ← the contract
@@ -133,6 +147,7 @@ early-tamil-pottery-ai/
 ├── src/
 │   ├── dataset/              ingestion, validation, loader, splits, sampling, stats, gate
 │   ├── preprocessing/        loader, transforms, quality, pipeline
+│   ├── acquisition/          licence policy, Commons adapter, provenance, acquisition pipeline
 │   ├── training/             config, augmentation, model, engine, checkpoints, experiments
 │   ├── evaluation/           metrics, artifact aggregation, blocked reports
 │   ├── classification/  detection/  ocr/
@@ -140,6 +155,7 @@ early-tamil-pottery-ai/
 ├── app/                      Streamlit UI (Milestone 12) — not built
 ├── configs/project.yaml      chronology, classes, splits, integrity gates
 ├── configs/training.yaml     model, optimiser, augmentation, runtime (untuned defaults)
+├── configs/acquisition/      curated acquisition plans (no licences: those are read from the source)
 ├── scripts/check_env.py
 ├── tests/
 │   ├── fixtures/             SYNTHETIC test data — never research data
@@ -162,7 +178,10 @@ early-tamil-pottery-ai/
     ├── MILESTONE_4_REPORT.md    source audit (research only)
     ├── DATASET_SPLIT.md         the artifact-level split algorithm
     ├── TRAINING_FRAMEWORK.md    training, augmentation, gates, evaluation, reproducibility
-    └── MILESTONE_5_REPORT.md
+    ├── MILESTONE_5_REPORT.md
+    ├── DATA_ACQUISITION.md      acquisition procedure, policy A1-A9, provenance
+    ├── PUBLIC_DATASET_AUDIT.md  every source searched, accepted and rejected, with reasons
+    └── MILESTONE_6_REPORT.md
 ```
 
 Data files are git-ignored; **the metadata describing them is committed**, so the dataset is
@@ -232,6 +251,7 @@ checks them against the physical publications.
 | 3 | Preprocessing pipeline | ✅ **complete** — deterministic, tested on synthetic fixtures |
 | 4 | Research data acquisition & source audit | ✅ **complete** — no data acquired; permission request is the next action |
 | 5 | Dataset & training framework | ✅ **complete** — loader, splits, gates, trainer, metrics; never run on data |
+| 6 | Public dataset acquisition | ✅ **complete** — 30 research + 15 supporting images, all openly licensed, none labelled |
 | — | Classifier training *(originally M4)* | blocked on authorised data |
 | — | Evaluation and error analysis *(originally M5)* | infrastructure built; blocked on data |
 | — | Inscription-region detection *(originally M6)* | blocked |
@@ -257,7 +277,7 @@ Verified on this machine, 2026-09-23:
 | Python | 3.13.7 (3.10 also available) |
 | GPU | NVIDIA RTX 4050 Laptop, 6 GiB |
 | torch | `2.14.0+cu126` in `.venv` — **CUDA available: True** |
-| `.venv` | fully provisioned; all 398 tests run from it |
+| `.venv` | fully provisioned; all 453 tests run from it |
 
 Use `.venv\Scripts\python.exe`, not the global interpreter. The dataset layer needs only
 the standard library plus `jsonschema` and `PyYAML`; preprocessing adds Pillow and NumPy.

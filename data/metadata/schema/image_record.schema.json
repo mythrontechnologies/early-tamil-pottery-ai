@@ -3,7 +3,7 @@
   "$id": "https://early-tamil-pottery-ai/schema/image_record.schema.json",
   "title": "Early Tamil Pottery AI - Image Record",
   "description": "One record per PHOTOGRAPH of a pottery sherd. Multiple records may share an artifact_id when several photographs document the same physical object. artifact_id is the train/val/test split key (see docs/SPLIT_METHODOLOGY.md). Missing information MUST be marked with an explicit sentinel ('unknown', 'not_available', 'not_applicable') and MUST NOT be invented.",
-  "schema_version": "1.1.0",
+  "schema_version": "1.2.0",
   "type": "object",
   "additionalProperties": false,
 
@@ -199,18 +199,19 @@
     },
 
     "inscription_present": {
-      "description": "Whether any deliberate mark (script or graffiti) is present on the sherd.",
-      "enum": ["yes", "no", "uncertain"]
+      "description": "Whether any deliberate mark (script or graffiti) is present on the sherd. 'uncertain' = an annotator examined it and cannot tell. 'unknown' (schema 1.2.0) = not yet examined by any annotator, e.g. an acquired public image awaiting expert review.",
+      "enum": ["yes", "no", "uncertain", "unknown"]
     },
     "script_type": {
-      "description": "PRIMARY CLASSIFICATION LABEL (Milestone 4). 'tamil_brahmi' = Tamil-Brahmi / Tamili script. 'graffiti' = non-script or undeciphered incised marks. 'none' = no visible deliberate mark. 'uncertain' = a mark is present but cannot be assigned. 'tamil_brahmi_and_graffiti' = both co-occur on the same sherd. 'other_script' = a different script (e.g. Prakrit-Brahmi, Vatteluttu, Grantha); such records are HELD OUT of the initial 4-class classifier.",
+      "description": "PRIMARY CLASSIFICATION LABEL (Milestone 4). 'tamil_brahmi' = Tamil-Brahmi / Tamili script. 'graffiti' = non-script or undeciphered incised marks. 'none' = no visible deliberate mark. 'uncertain' = a mark is present but cannot be assigned. 'tamil_brahmi_and_graffiti' = both co-occur on the same sherd. 'other_script' = a different script (e.g. Prakrit-Brahmi, Vatteluttu, Grantha); such records are HELD OUT of the initial 4-class classifier. 'unknown' (schema 1.2.0) = no label has been assigned yet, as for acquired public images awaiting expert annotation; HELD OUT, never trained on, and never inferred by the project or by a model.",
       "enum": [
         "tamil_brahmi",
         "graffiti",
         "tamil_brahmi_and_graffiti",
         "none",
         "uncertain",
-        "other_script"
+        "other_script",
+        "unknown"
       ]
     },
     "script_type_other_detail": {

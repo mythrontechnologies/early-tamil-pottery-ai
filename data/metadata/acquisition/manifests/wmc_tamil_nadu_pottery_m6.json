@@ -1,0 +1,102 @@
+{
+  "manifest_version": "1.0.0",
+  "dataset_id": "wmc_tamil_nadu_pottery_m6",
+  "dataset_name": "Tamil Nadu archaeological pottery photographs from Wikimedia Commons (Milestone 6)",
+  "target": "research",
+  "source_name": "Wikimedia Commons",
+  "source_url": "https://commons.wikimedia.org/wiki/Category:Keezhadi_archeological_site ; https://commons.wikimedia.org/wiki/Category:Adichanallur_earthenware_burial_urns ; https://commons.wikimedia.org/wiki/Category:Sivakalai_archaeological_site",
+  "local_directory": "data/raw/tamil_nadu_pottery/wikimedia_commons",
+  "license": [
+    "CC-BY-4.0",
+    "CC-BY-SA-4.0"
+  ],
+  "license_url": [
+    "https://creativecommons.org/licenses/by-sa/4.0",
+    "https://creativecommons.org/licenses/by/4.0"
+  ],
+  "rights_holder": [
+    "Balurbala",
+    "N. Vivekananthamoorthy",
+    "Perumalism",
+    "Rajeshodayanchal",
+    "Venkadesh"
+  ],
+  "download_date": [
+    "2026-09-23"
+  ],
+  "number_of_files": 30,
+  "number_of_artifacts": 17,
+  "number_of_unique_images": 30,
+  "geographic_scope": [
+    "tamil_nadu",
+    "unknown"
+  ],
+  "period_scope": [
+    "not_stated_by_source"
+  ],
+  "object_scope": [
+    "broken urn (as stated by source)",
+    "earthenware burial urns in situ (as stated by source title)",
+    "fragmentary large vessel (not described by source)",
+    "potsherd(s) in a display case (not described by source)",
+    "potsherds arranged in a display case (not described by source)",
+    "pottery vessels in a museum display case (not described by source)",
+    "red slipped pots (as stated by source)",
+    "single potsherd (not described by source)",
+    "single potsherd in a display case (not described by source)",
+    "single pottery vessel on a plinth (not described by source)",
+    "small pottery vessels in a display case (not described by source)",
+    "storage jar on a stand (not described by source)",
+    "storage jars on stands (not described by source)",
+    "two potsherds in a display case (not described by source)"
+  ],
+  "script_scope": [
+    "not_stated_by_source"
+  ],
+  "project_labels": [
+    "unknown"
+  ],
+  "research_usable": [
+    "yes"
+  ],
+  "redistribution_allowed": [
+    "yes"
+  ],
+  "commercially_usable": [
+    "yes"
+  ],
+  "attribution_requirements": [
+    "\"Adichanallur Urn.jpg\" by Balurbala, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Adichanallur_Urn.jpg",
+    "\"Adichanallur earthenware burial urns 1.jpg\" by Perumalism, CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Adichanallur_earthenware_burial_urns_1.jpg",
+    "\"Adichanallur earthenware burial urns 2.jpg\" by Perumalism, CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Adichanallur_earthenware_burial_urns_2.jpg",
+    "\"Adichanallur earthenware burial urns 3.jpg\" by Perumalism, CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Adichanallur_earthenware_burial_urns_3.jpg",
+    "\"Adichanallur earthenware burial urns 4.jpg\" by Venkadesh, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Adichanallur_earthenware_burial_urns_4.jpg",
+    "\"Adichanallur earthenware burial urns 5.jpg\" by Venkadesh, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Adichanallur_earthenware_burial_urns_5.jpg",
+    "\"Adichanallur earthenware burial urns 6.jpg\" by Venkadesh, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Adichanallur_earthenware_burial_urns_6.jpg",
+    "\"Adichanallur earthenware burial urns 7.jpg\" by Venkadesh, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Adichanallur_earthenware_burial_urns_7.jpg",
+    "\"Adichanallur earthenware burial urns 8.jpg\" by Venkadesh, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Adichanallur_earthenware_burial_urns_8.jpg",
+    "\"Adichanallur earthenware burial urns.jpg\" by Perumalism, CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Adichanallur_earthenware_burial_urns.jpg",
+    "\"Keeladi-archeological-site-photos 100.jpg\" by Rajeshodayanchal, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Keeladi-archeological-site-photos_100.jpg",
+    "\"Keeladi-archeological-site-photos 105.jpg\" by Rajeshodayanchal, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Keeladi-archeological-site-photos_105.jpg",
+    "\"Keeladi-archeological-site-photos 106.jpg\" by Rajeshodayanchal, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Keeladi-archeological-site-photos_106.jpg",
+    "\"Keeladi-archeological-site-photos 107.jpg\" by Rajeshodayanchal, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Keeladi-archeological-site-photos_107.jpg",
+    "\"Keeladi-archeological-site-photos 108.jpg\" by Rajeshodayanchal, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Keeladi-archeological-site-photos_108.jpg",
+    "\"Keeladi-archeological-site-photos 109.jpg\" by Rajeshodayanchal, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Keeladi-archeological-site-photos_109.jpg",
+    "\"Keeladi-archeological-site-photos 110.jpg\" by Rajeshodayanchal, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Keeladi-archeological-site-photos_110.jpg",
+    "\"Keeladi-archeological-site-photos 116.jpg\" by Rajeshodayanchal, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Keeladi-archeological-site-photos_116.jpg",
+    "\"Keeladi-archeological-site-photos 118.jpg\" by Rajeshodayanchal, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Keeladi-archeological-site-photos_118.jpg",
+    "\"Keeladi-archeological-site-photos 124.jpg\" by Rajeshodayanchal, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Keeladi-archeological-site-photos_124.jpg",
+    "\"Keeladi-archeological-site-photos 26.jpg\" by Rajeshodayanchal, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Keeladi-archeological-site-photos_26.jpg",
+    "\"Keeladi-archeological-site-photos 28.jpg\" by Rajeshodayanchal, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Keeladi-archeological-site-photos_28.jpg",
+    "\"Keeladi-archeological-site-photos 29.jpg\" by Rajeshodayanchal, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Keeladi-archeological-site-photos_29.jpg",
+    "\"Keeladi-archeological-site-photos 30.jpg\" by Rajeshodayanchal, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Keeladi-archeological-site-photos_30.jpg",
+    "\"Keeladi-archeological-site-photos 31.jpg\" by Rajeshodayanchal, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Keeladi-archeological-site-photos_31.jpg",
+    "\"Keeladi-archeological-site-photos 66.jpg\" by Rajeshodayanchal, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Keeladi-archeological-site-photos_66.jpg",
+    "\"Keeladi-archeological-site-photos 68.jpg\" by Rajeshodayanchal, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Keeladi-archeological-site-photos_68.jpg",
+    "\"Keeladi-archeological-site-photos 99.jpg\" by Rajeshodayanchal, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Keeladi-archeological-site-photos_99.jpg",
+    "\"Red-Slipped-Pots-Keezhadi-Madurai-TamilNadu-India.jpg\" by N. Vivekananthamoorthy, CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Red-Slipped-Pots-Keezhadi-Madurai-TamilNadu-India.jpg",
+    "\"Urn in Sivakalai Archeology site.jpg\" by Balurbala, CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Urn_in_Sivakalai_Archeology_site.jpg"
+  ],
+  "share_alike_required": true,
+  "notes": "Photographs by Wikimedia contributors (own work). No project labels assigned. Museum photographs do not state the find-site of the object shown; those records carry geographic_scope 'unknown' and site 'not_available'."
+}

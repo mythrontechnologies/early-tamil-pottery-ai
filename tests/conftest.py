@@ -130,6 +130,27 @@ def synthetic_corpus(_base_record_raw: dict[str, Any]) -> Callable[..., dict[str
     return _build
 
 
+@pytest.fixture(scope="session")
+def live_research() -> dict[str, Any]:
+    """The REAL research dataset as it currently stands (read-only).
+
+    Tests that describe the live project state use this instead of assuming the dataset is
+    empty, so they stay true as authorised data arrives (Milestone 6 onward).
+    """
+    from src.acquisition.provenance import read_registry
+    from src.dataset.convert import read_jsonl
+    from src.dataset.schema import RESEARCH_DATA_ROOT, RESEARCH_RECORDS_PATH
+
+    records = read_jsonl(RESEARCH_RECORDS_PATH) if RESEARCH_RECORDS_PATH.exists() else []
+    registry = read_registry()
+    return {
+        "records": records,
+        "artifacts": {r["artifact_id"] for r in records},
+        "provenance": {p["image_id"]: p for p in registry},
+        "raw_root": RESEARCH_DATA_ROOT,
+    }
+
+
 @pytest.fixture
 def load_fixture() -> Callable[[str], list[dict[str, Any]]]:
     """Load a fixture file under ``tests/fixtures/`` by relative path."""

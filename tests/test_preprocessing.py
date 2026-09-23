@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import shutil
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -606,16 +607,40 @@ class TestFixtureHygiene:
 
         assert not images_dir.is_relative_to(ROOT / "data")
 
-    def test_no_images_leaked_into_research_directories(self):
+    def test_every_image_under_data_is_accounted_for(self, images_dir):
+        """Milestone 6: data/ may hold real acquired images, but only registered ones.
+
+        raw/ and external/ -> each file is in the acquisition provenance registry with the
+        same SHA-256; interim/ -> empty (staging is cleared); processed/ -> each image has a
+        sidecar naming a registered source hash. No synthetic fixture image may appear.
+        """
+        import hashlib
+
+        from src.acquisition.provenance import read_registry
         from src.dataset.schema import ROOT
 
         suffixes = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp", ".webp"}
-        for directory in ("raw", "interim", "processed", "external"):
-            found = [
-                p for p in (ROOT / "data" / directory).rglob("*")
-                if p.is_file() and p.suffix.lower() in suffixes
-            ]
-            assert not found, f"images found under data/{directory}: {found}"
+        registry = {p["local_path"]: p["image_sha256"] for p in read_registry()}
+        registered_hashes = set(registry.values())
+        fixture_hashes = {hashlib.sha256(p.read_bytes()).hexdigest()
+                          for p in images_dir.rglob("*") if p.suffix.lower() in suffixes}
+
+        def images(directory: str) -> list[Path]:
+            return [p for p in (ROOT / "data" / directory).rglob("*")
+                    if p.is_file() and p.suffix.lower() in suffixes]
+
+        for directory in ("raw", "external"):
+            for p in images(directory):
+                rel = p.relative_to(ROOT).as_posix()
+                digest = hashlib.sha256(p.read_bytes()).hexdigest()
+                assert registry.get(rel) == digest, f"unregistered or altered image: {rel}"
+                assert digest not in fixture_hashes, f"fixture image leaked: {rel}"
+        assert not images("interim"), "acquisition staging was not cleared"
+        for p in images("processed"):
+            sidecar = p.with_suffix(".json")
+            assert sidecar.exists(), f"processed image without sidecar: {p}"
+            text = sidecar.read_text(encoding="utf-8")
+            assert any(h in text for h in registered_hashes), f"untraceable derivative: {p}"
 
     def test_manifest_marks_images_synthetic(self, images_dir):
         manifest = json.loads((images_dir / "MANIFEST.json").read_text(encoding="utf-8"))
@@ -626,3 +651,25 @@ class TestFixtureHygiene:
         manifest = json.loads((images_dir / "MANIFEST.json").read_text(encoding="utf-8"))
         on_disk = {p.name for p in images_dir.iterdir() if p.name != "MANIFEST.json"}
         assert on_disk == set(manifest["files"])
+
+
+class TestMpoSupport:
+    """Milestone 6: many cameras write MPO (a JPEG plus extra preview frames)."""
+
+    def test_mpo_is_read_as_jpeg_primary_frame(self, tmp_path):
+        from PIL import Image
+
+        from src.preprocessing.loader import load_image
+
+        primary = Image.new("RGB", (64, 48), (200, 40, 40))       # SYNTHETIC
+        secondary = Image.new("RGB", (64, 48), (40, 200, 40))
+        path = tmp_path / "synthetic_mpo.jpg"
+        primary.save(path, format="MPO", save_all=True, append_images=[secondary])
+        loaded = load_image(path)
+        assert loaded.ok, [str(i) for i in loaded.issues]
+        assert loaded.detected_format == "MPO"
+        assert loaded.image.size == (64, 48)
+        r, g, _ = loaded.image.getpixel((10, 10))
+        assert r > g                                   # primary (red) frame, not the preview
+        assert any(i.code == "P2" and i.severity == "info" for i in loaded.issues)
+        assert not any(i.code == "P7" for i in loaded.issues)
