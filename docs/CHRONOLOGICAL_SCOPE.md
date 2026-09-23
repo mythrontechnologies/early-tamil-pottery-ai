@@ -107,9 +107,9 @@ physical publication. Page numbers are deliberately omitted rather than guessed.
 
 | Ref | Work | Expected relevance | Verification |
 |---|---|---|---|
-| R1 | Mahadevan, Iravatham. *Early Tamil Epigraphy: From the Earliest Times to the Sixth Century A.D.* (2003). Cre-A, Chennai / Harvard Oriental Series. | The standard corpus. Primary source for Position A, for the palaeographic sequence, and for published readings. | ⛔ verify series/volume number and publisher details |
+| R1 | Mahadevan, Iravatham. *Early Tamil Epigraphy: From the Earliest Times to the Sixth Century A.D.* (2003). Cre-A, Chennai / Harvard Oriental Series. | The standard corpus. Primary source for Position A, for the palaeographic sequence, and for published readings. | 🟡 **Bibliographic details confirmed 2026-09-23** (HOS vol. 62; Cre-A, Chennai & Dept. of Sanskrit and Indian Studies, Harvard; 2003; 2nd rev. ed. CICT 2014). Contains a pottery-inscription section (§1.13). ⛔ Support for the attributed claims still unverified. See `DATA_SOURCE_AUDIT.md` S06/S07. |
 | R2 | Salomon, Richard. *Indian Epigraphy: A Guide to the Study of Inscriptions in Sanskrit, Prakrit, and the Other Indo-Aryan Languages* (1998). Oxford University Press. | General methodology; Brahmi palaeography; standards for epigraphic argument. | ⛔ verify |
-| R3 🔶 | Rajan, K. — publications on early writing, Porunthal and Kodumanal. | Primary source for Position B. | ⛔ **exact titles unverified — locate before citing** |
+| R3 🔶 | Rajan, K. — publications on early writing, Porunthal and Kodumanal. | Primary source for Position B. | 🟡 **Titles located 2026-09-23:** Rajan & Yatheeskumar (2013), *Prāgdhārā* 21–22: 280–295 (bibliographic only, not read); Rajan & Sivanantham (2026), *Inscribed Potsherds of Tamil Nadu: Graffiti and Tamiḻi*, TNSDA (read; ch. 10 argues the chronology). ⛔ Claim support in the 2013 paper still unverified. See `DATA_SOURCE_AUDIT.md` S01/S08. |
 | R4 🔶 | Subbarayalu, Y. — publications on Tamil epigraphy. | Corpus and chronology. | ⛔ **exact titles unverified** |
 | R5 🔶 | Falk, Harry — publications on the origins of Brahmi. | Sceptical position (D); Brahmi origins. | ⛔ **exact titles unverified** |
 
@@ -117,7 +117,7 @@ physical publication. Page numbers are deliberately omitted rather than guessed.
 
 | Ref | Work | Expected relevance | Verification |
 |---|---|---|---|
-| R6 🔶 | Sivanantham, R. & Seran, M. (eds.). *Keeladi: An Urban Settlement of Sangam Age on the Banks of River Vaigai* (2019). Department of Archaeology, Government of Tamil Nadu. | Primary source for Position C. | ⛔ verify editors, title, year |
+| R6 🔶 | Sivanantham, R. & Seran, M. (eds.). *Keeladi: An Urban Settlement of Sangam Age on the Banks of River Vaigai* (2019). Department of Archaeology, Government of Tamil Nadu. | Primary source for Position C. | 🟡 **Confirmed 2026-09-23 from the publication itself:** editors, title, year, TNSDA Pub. No. 302. Critically edited by K. Rajan. Reports six AMS dates (Beta Analytic) from the 4th season. ⛔ The dating is disputed; see `DATA_SOURCE_AUDIT.md` S03–S05. |
 | R7 | Wheeler, R.E.M., Ghosh, A. & Krishna Deva. "Arikamedu: An Indo-Roman Trading Station on the East Coast of India." *Ancient India* 2 (1946). | Foundational stratigraphy and ceramic sequence; Rouletted Ware; Mediterranean imports. | ⛔ verify volume/year |
 | R8 | Begley, Vimala et al. *The Ancient Port of Arikamedu: New Excavations and Researches.* École française d'Extrême-Orient. | Revised Arikamedu chronology and ceramics. | ⛔ verify volumes and years |
 | R9 | Archaeological Survey of India — *Indian Archaeology: A Review* series. | Annual excavation notices for Tamil Nadu sites. | ⛔ verify relevant years |
