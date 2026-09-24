@@ -17,7 +17,13 @@ Completeness checklist for one annotation (``checklist``). These items make an a
     script_decided       script_type is not 'unknown'
     regions_marked       an inscription region is marked when inscription_present = yes
     usability_assessed   every examined photograph has usable_for_annotation assessed
+    object_status_decided  original / reproduction / uncertain recorded (schema 1.1.0)
     review_state_set     an expert annotation is expert_reviewed or disputed
+
+Review flags (``annotation_pilot.review_flags``): questions about an artifact that only a
+human can settle, e.g. "REVIEW REQUIRED — possible reproduction / duplicate inscription".
+A flag changes no artifact identity or record; it is displayed, and promotion rule P10
+refuses a ``possible_reproduction`` artifact until the experts state it is original.
 """
 
 from __future__ import annotations
@@ -28,6 +34,29 @@ from typing import Any
 from src.dataset.schema import load_config
 
 from .resolve import resolve_artifact
+
+
+@dataclass(frozen=True)
+class ReviewFlag:
+    artifact: str
+    kind: str
+    label: str
+    related_artifact: str | None = None
+    observation: str = ""
+    raised: str = ""
+    confirmed: bool = False
+
+
+def load_review_flags(config: dict[str, Any] | None = None) -> dict[str, list[ReviewFlag]]:
+    """artifact_id -> its review flags (empty when none are configured)."""
+    p = (config or load_config()).get("annotation_pilot") or {}
+    out: dict[str, list[ReviewFlag]] = {}
+    for f in p.get("review_flags") or []:
+        flag = ReviewFlag(str(f["artifact"]), str(f["kind"]), str(f.get("label", f["kind"])),
+                          f.get("related_artifact"), " ".join(str(f.get("observation", "")).split()),
+                          str(f.get("raised", "")), bool(f.get("confirmed", False)))
+        out.setdefault(flag.artifact, []).append(flag)
+    return out
 
 
 @dataclass(frozen=True)
@@ -58,6 +87,7 @@ def checklist(a: dict[str, Any]) -> dict[str, bool]:
         "script_decided": ins["script_type"] != "unknown",
         "regions_marked": ins["inscription_present"] != "yes" or bool(marks),
         "usability_assessed": set(a["image_ids"]) <= usable,
+        "object_status_decided": a["object"].get("object_status", "unknown") != "unknown",
     }
     if a["provenance_type"] == "expert_annotation":
         items["review_state_set"] = a["review_state"] in ("expert_reviewed", "disputed")
@@ -74,6 +104,7 @@ class PilotArtifactStatus:
     resolution: str = "unannotated"
     ground_truth_eligible: bool = False
     disagreements: dict[str, Any] = field(default_factory=dict)
+    review_flags: list[str] = field(default_factory=list)
 
     @property
     def complete(self) -> bool:
@@ -98,10 +129,13 @@ class PilotStatus:
 def pilot_status(current: list[dict[str, Any]], record_artifacts: set[str],
                  pilot: Pilot | None = None) -> PilotStatus:
     pilot = pilot or load_pilot()
+    flags = load_review_flags()
     rows = []
     for art in pilot.artifacts:
         mine = [a for a in current if a["artifact_id"] == art and a["provenance_type"] != "ai_prediction"]
         s = PilotArtifactStatus(art, art in record_artifacts)
+        s.review_flags = [f"{f.label} ({f.kind}; related: {f.related_artifact or '-'}; "
+                          f"{'confirmed' if f.confirmed else 'unconfirmed'})" for f in flags.get(art, [])]
         for a in mine:
             s.annotations.setdefault(a["provenance_type"], []).append(a["annotation_id"])
             unmet = [k for k, ok in checklist(a).items() if not ok]
@@ -123,6 +157,8 @@ def render_pilot(ps: PilotStatus) -> str:
         tiers = ", ".join(f"{t}={len(ids)}" for t, ids in sorted(s.annotations.items())) or "none"
         L.append(f"  {s.artifact_id:<28} annotations: {tiers:<48} status: {s.resolution}"
                  + ("" if s.in_records else "  [NOT IN RECORDS]"))
+        for f in s.review_flags:
+            L.append(f"      FLAG {f}")
         if s.missing_tiers:
             L.append(f"      missing: {', '.join(s.missing_tiers)}")
         for aid, unmet in s.incomplete.items():
@@ -132,5 +168,5 @@ def render_pilot(ps: PilotStatus) -> str:
     return "\n".join(L)
 
 
-__all__ = ["Pilot", "PilotArtifactStatus", "PilotStatus", "checklist", "load_pilot",
-           "pilot_status", "render_pilot"]
+__all__ = ["Pilot", "PilotArtifactStatus", "PilotStatus", "ReviewFlag", "checklist", "load_pilot",
+           "load_review_flags", "pilot_status", "render_pilot"]

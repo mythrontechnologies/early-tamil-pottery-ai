@@ -157,7 +157,12 @@
         "manufacturing_characteristics": { "$ref": "#/$defs/text" },
         "colour": { "$ref": "#/$defs/text" },
         "decoration": { "$ref": "#/$defs/text" },
-        "condition": { "$ref": "#/$defs/text" }
+        "condition": { "$ref": "#/$defs/text" },
+        "object_status": {
+          "description": "Schema 1.1.0 (optional). Is the photographed object an original archaeological object or a modern reproduction/replica? 'uncertain' = examined, cannot tell; 'unknown' = not assessed. A reproduction is never an archaeological label (promotion rule P10).",
+          "enum": ["original", "reproduction", "uncertain", "unknown"]
+        },
+        "object_notes": { "description": "Schema 1.1.0 (optional). Basis for object_status and other object comments (e.g. museum label, catalogue, visual features).", "$ref": "#/$defs/text" }
       }
     },
 
@@ -222,7 +227,8 @@
                               "stratigraphy", "absolute_dating", "associated_material", "historical_reference",
                               "comparative_inscription", "not_available", "unknown"] }
         },
-        "dating_evidence": { "type": "array", "items": { "$ref": "#/$defs/dating_evidence" } }
+        "dating_evidence": { "type": "array", "items": { "$ref": "#/$defs/dating_evidence" } },
+        "unresolved_conflict": { "description": "Schema 1.1.0 (optional). Conflicting dating positions or evidence the annotator could not resolve. Recorded, never averaged.", "$ref": "#/$defs/text" }
       }
     },
 

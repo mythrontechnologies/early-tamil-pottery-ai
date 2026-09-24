@@ -12,6 +12,14 @@ Milestone 8 additions, and nothing more: a "pilot artifacts only" filter (the si
 close-ups by default), a gallery of every photograph of the selected artifact, a read-only
 table of the references' EFFECTIVE verification status, and a "Pilot & agreement" tab.
 
+Pilot completion (2026-09-24): a provenance panel (ids, Commons page, licence, attribution,
+technical quality flags), review flags such as "REVIEW REQUIRED — possible reproduction /
+duplicate inscription", a count of existing annotations (collapsed, so independent work
+stays independent), the form grouped as OBJECT / INSCRIPTION / MEANING / DATING with
+'unknown' / 'uncertain' one click away, the object's original/reproduction status, and an
+OPTIONAL read-only AI-draft layer (off by default, always shown under its warning; it is
+never saved, and rule N15 refuses it under a human provenance tier).
+
 The annotation store path can be overridden with ETPAI_ANNOTATIONS_PATH (used by tests).
 """
 
@@ -29,9 +37,11 @@ import streamlit as st
 from PIL import Image, ImageOps
 
 from src.annotation.agreement import compute_agreement, render_agreement
+from src.annotation.ai_draft import AI_DRAFT_BANNER, AI_DRAFT_WARNING, load_ai_draft
 from src.annotation.form import build_annotation, crop_view, draw_regions
 from src.annotation.model import ANNOTATIONS_PATH, load_annotation_schema
-from src.annotation.pilot import load_pilot, pilot_status, render_pilot
+from src.annotation.pilot import load_pilot, load_review_flags, pilot_status, render_pilot
+from src.annotation.quality import quality_report
 from src.annotation.resolve import resolve_artifact
 from src.annotation.store import AnnotationRejected, AnnotationStore
 from src.dataset.convert import read_jsonl
@@ -101,6 +111,8 @@ with st.sidebar:
     choices = pilot_ids if pilot_only and pilot_ids else sorted(by_artifact)
     artifact_id = st.selectbox("Artifact", choices,
                                format_func=lambda a: f"{a}  ({len(by_artifact[a])} photo(s))")
+    st.divider()
+    show_ai = st.checkbox("Show AI draft (optional reference layer)", value=False, help=AI_DRAFT_WARNING)
 
 recs = by_artifact[artifact_id]
 image_ids = [r["image_id"] for r in recs]
@@ -109,7 +121,49 @@ regions: list[dict] = st.session_state["regions"].setdefault(artifact_id, [])
 
 tab_annotate, tab_review, tab_pilot = st.tabs(["Annotate", "Review", "Pilot & agreement"])
 
+review_flags = load_review_flags().get(artifact_id, [])
+
 with tab_annotate:
+    # -- provenance (objective facts only) --------------------------------------------
+    st.subheader(f"Artifact {artifact_id}")
+    for f in review_flags:
+        state = "Confirmed." if f.confirmed else "NOT confirmed: record your own judgement under Object status."
+        st.warning(f"**{f.label}** ({f.kind}; related artifact: {f.related_artifact or '-'}). "
+                   f"{f.observation} Raised: {f.raised}. {state}")
+    quality = {q.image_id: q for q in quality_report(recs, [])}
+
+    def _flags(iid: str) -> str:
+        q = quality[iid]
+        return ", ".join(q.technical_flags) or ("not preprocessed" if "status" in q.technical else "none")
+
+    st.dataframe([{"image_id": r["image_id"], "source": r.get("source_reference", "not_available"),
+                   "licence": r.get("license", "unknown"), "attribution": r.get("rights_notes", "not_available"),
+                   "quality flags (technical, uncalibrated)": _flags(r["image_id"])} for r in recs],
+                 hide_index=True)
+    existing = store.current(artifact_id)
+    with st.expander(f"Existing annotations: {len(existing)} (open only AFTER saving your own)"):
+        st.caption("Pilot annotators work independently. The other annotator's answers are data "
+                   "about disagreement; do not read them before you have saved.")
+        st.dataframe([{"annotation_id": a["annotation_id"], "annotator": a["annotator"]["annotator_id"],
+                       "provenance": a["provenance_type"], "review_state": a["review_state"]}
+                      for a in existing], hide_index=True)
+    if show_ai:
+        st.error(f"**{AI_DRAFT_BANNER}.** {AI_DRAFT_WARNING}")
+        try:
+            drafts = load_ai_draft().get(artifact_id, [])
+        except ValueError as exc:
+            drafts = []
+            st.error(f"AI draft refused: {exc}")
+        for d in drafts:
+            st.json({"provenance": d["provenance_type"], "annotator": d["annotator"]["annotator_id"],
+                     "object_type": d["object"]["object_type"],
+                     "inscription_present": d["inscription"]["inscription_present"],
+                     "script_type": d["inscription"]["script_type"], "regions": d["inscription"]["regions"],
+                     "reading": d["inscription"]["reading"], "notes": d.get("notes", ""),
+                     "uncertainty_notes": d.get("uncertainty_notes", "")}, expanded=False)
+        if not drafts:
+            st.caption("No AI draft for this artifact.")
+
     # -- photographs, zoom, regions ---------------------------------------------------
     st.subheader("Photographs")
     with st.expander(f"All {len(recs)} photograph(s) of this artifact", expanded=len(recs) > 1):
@@ -156,20 +210,29 @@ with tab_annotate:
 
     # -- annotation form --------------------------------------------------------------
     with st.form("annotation"):
-        st.subheader("Object")
+        st.caption("An uncertain answer is preferable to an unsupported positive identification. "
+                   "'uncertain' = examined, cannot decide; 'unknown' = not assessed.")
+        st.subheader("OBJECT")
+        OS = enum("object", "object_status")
+        object_status = st.radio("Original archaeological object or reproduction?", OS,
+                                 index=OS.index("unknown"), horizontal=True)
         o1, o2 = st.columns(2)
         object_type = o1.selectbox("Object type", enum("object", "object_type"), index=enum("object", "object_type").index("unknown"))
-        pottery_type = o2.selectbox("Pottery type (ware)", enum("object", "pottery_type"), index=enum("object", "pottery_type").index("unknown"))
-        text_fields = {k: st.text_input(k.replace("_", " ").capitalize(), placeholder="unknown")
-                       for k in ("fabric", "surface", "manufacturing_characteristics", "colour",
-                                 "decoration", "condition")}
+        pottery_type = o2.selectbox("Pottery type (ware), only if known", enum("object", "pottery_type"), index=enum("object", "pottery_type").index("unknown"))
+        object_notes = st.text_input("Object comments / basis for the original-reproduction judgement",
+                                     placeholder="e.g. museum label, catalogue no., painted surface")
+        with st.expander("More object detail (optional)"):
+            text_fields = {k: st.text_input(k.replace("_", " ").capitalize(), placeholder="unknown")
+                           for k in ("fabric", "surface", "manufacturing_characteristics", "colour",
+                                     "decoration", "condition")}
 
-        st.subheader("Inscription")
-        i1, i2, i3 = st.columns(3)
-        inscription_present = i1.selectbox("Inscription present", enum("inscription", "inscription_present"), index=3,
-                                           help="'uncertain' = you examined it and cannot tell; 'unknown' = not examined")
-        script_type = i2.selectbox("Script type", enum("inscription", "script_type"),
-                                   index=enum("inscription", "script_type").index("unknown"))
+        st.subheader("INSCRIPTION")
+        IP, ST = enum("inscription", "inscription_present"), enum("inscription", "script_type")
+        inscription_present = st.radio("Inscription / graffiti present", IP, index=IP.index("unknown"), horizontal=True,
+                                       help="'uncertain' = you examined it and cannot tell; 'unknown' = not examined")
+        script_type = st.radio("Script type", ST, index=ST.index("unknown"), horizontal=True,
+                               help="The site name is not evidence of script.")
+        i3, _ = st.columns(2)
         script_confidence = i3.selectbox("Script confidence", CONF, index=CONF.index("unknown"))
         i4, i5 = st.columns(2)
         inscription_type = i4.selectbox("Inscription type (project category)", enum("inscription", "inscription_type"),
@@ -182,9 +245,13 @@ with tab_annotate:
                                               index=enum("inscription", "transliteration_scheme").index("not_available"))
         reading_confidence = r2.selectbox("Reading confidence", CONF, index=CONF.index("not_applicable"))
         reading_source = r3.text_input("Reading source (ref_id or 'this_annotator')", placeholder="not_available")
+        st.caption("Alternative readings: one row each, with who proposed it (ref_id or 'this_annotator'). "
+                   "For a published reading, cite its ref_id as the source.")
         alt = st.data_editor([{"reading": "", "source": "", "note": ""}], num_rows="dynamic", key="alt")
 
-        st.subheader("Translation / meaning")
+        st.subheader("MEANING")
+        st.caption("Leave the translation empty unless a source establishes it; the record then says "
+                   "no translation is established. A personal name gets no literal translation.")
         t1, t2 = st.columns(2)
         interpretation_type = t1.selectbox("Interpretation type (project category)", enum("interpretation", "interpretation_type"),
                                            index=enum("interpretation", "interpretation_type").index("not_applicable"))
@@ -201,9 +268,12 @@ with tab_annotate:
                                   options=D["linguistic_feature"]["properties"]["feature_type"]["enum"]),
                                   "confidence": st.column_config.SelectboxColumn(options=CONF)})
 
-        st.subheader("Dating evidence")
-        st.caption("One row per piece of evidence. Years: negative = BCE, positive = CE, no year 0. "
-                   "Leave bounds empty if the evidence does not bound the date.")
+        st.subheader("DATING")
+        st.caption("One row per piece of evidence: palaeographic, linguistic, archaeological context, "
+                   "stratigraphy, absolute dating, typology. Years: negative = BCE, positive = CE, no year 0. "
+                   "Leave bounds empty if the evidence does not bound the date. 'association' says whether "
+                   "the evidence dates THIS object or only its context. A site or caption date is not an "
+                   "object date. The dating basis is derived from these rows.")
         ev = st.data_editor([{"evidence_type": "palaeography", "observation": "", "supports_start_year": None,
                               "supports_end_year": None, "supports": "", "association": "not_applicable",
                               "confidence": "unknown", "source_reference": "annotator_observation"}],
@@ -219,6 +289,7 @@ with tab_annotate:
         est_start = dd1.text_input("Estimated start year (optional)")
         est_end = dd2.text_input("Estimated end year (optional)")
         dating_confidence = dd3.selectbox("Dating confidence", CONF, index=CONF.index("unknown"))
+        unresolved_conflict = st.text_input("Unresolved dating conflict (recorded, never averaged)")
 
         st.subheader("References")
         st.caption("A reference is 'verified_against_source' only when the verification registry says "
@@ -254,6 +325,8 @@ with tab_annotate:
                 artifact_id=artifact_id, image_ids=image_ids, annotator_id=annotator_id.strip(),
                 provenance_type=provenance_type, qualification=qualification, review_state=review_state,
                 object_type=object_type, pottery_type=pottery_type, **text_fields,
+                object_status=object_status, object_notes=object_notes,
+                unresolved_conflict=unresolved_conflict,
                 inscription_present=inscription_present, script_type=script_type,
                 script_confidence=script_confidence, inscription_type=inscription_type,
                 regions=list(regions), characters_visible=int(characters_visible) or None,

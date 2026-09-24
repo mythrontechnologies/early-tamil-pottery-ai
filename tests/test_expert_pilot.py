@@ -128,10 +128,11 @@ def world(tmp_path, base_record):
 
 def annotation(art, *, who="SYN_project", prov="project_annotation", script="tamil_brahmi",
                present=None, state="unreviewed", reading=None, regions=(), dating=None,
-               itype=None, alts=(), refs=(), supersedes=None, conf="moderate"):
+               itype=None, alts=(), refs=(), supersedes=None, conf="moderate", obj="original"):
     a = blank_annotation(art, [f"{art}__1"], annotator_id=who, provenance_type=prov,
                          qualification=QUAL if prov == "expert_annotation" else None,
                          supersedes=supersedes)
+    a["object"]["object_status"] = obj
     ins = a["inscription"]
     if script == "none":
         ins.update(inscription_present="no", script_type="none", inscription_type="not_applicable",
@@ -314,8 +315,10 @@ class TestAgreementReport:
         world["store"].append(expert(art, reading="SYN_B", regions=[(0.1, 0.1, 0.2, 0.2)],
                                      dating=(-200, 100, "pottery_typology")), **NOREFS)
         rep = compute_agreement(world["store"].current(), [art])
-        assert set(rep.fields) == {"inscription_present", "script_type", "inscription_type",
-                                   "interpretation_type", "regions", "reading", "dating_evidence_types"}
+        assert set(rep.fields) == {"object_status", "inscription_present", "script_type", "inscription_type",
+                                   "interpretation_type", "regions", "reading", "dating_evidence_types",
+                                   "dating_range"}
+        assert rep.fields["dating_range"].items_agreeing == 1          # identical (-200, 100)
         assert rep.fields["regions"].statistic == pytest.approx(1.0)
         assert rep.fields["reading"].items_agreeing == 0 and rep.fields["reading"].disagreements
         assert rep.fields["dating_evidence_types"].statistic == 0.0
@@ -832,7 +835,9 @@ class TestPromotionUncertainty:
         assert rec["dating_reliability"] == "disputed"
         assert rec["dating_lower_year"] is None and rec["dating_upper_year"] is None
         assert "300 BCE – 200 BCE" in rec["dating_text"] and "100 CE – 200 CE" in rec["dating_text"]
-        assert "50" not in rec["dating_text"]                     # no midpoint anywhere
+        # No midpoint anywhere. (Checked as a date, not the bare substring "50": the text embeds
+        # random annotation ids, which may contain "50".)
+        assert "50 BCE" not in rec["dating_text"] and "50 CE" not in rec["dating_text"]
 
     def test_range_across_the_era_has_no_year_zero(self, world):
         world["store"].append(expert(world["arts"][0], dating=(-1, 1, "palaeography")), **NOREFS)

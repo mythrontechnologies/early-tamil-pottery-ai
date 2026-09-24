@@ -294,3 +294,25 @@ every pilot photograph shows a marked sherd. It needs deliberate acquisition.
    position D) from the publications.
 7. `python -m src.annotation promote --pilot` (dry run), then human approval.
 8. Acquire unmarked sherds for the `none` class.
+
+---
+
+## Addendum (2026-09-24, later): pilot prepared for completion
+
+- **107/109** are now carried as review flags in `configs/project.yaml`
+  (`annotation_pilot.review_flags`): "REVIEW REQUIRED — possible reproduction / duplicate
+  inscription", `confirmed: false`. Artifact identity and `records.jsonl` are unchanged.
+  Promotion rule **P10** refuses a flagged artifact until every expert states
+  `object_status = original`.
+- Annotation schema **1.1.0** (additive): `object.object_status`
+  (original/reproduction/uncertain/unknown), `object.object_notes`,
+  `dating.unresolved_conflict`.
+- Rule **N15**: an AI-marked record can only be an `ai_prediction`. The AI draft is shown
+  read-only in the UI (off by default) under "AI-generated observation. Not archaeological
+  evidence."
+- The project-annotator worksheet was regenerated **blank**, so the AI-filled draft copy is
+  gone. The AI draft remains only in `ai_draft_annotations.jsonl`.
+- Agreement now also compares `object_status` and the proposed date ranges, and prints an
+  item-level review. κ is withheld from the text below 30 items.
+- `python -m src.knowledge claim-report`: per-claim verification state; R3 and R5 are UNRESOLVED.
+  Web-found candidates are recorded in `PILOT_HANDOFF.md` §3 as secondary information only.

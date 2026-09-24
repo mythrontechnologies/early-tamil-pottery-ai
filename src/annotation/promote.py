@@ -7,7 +7,7 @@ training label is this explicit, audited, reversible process:
       -> validation            the whole store passes N1-N14, or nothing is planned
       -> agreement / review    resolve_artifact: only status ``expert_label`` (current expert
                                annotations, all ``expert_reviewed``, agreeing) is eligible
-      -> promotion candidate   per-artifact checks P1-P9 (below)
+      -> promotion candidate   per-artifact checks P1-P10 (below)
       -> dry-run report        field-by-field before/after, dataset validation of the result,
                                and a ``plan_digest`` over all of it
       -> human approval        ``--execute --approve <plan_digest> --approver <id>``
@@ -29,6 +29,11 @@ Candidate checks (a failure rejects the artifact, with the reason, and never blo
 ``P8`` only ``promotion.writable_fields`` change; provenance, rights, path, SHA-256, site and
        split are verified unchanged
 ``P9`` the promoted records pass the dataset validator (E*/R* rules)
+``P10`` the object is an original: no expert records it as a ``reproduction`` or leaves it
+       ``uncertain``, and an artifact carrying a ``possible_reproduction`` review flag
+       (``annotation_pilot.review_flags``) is refused until every expert states ``original``.
+       A reproduction duplicates another artifact's inscription under a different id, which
+       the split protection cannot see.
 
 What is promoted, and how uncertainty survives it:
 
@@ -73,6 +78,7 @@ from src.dataset.schema import (
 from src.dataset.validation import sha256_file, validate_records
 
 from .model import is_real, region_to_pixels, utc_now
+from .pilot import load_review_flags
 from .resolve import resolve_artifact
 from .store import AnnotationStore
 
@@ -371,6 +377,7 @@ def plan_promotion(
         plan.plan_digest = _digest(_digest_body(plan))
         return plan
 
+    flags = load_review_flags(config)
     current = store.current()
     wanted = sorted(set(artifact_ids) if artifact_ids else {a["artifact_id"] for a in current})
     for art in wanted:
@@ -394,6 +401,16 @@ def plan_promotion(
         if res.label == "other_script":
             reasons.append("P4 'other_script' needs the script's name (script_type_other_detail), which "
                            "the annotation does not record; resolve by hand")
+        statuses = {a["object"].get("object_status", "unknown") for a in experts}
+        if "reproduction" in statuses:
+            reasons.append("P10 an expert records the object as a reproduction: not an archaeological "
+                           "object, never a training label")
+        elif "uncertain" in statuses:
+            reasons.append("P10 an expert records original/reproduction status as uncertain")
+        for f in flags.get(art, []):
+            if f.kind == "possible_reproduction" and statuses != {"original"}:
+                reasons.append(f"P10 {f.label}: every expert must state object_status='original' "
+                               f"(related: {f.related_artifact or '-'})")
         recs = sorted(by_art.get(art, []), key=lambda r: r["image_id"])
         if not recs:
             reasons.append("P5 artifact is not in the records")

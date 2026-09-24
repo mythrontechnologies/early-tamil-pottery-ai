@@ -213,6 +213,38 @@ annotation_pilot:
     - WMC_KEELADI_MUS_SHERD_110
   # Each pilot artifact needs one current annotation from each of these provenance tiers.
   required_tiers: [project_annotation, expert_annotation]
+  # Questions raised about an artifact that a HUMAN must settle. A flag changes no artifact
+  # identity and no record; it is shown in the UI and enforced by promotion rule P10.
+  # Raised from visual inspection of the photographs only (docs/MILESTONE_8_PILOT_RESULTS.md §3).
+  review_flags:
+    - artifact: WMC_KEELADI_MUS_SHERD_107
+      kind: possible_reproduction
+      related_artifact: WMC_KEELADI_MUS_SHERD_106
+      label: "REVIEW REQUIRED — possible reproduction / duplicate inscription"
+      observation: "Painted surface with brush strokes, white-filled grooves, wall-mounted with screws; same sign sequence as SHERD_106."
+      raised: "2026-09-24, project observation (AI-assisted photograph inspection)"
+      confirmed: false
+    - artifact: WMC_KEELADI_MUS_SHERD_109
+      kind: possible_reproduction
+      related_artifact: WMC_KEELADI_MUS_SHERD_108
+      label: "REVIEW REQUIRED — possible reproduction / duplicate inscription"
+      observation: "Painted surface with brush strokes, white-filled grooves, wall-mounted with screws; same outline, break and sign sequence as SHERD_108."
+      raised: "2026-09-24, project observation (AI-assisted photograph inspection)"
+      confirmed: false
+    - artifact: WMC_KEELADI_MUS_SHERD_106
+      kind: possible_duplicate_inscription
+      related_artifact: WMC_KEELADI_MUS_SHERD_107
+      label: "REVIEW REQUIRED — possible reproduction / duplicate inscription"
+      observation: "The same inscription may also appear on SHERD_107 (a possible reproduction)."
+      raised: "2026-09-24, project observation (AI-assisted photograph inspection)"
+      confirmed: false
+    - artifact: WMC_KEELADI_MUS_SHERD_108
+      kind: possible_duplicate_inscription
+      related_artifact: WMC_KEELADI_MUS_SHERD_109
+      label: "REVIEW REQUIRED — possible reproduction / duplicate inscription"
+      observation: "The same inscription may also appear on SHERD_109 (a possible reproduction)."
+      raised: "2026-09-24, project observation (AI-assisted photograph inspection)"
+      confirmed: false
 
 agreement:
   # Below this many paired items a chance-corrected statistic (Cohen's kappa) is still

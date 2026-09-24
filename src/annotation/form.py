@@ -85,6 +85,9 @@ def build_annotation(values: dict[str, Any]) -> dict[str, Any]:
     o["pottery_type"] = values.get("pottery_type", "unknown")
     for k, d in TEXT_DEFAULTS.items():
         o[k] = _text(values.get(k), d)
+    o["object_status"] = values.get("object_status") or "unknown"
+    if _text(values.get("object_notes"), ""):
+        o["object_notes"] = values["object_notes"].strip()
 
     ins = a["inscription"]
     for k in ("inscription_present", "inscription_type", "script_type", "script_confidence",
@@ -120,6 +123,8 @@ def build_annotation(values: dict[str, Any]) -> dict[str, Any]:
     d["estimated_end_year"] = _year(values.get("estimated_end_year"))
     d["dating_basis"] = sorted({e["evidence_type"] for e in ev}) or ["not_available"]
     d["dating_confidence"] = values.get("dating_confidence") or "unknown"
+    if _text(values.get("unresolved_conflict"), ""):
+        d["unresolved_conflict"] = values["unresolved_conflict"].strip()
 
     a["linguistic_features"] = [f for f in values.get("linguistic_features", []) if f.get("observation")]
     a["image_usability"] = list(values.get("image_usability", []))

@@ -18,7 +18,9 @@ from src.dataset.schema import ROOT
 
 ANNOTATION_SCHEMA_PATH = ROOT / "data" / "metadata" / "schema" / "annotation.schema.json"
 ANNOTATIONS_PATH = ROOT / "data" / "metadata" / "annotations" / "annotations.jsonl"
-ANNOTATION_SCHEMA_VERSION = "1.0.0"
+ANNOTATION_SCHEMA_VERSION = "1.1.0"
+#: Schema 1.1.0: is the photographed object original or a reproduction (optional field).
+OBJECT_STATUSES = ("original", "reproduction", "uncertain", "unknown")
 
 SENTINELS = frozenset({"unknown", "not_available", "not_applicable"})
 #: Values of source_reference that are not reference ids.
@@ -95,7 +97,8 @@ def blank_annotation(
         "review_state": "unreviewed",
         "object": {"object_type": "unknown", "pottery_type": "unknown", "fabric": "unknown",
                    "surface": "unknown", "manufacturing_characteristics": "unknown",
-                   "colour": "unknown", "decoration": "unknown", "condition": "unknown"},
+                   "colour": "unknown", "decoration": "unknown", "condition": "unknown",
+                   "object_status": "unknown"},
         "inscription": {"inscription_present": "unknown", "inscription_type": "unknown",
                         "script_type": "unknown", "script_confidence": "unknown", "regions": [],
                         "characters_visible": None, "reading": "not_available",
@@ -130,6 +133,7 @@ def pixels_to_region(x: int, y: int, w: int, h: int, width: int, height: int) ->
 
 __all__ = [
     "ANNOTATIONS_PATH", "ANNOTATION_SCHEMA_PATH", "ANNOTATION_SCHEMA_VERSION", "EVIDENCE_TYPES",
+    "OBJECT_STATUSES",
     "PROVENANCE_RANK", "PROVENANCE_ROLE", "SELF_REFERENCES", "SENTINELS", "blank_annotation",
     "is_real", "load_annotation_schema", "new_annotation_id", "pixels_to_region",
     "region_to_pixels", "utc_now",

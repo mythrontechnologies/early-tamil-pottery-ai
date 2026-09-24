@@ -51,6 +51,12 @@ Ware identification from a museum photo through glass is usually `unknown`. Free
 (fabric, surface, manufacturing, colour, decoration, condition) describe what is visible. Write
 "red surface" rather than "red slipped ware" unless you can tell a slip from the fabric.
 
+`object_status` (schema 1.1.0): is the photographed object an `original` archaeological
+object, a `reproduction` (a replica, cast or painted display model), or `uncertain`? Put the
+basis in `object_notes`: a museum label, a catalogue entry, or visible features. A
+reproduction is never promoted to a training label (rule P10). Its inscription is not
+evidence for the original's reading.
+
 ### Inscription
 - **Presence:** `yes`, `no` or `uncertain` after looking; otherwise `unknown`.
 - **Script:** `tamil_brahmi`, `graffiti` (non-script marks), `tamil_brahmi_and_graffiti`,
@@ -168,8 +174,11 @@ artifact list to them.
 
 **They are not assumed to be Tamil-Brahmi.** For each one, decide from the photograph:
 
+The short per-sherd question list is `docs/PILOT_ANNOTATION_CHECKLIST.md`.
+
 | Decide | Values |
 |---|---|
+| original or reproduction | `original` / `reproduction` / `uncertain` (107 and 109 are flagged "REVIEW REQUIRED — possible reproduction / duplicate inscription") |
 | inscription present | `yes` / `no` / `uncertain` |
 | script type | `tamil_brahmi`, `graffiti`, `tamil_brahmi_and_graffiti`, `none`, `uncertain`, `other_script` |
 | inscription region(s) | mark every mark you can see |
@@ -191,9 +200,9 @@ independently. Do not look at each other's annotation before saving your own. Pr
 python -m src.annotation pilot        # which tier is missing, which checklist items are unmet
 ```
 
-The checklist asks whether presence and script are decided, a region is marked when an
-inscription is present, every photograph's usability is assessed, and (for experts) a review
-state is set. A reading is **not** on the checklist.
+The checklist asks whether the object status, presence and script are decided, a region is
+marked when an inscription is present, every photograph's usability is assessed, and (for
+experts) a review state is set. A reading is **not** on the checklist.
 
 ## 8. Agreement
 

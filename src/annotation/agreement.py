@@ -12,6 +12,7 @@ the artifact is skipped with that reason; name the annotator ids instead.
 
 Fields, each reported separately with its own metric:
 
+    object_status            categorical   original / reproduction / uncertain (schema 1.1.0)
     inscription_present      categorical   raw agreement, confusion matrix, Cohen's kappa
     script_type              categorical   raw agreement, confusion matrix, Cohen's kappa
     inscription_type         categorical   raw agreement, confusion matrix, Cohen's kappa
@@ -19,6 +20,11 @@ Fields, each reported separately with its own metric:
     regions                  geometric     per-image best-match IoU; matched-region counts
     reading                  textual       exact (normalised) match; character similarity
     dating_evidence_types    set-valued    exact set match; mean Jaccard
+    dating_range             interval      identical range / overlapping / disjoint / one-sided
+
+``item_summary`` lists, per paired artifact, every field on which the raters differ and every
+field one or both left undetermined. With a pilot of six items this list, not a statistic, is
+the result: the text report withholds kappa whenever it is not interpretable.
 
 Items where either rater recorded ``unknown`` (not examined / not determined) are excluded
 from a categorical comparison and counted as such: agreeing that nobody looked is not
@@ -42,6 +48,7 @@ from src.dataset.schema import load_config
 from .model import PROVENANCE_ROLE
 
 CATEGORICAL = {
+    "object_status": ("object", "object_status"),
     "inscription_present": ("inscription", "inscription_present"),
     "script_type": ("inscription", "script_type"),
     "inscription_type": ("inscription", "inscription_type"),
@@ -140,6 +147,7 @@ class AgreementReport:
     min_items_for_kappa: int
     resolves_disagreement: bool = False                             # always False, by design
     notes: list[str] = field(default_factory=list)
+    items: dict[str, dict[str, list[str]]] = field(default_factory=dict)     # item-level review
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -190,7 +198,7 @@ def _categorical(name: str, pairs: dict[str, tuple[dict, dict]], min_items: int)
     excluded: Counter[str] = Counter()
     fa = FieldAgreement(name, "categorical", 0, 0, None, "cohens_kappa")
     for art, (a, b) in pairs.items():
-        va, vb = a[section][key], b[section][key]
+        va, vb = a[section].get(key, "unknown"), b[section].get(key, "unknown")
         fa.per_artifact[art] = {"a": va, "b": vb}
         if va in NOT_DETERMINED or vb in NOT_DETERMINED:
             excluded["not determined by one or both raters"] += 1
@@ -333,6 +341,60 @@ def _dating(pairs: dict[str, tuple[dict, dict]]) -> FieldAgreement:
     return fa
 
 
+def _range(a: dict[str, Any]) -> tuple[int | None, int | None]:
+    d = a["dating"]
+    return d["estimated_start_year"], d["estimated_end_year"]
+
+
+def _dating_range(pairs: dict[str, tuple[dict, dict]]) -> FieldAgreement:
+    """Proposed date ranges: identical, overlapping, disjoint, or proposed by one rater only.
+    Ranges are compared, never merged or averaged."""
+    fa = FieldAgreement("dating_range", "interval", 0, 0, None, "")
+    excluded: Counter[str] = Counter()
+    for art, (a, b) in pairs.items():
+        ra, rb = _range(a), _range(b)
+        has_a, has_b = ra != (None, None), rb != (None, None)
+        if not has_a and not has_b:
+            excluded["neither rater proposed a date range"] += 1
+            continue
+        fa.items_compared += 1
+        if has_a != has_b:
+            relation = "one rater only"
+        elif ra == rb:
+            relation = "identical"
+        elif None in ra or None in rb:
+            relation = "open-ended; not comparable"
+        else:
+            relation = "overlapping" if max(ra[0], rb[0]) <= min(ra[1], rb[1]) else "disjoint"
+        fa.per_artifact[art] = {"a": list(ra), "b": list(rb), "relation": relation}
+        if relation == "identical":
+            fa.items_agreeing += 1
+        else:
+            fa.disagreements.append({"artifact_id": art, **fa.per_artifact[art]})
+    fa.excluded = dict(excluded)
+    if not fa.items_compared:
+        fa.status, fa.note = "no_data", "No artifact where either rater proposed a date range."
+        return fa
+    fa.raw_agreement = fa.items_agreeing / fa.items_compared
+    fa.status = "descriptive"
+    fa.note = ("Only identical ranges agree. Overlap is reported, not treated as agreement, and "
+               "no range is averaged or combined.")
+    return fa
+
+
+def item_summary(fields: dict[str, FieldAgreement], paired: Iterable[str]) -> dict[str, dict[str, list[str]]]:
+    """artifact -> {"disagree": [fields], "undetermined": [fields]} for the item-level review."""
+    out: dict[str, dict[str, list[str]]] = {art: {"disagree": [], "undetermined": []} for art in paired}
+    for name, f in fields.items():
+        for d in f.disagreements:
+            out[d["artifact_id"]]["disagree"].append(name)
+        if name in CATEGORICAL:
+            for art, v in f.per_artifact.items():
+                if v["a"] in NOT_DETERMINED or v["b"] in NOT_DETERMINED:
+                    out[art]["undetermined"].append(name)
+    return out
+
+
 def compute_agreement(current: Iterable[dict[str, Any]], artifact_ids: Iterable[str],
                       rater_a: str = "project_annotation", rater_b: str = "expert_annotation",
                       *, config: dict[str, Any] | None = None) -> AgreementReport:
@@ -344,13 +406,14 @@ def compute_agreement(current: Iterable[dict[str, Any]], artifact_ids: Iterable[
     fields["regions"] = _regions(pairs, iou_match)
     fields["reading"] = _readings(pairs)
     fields["dating_evidence_types"] = _dating(pairs)
+    fields["dating_range"] = _dating_range(pairs)
     notes = [("Agreement statistics describe the annotators, not the objects. They never resolve a "
               "disagreement: see `python -m src.annotation summary` for each artifact's status.")]
     if len(pairs) < min_items:
         notes.append(f"Only {len(pairs)} artifact(s) are paired; no chance-corrected statistic is "
                      f"interpretable below {min_items} items.")
     return AgreementReport(rater_a, rater_b, len(artifact_ids), sorted(pairs), skipped, fields,
-                           min_items, False, notes)
+                           min_items, False, notes, item_summary(fields, pairs))
 
 
 def _fmt(x: float | None) -> str:
@@ -366,9 +429,14 @@ def render_agreement(r: AgreementReport) -> str:
     for f in r.fields.values():
         L.append("")
         L.append(f"{f.field}  [{f.metric}]  status: {f.status}")
+        stat = ""
+        if f.statistic_name == "cohens_kappa" and not f.interpretable:
+            stat = (f"; cohens_kappa withheld: not interpretable (n={f.items_compared} < {r.min_items_for_kappa})"
+                    if f.status == "insufficient_sample" else f"; cohens_kappa not interpretable ({f.status})")
+        elif f.statistic_name:
+            stat = f"; {f.statistic_name} {_fmt(f.statistic)}" + ("" if f.interpretable else " (not interpretable)")
         L.append(f"  compared {f.items_compared}, agreeing {f.items_agreeing}, raw agreement "
-                 f"{_fmt(f.raw_agreement)}; {f.statistic_name} {_fmt(f.statistic)}"
-                 + ("" if f.interpretable else " (not interpretable)"))
+                 f"{_fmt(f.raw_agreement)}{stat}")
         for why, n in sorted(f.excluded.items()):
             L.append(f"  excluded {n}: {why}")
         if f.confusion:
@@ -377,10 +445,16 @@ def render_agreement(r: AgreementReport) -> str:
             L.append(f"  DISAGREE {d}")
         if f.note:
             L.append(f"  note: {f.note}")
+    if r.items:
+        L += ["", "ITEM-LEVEL REVIEW (the result that matters at this sample size)"]
+        for art, v in sorted(r.items.items()):
+            dis = ", ".join(v["disagree"]) or "none"
+            und = ", ".join(v["undetermined"]) or "none"
+            L.append(f"  {art}: DISAGREE [{dis}]  UNDETERMINED/UNRESOLVED [{und}]")
     L += [""] + [f"NOTE: {n}" for n in r.notes]
     return "\n".join(L)
 
 
 __all__ = ["CATEGORICAL", "MARK_LABELS", "NOT_DETERMINED", "AgreementReport", "FieldAgreement",
-           "char_similarity", "cohens_kappa", "compute_agreement", "iou", "normalise_reading",
+           "char_similarity", "cohens_kappa", "compute_agreement", "iou", "item_summary", "normalise_reading",
            "pair_annotations", "render_agreement"]

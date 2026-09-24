@@ -360,6 +360,43 @@ def effective_statuses(*, kb: KnowledgeBase | None = None,
     return {rid: reference_status(rid, kb=kb, current=current) for rid in sorted(kb.references)}
 
 
+#: Shown for a claim whose cited id is not a work in the knowledge base (e.g. R3, R5).
+UNRESOLVED_REF = "UNRESOLVED: cited id is not a work in the knowledge base; requires source verification"
+
+
+def claim_report(ref_ids: list[str] | None = None, *, kb: KnowledgeBase | None = None,
+                 current: list[dict[str, Any]] | None = None,
+                 config: dict[str, Any] | None = None) -> list[dict[str, str]]:
+    """One row per (reference, claim): the claim, the expected publication, the locator the project
+    transcribed, and the CURRENT registry record for it (or 'unverified'). By default: the key
+    references plus every cited id that is not a work in the knowledge base. Reads only."""
+    kb = kb or default_kb()
+    current = VerificationRegistry().current() if current is None else current
+    all_claims = claims(kb, config)
+    unresolved = sorted({r for c in all_claims for r in c.ref_ids if r not in kb.references})
+    wanted = ref_ids or [*key_references(config), *unresolved]
+    by_key = {_claim_key(v): v for v in current}
+    rows = []
+    for c in all_claims:
+        for rid in c.ref_ids:
+            if rid not in wanted:
+                continue
+            v = by_key.get((rid, c.claim_id)) or by_key.get(
+                (rid, " ".join(c.statement.split()).casefold())) or {}
+            ref = kb.references.get(rid)
+            rows.append({
+                "ref_id": rid, "claim_id": c.claim_id, "claim": c.statement,
+                "expected_publication": ref["citation"] if ref else UNRESOLVED_REF,
+                "knowledge_base_status": ref.get("verification_status", "unknown") if ref else "not_in_knowledge_base",
+                "locator_recorded": c.locator,
+                "verification_status": v.get("status", "unverified"),
+                "locator_found": v.get("locator", "-"), "verifier": v.get("verifier", "-"),
+                "verifier_role": v.get("verifier_role", "-"),
+                "verification_date": v.get("verification_date", "-"), "notes": v.get("notes", "-"),
+            })
+    return sorted(rows, key=lambda r: (wanted.index(r["ref_id"]), r["claim_id"]))
+
+
 def verified_ref_ids(current: list[dict[str, Any]] | None = None) -> set[str]:
     """References with at least one current verified claim and no current discrepancy."""
     return {rid for rid, s in effective_statuses(current=current).items() if s.verified}
@@ -434,7 +471,9 @@ __all__ = [
     "NA",
     "RULES",
     "SCHEMA_PATH",
+    "UNRESOLVED_REF",
     "VERIFIED",
+    "claim_report",
     "ChecklistImport",
     "Claim",
     "ReferenceStatus",

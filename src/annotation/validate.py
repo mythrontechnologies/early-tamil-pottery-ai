@@ -1,4 +1,4 @@
-"""Annotation validation: JSON Schema plus cross-field rules N1-N14.
+"""Annotation validation: JSON Schema plus cross-field rules N1-N15.
 
 ``N*`` rules encode the Milestone 7 annotation discipline: provenance never blurred,
 unknown vs uncertain kept apart, no translation without a reading, no date without
@@ -39,6 +39,7 @@ RULES: dict[str, str] = {
     "N13": "image usability entries name examined photographs",
     "N14": "a cited reference claims verified_against_source only if the verification registry "
            "verified it (Milestone 8)",
+    "N15": "an AI-marked record (annotator id 'ai_...' or an AI-draft marker) is only ever an ai_prediction",
 }
 
 
@@ -91,7 +92,7 @@ def validate_annotation(
     knowledge_ref_ids: set[str] | None = None,
     verified_ref_ids: set[str] | None = None,
 ) -> list[Problem]:
-    """Problems with one annotation (N1-N10, N13, N14). Empty list = valid.
+    """Problems with one annotation (N1-N10, N13-N15). Empty list = valid.
 
     ``verified_ref_ids`` (from ``src.knowledge.verification``) enables N14; ``None`` skips it."""
     aid = a.get("annotation_id") if isinstance(a, dict) else None
@@ -236,6 +237,14 @@ def validate_annotation(
     for u in a.get("image_usability", []):
         if u["image_id"] not in images:
             add("N13", f"image_usability names {u['image_id']!r}, which is not in image_ids")
+
+    # N15 - AI output cannot enter a human provenance tier by copying.
+    if pt != "ai_prediction":
+        from .ai_draft import is_ai_marked
+
+        if is_ai_marked(a):
+            add("N15", "this record is marked as AI-prepared (annotator id or AI-draft marker) but its "
+                       f"provenance_type is {pt!r}; AI output is only ever an ai_prediction")
 
     # N14 - an annotator cannot self-certify a reference as verified.
     if verified_ref_ids is not None:

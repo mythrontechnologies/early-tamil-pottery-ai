@@ -50,8 +50,14 @@ settles it afterwards.
 (experts state their qualification and affiliation). "Pilot artifacts only" is on. For each
 sherd:
 
+The one-page question list is [`PILOT_ANNOTATION_CHECKLIST.md`](PILOT_ANNOTATION_CHECKLIST.md).
+The tool shows each photograph's source, licence, attribution and technical quality flags. An
+optional **AI draft** layer is off by default. It is "AI-generated observation. Not
+archaeological evidence." and cannot be saved as a human annotation (rule N15).
+
 | Decide | How |
 |---|---|
+| Original object or reproduction? | `original` / `reproduction` / `uncertain`, with your basis (schema 1.1.0) |
 | Is there an inscription or mark? | `yes` / `no` / `uncertain` (examined, cannot tell) |
 | What kind? | `tamil_brahmi`, `graffiti` (non-script marks), `tamil_brahmi_and_graffiti`, `none`, `uncertain`, `other_script`, with your confidence |
 | Where? | zoom, then "Add region from zoom window" for every mark |
@@ -123,6 +129,24 @@ origins of Brahmi", with no title established. Both entries were drafted by an a
 unverified. The questions are therefore: **which Rajan work** supports position B, and **which
 Falk work** supports position D?
 
+What a public web check found on 2026-09-24. These are **secondary sources only**: they
+identify candidate works, they do not verify any claim, and nothing was added to the
+knowledge base.
+
+- *R3 → R3a?* Wikipedia ("Tamil-Brahmi", note 25) cites Rajan & Yatheeskumar 2013, *Pragdhara*
+  21–22: **280–295** for the Porunthal/Kodumanal early dates. That matches `R3a` and position B's
+  label ("Early AMS determinations"). One search-engine summary gave **279–295**, so the page
+  range itself needs checking in the journal. Whether position B's −500 to −400 range is taken
+  from this paper is **unresolved**.
+- *R5?* The same article (note 26) cites **Falk, H. 2014. "Owners' graffiti on pottery from
+  Tissamaharama." *Zeitschrift für Archäologie Außereuropäischer Kulturen* 6: 45–94** for
+  Falk's objection that Rajan's early "inscriptions" may be megalithic graffiti. This is a
+  **candidate** for R5. It is not established that the project's R5 means this work, or that
+  the work states the "association not secure" objection as position D puts it.
+
+`python -m src.knowledge claim-report` prints every claim with its expected publication, the
+recorded locator and its verification state. R3 and R5 show as UNRESOLVED.
+
 ## 4. What happens next (project team)
 
 Only artifacts whose expert annotations agree and are `expert_reviewed` can become training
@@ -133,6 +157,9 @@ python -m src.annotation promote --pilot         # dry run: every change, before
 python -m src.annotation promote --execute --approve <digest> --approver <id>
 ```
 
-Disputed sherds, project-only labels and anything a model produced are never promoted.
+Disputed sherds, project-only labels and anything a model produced are never promoted. Nor
+is a sherd an expert records as a `reproduction` or `uncertain` original. An artifact flagged
+"REVIEW REQUIRED — possible reproduction" (107, 109) is promoted only after every expert
+states `original` (rule P10).
 Training stays blocked regardless: each class needs 20 artifacts, including sherds with **no**
 mark, so this pilot tests the workflow and cannot yet supply a training set.

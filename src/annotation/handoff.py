@@ -16,7 +16,10 @@ Writes, to a git-ignored directory:
   (a dry run unless ``--commit``), which applies rules V1-V8 to every row.
 
 Deliberately NOT in any worksheet: the uploader's caption (it dates the Keeladi deposit, not
-these sherds), any script, reading, translation or date, and any AI output.
+these sherds), any script, reading, translation or date, any review flag (e.g. a suspected
+reproduction: asked neutrally by the object_status column instead), the other annotator's
+answers, and any AI output. ``outputs/pilot_handoff/ai_draft_annotations.jsonl`` is never
+read or written here.
 """
 
 from __future__ import annotations
@@ -33,12 +36,17 @@ from .pilot import Pilot, load_pilot
 DEFAULT_OUT = ROOT / "outputs" / "pilot_handoff"
 
 ANNOTATION_COLUMNS = (
-    "annotator_id", "inscription_present (yes/no/uncertain)",
-    "script_type (tamil_brahmi/graffiti/tamil_brahmi_and_graffiti/none/uncertain/other_script)",
+    "annotator_id",
+    "object_status (original/reproduction/uncertain/unknown)", "object_notes (basis: museum label, catalogue, visual)",
+    "inscription_present (yes/no/uncertain)",
+    "script_type (tamil_brahmi/graffiti/tamil_brahmi_and_graffiti/none/uncertain/other_script/unknown)",
     "script_confidence", "regions (describe; mark them in the tool)", "characters_visible",
-    "reading (only if supported)", "alternative_readings", "reading_confidence",
-    "inscription_type", "interpretation_type", "translation (only with a source)", "meaning",
+    "reading (only if supported)", "alternative_readings", "reading_confidence", "published_reading (citation)",
+    "inscription_type", "interpretation_type", "translation (only with a source)", "translation_source",
+    "translation_confidence", "meaning",
     "linguistic_observations (with source)", "dating_evidence (type; observation; bounds; source)",
+    "dating_range (signed years, or 'Insufficient evidence')", "dating_object_or_context (object/context only/neither)",
+    "dating_confidence", "dating_unresolved_conflict",
     "references (ids + page/plate)", "usable_for_annotation (yes/no/uncertain)",
     "uncertainty_notes",
 )
