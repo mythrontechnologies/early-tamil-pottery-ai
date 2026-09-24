@@ -8,7 +8,29 @@
 ```
 Linux/macOS: `scripts/setup.sh [--cpu]`, then `scripts/start_app.sh`.
 
-The app has two pages.
+## The application
+
+Seven pages in the top navigation:
+
+| Page | What it is for |
+|---|---|
+| Overview | what the system is, live headline numbers, how it reasons; a rotating sherd labelled **Illustrative visualization** (drawn by the interface; not a model of any real object; its marks are not an inscription) |
+| Analysis | inspect a photograph and read everything the project can honestly say about it |
+| Annotation | the annotation workstation for project annotators and experts |
+| Dataset | every photograph with licence, source and hash; training readiness against the unchanged gate |
+| Evidence | references and claims with their verification state: verified / transcribed / bibliographic / **unresolved** |
+| Workflow | the eleven stages from `python -m src.workflow status`, as a timeline, with the next action |
+| About | purpose, limits, visual language |
+
+**Photograph viewer** (Analysis and Annotation): wheel or `+`/`-` to zoom, drag or arrow keys to
+pan, `0` to fit, `G` graticule, `R` regions, `F` fullscreen, *Compare* for a split view against a
+contrast-enhanced copy (a viewing aid, not evidence). The readout shows normalised and
+original-pixel coordinates. Region outlines differ by pattern and label: human-marked (solid),
+yours (dashed), AI proposal (dotted).
+
+**Status never relies on colour alone:** every badge has a word and a glyph (✓ verified,
+○ unverified, ? unresolved, ◇ AI observation, ■ blocked). Motion stops entirely when the
+operating system asks for reduced motion, and the 3D illustration pauses when off screen.
 
 ## 1. Analyse a photograph
 
@@ -17,7 +39,7 @@ Upload a JPEG/PNG/TIFF/WebP/BMP, or choose a registered research photograph.
 | Section | What it shows | Who asserts it |
 |---|---|---|
 | Summary | the headline: often **Insufficient evidence** | derived from the sections below |
-| Image and regions | preview; green = human-marked, blue = yours, amber = AI | as coloured |
+| Image and regions | the inspection viewer; human-marked = gold solid, yours = sand dashed, AI proposal = cyan dotted (each also labelled) | as labelled |
 | Image quality | sharpness, brightness, contrast, clipping, flags | technical measurement, never evidence |
 | Classification / script | the script as recorded by a human, with who said it | human annotation |
 | Transcription | the human reading, or "No reliable transcription established." | human annotation |

@@ -1,0 +1,196 @@
+/* Early Tamil Pottery AI - design system.
+   Warm archaeological dark: charcoal, terracotta, copper, parchment. One accent (terracotta).
+   A restrained cyan is reserved for AI observations only, so it always means "machine". */
+
+:root {
+  --bg: #14110f;
+  --bg-2: #191512;
+  --surface: #1e1a16;
+  --surface-2: #26201b;
+  --surface-3: #2f2822;
+  --line: rgba(236, 228, 216, 0.09);
+  --line-strong: rgba(236, 228, 216, 0.18);
+  --text: #ece4d8;
+  --text-2: #c9bdac;
+  --muted: #a3968a;
+  --terracotta: #c8693f;
+  --terracotta-soft: rgba(200, 105, 63, 0.14);
+  --copper: #b8804a;
+  --gold: #cfae6b;
+  --sand: #d9c6a5;
+  --ai: #7fb3c8;
+  --ai-soft: rgba(127, 179, 200, 0.10);
+  --ok: #8fb57a;         /* verified */
+  --ok-soft: rgba(143, 181, 122, 0.12);
+  --warn: #d4ae5a;       /* unverified / waiting */
+  --warn-soft: rgba(212, 174, 90, 0.12);
+  --clay: #dd8573;       /* unresolved / blocked (4.8:1 on its badge background) */
+  --clay-soft: rgba(221, 133, 115, 0.13);
+  --r-sm: 6px; --r-md: 10px; --r-lg: 16px; --r-xl: 22px;
+  --shadow-1: 0 1px 0 rgba(255, 240, 220, 0.04) inset, 0 8px 24px -12px rgba(8, 5, 3, 0.7);
+  --shadow-2: 0 1px 0 rgba(255, 240, 220, 0.05) inset, 0 24px 48px -20px rgba(8, 5, 3, 0.85);
+  --serif: "Fraunces", Georgia, "Times New Roman", serif;
+  --sans: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+}
+
+/* ---------- canvas ---------------------------------------------------------------------- */
+[data-testid="stAppViewContainer"] {
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(200, 105, 63, 0.10), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(184, 128, 74, 0.07), transparent 60%),
+    var(--bg);
+}
+/* fine grain: breaks digital flatness; static, pointer-events none */
+[data-testid="stAppViewContainer"]::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: .05;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+[data-testid="stHeader"] { background: rgba(20, 17, 15, 0.82); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+[data-testid="stMainBlockContainer"], .block-container { max-width: 1440px; padding-top: 4.5rem; padding-bottom: 5rem; }
+[data-testid="stSidebar"] { background: var(--bg-2); border-right: 1px solid var(--line); }
+
+/* ---------- typography ------------------------------------------------------------------ */
+h1, h2, h3 { letter-spacing: -0.015em; text-wrap: balance; }
+p, li { text-wrap: pretty; }
+code, .etp-mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+.etp-eyebrow { font-family: var(--mono); font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--copper); }
+.etp-h1 { font-family: var(--serif); font-weight: 520; font-size: clamp(2.3rem, 4.4vw, 4.1rem); line-height: 1.02; letter-spacing: -0.028em; color: var(--text); margin: .5rem 0 1rem; }
+.etp-h1 em { font-style: italic; color: var(--sand); }
+.etp-lede { font-size: 1.08rem; line-height: 1.65; color: var(--text-2); max-width: 60ch; }
+.etp-page-title { font-family: var(--serif); font-size: clamp(1.8rem, 3vw, 2.6rem); font-weight: 520; letter-spacing: -0.02em; margin: .2rem 0 .4rem; color: var(--text); }
+.etp-page-sub { color: var(--muted); max-width: 72ch; line-height: 1.6; margin-bottom: 1.4rem; }
+.etp-section { font-family: var(--serif); font-size: 1.35rem; font-weight: 520; letter-spacing: -0.01em; margin: 2.2rem 0 .8rem; color: var(--text); display: flex; align-items: baseline; gap: .7rem; }
+.etp-section small { font-family: var(--mono); font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+
+/* ---------- surfaces -------------------------------------------------------------------- */
+.etp-card {
+  position: relative; background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  border: 1px solid var(--line); border-radius: var(--r-lg); padding: 1.1rem 1.2rem;
+  box-shadow: var(--shadow-1); transition: transform .25s var(--ease), box-shadow .25s var(--ease), border-color .25s;
+}
+.etp-card.tilt:hover { transform: perspective(900px) translateY(-2px) rotateX(1.5deg); box-shadow: var(--shadow-2); border-color: var(--line-strong); }
+.etp-card h4 { margin: 0 0 .35rem; font-family: var(--serif); font-weight: 520; font-size: 1.05rem; color: var(--text); }
+.etp-card p { margin: 0; color: var(--text-2); line-height: 1.55; font-size: .93rem; }
+.etp-card li { font-size: .86rem; line-height: 1.5; color: var(--muted); }
+.etp-grid { display: grid; gap: .9rem; }
+.etp-grid.cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.etp-grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.etp-grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.etp-grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.etp-grid.asym { grid-template-columns: 1.35fr 1fr 1fr; }
+@media (max-width: 1100px) { .etp-grid.cols-6 { grid-template-columns: repeat(3, 1fr); } .etp-grid.cols-4, .etp-grid.asym { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 700px)  { .etp-grid.cols-6, .etp-grid.cols-4, .etp-grid.cols-3, .etp-grid.cols-2, .etp-grid.asym { grid-template-columns: 1fr; } }
+
+/* stat tiles: numbers in tabular mono, label in small caps; honest zeros are neutral, not red */
+.etp-stat { padding: 1rem 1.1rem 1.05rem; }
+.etp-stat .n { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 2.15rem; line-height: 1; color: var(--text); letter-spacing: -0.02em; }
+.etp-stat .n.word { font-family: var(--sans); font-size: 1.25rem; font-weight: 650; letter-spacing: .04em; padding-top: .55rem; }
+.etp-stat .l { margin-top: .5rem; font-size: .82rem; color: var(--muted); }
+.etp-stat .foot { margin-top: .6rem; font-size: .76rem; color: var(--muted); border-top: 1px dashed var(--line); padding-top: .5rem; }
+
+/* ---------- badges: always text + glyph, never colour alone ------------------------------ */
+.etp-badge { display: inline-flex; align-items: center; gap: .38rem; font-family: var(--mono); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; padding: .22rem .5rem; border-radius: 4px; border: 1px solid currentColor; white-space: nowrap; line-height: 1.2; }
+.etp-badge .g { font-size: .8rem; line-height: 1; }
+.b-verified   { color: var(--ok);    background: var(--ok-soft); }
+.b-unverified { color: var(--warn);  background: var(--warn-soft); }
+.b-unresolved { color: var(--clay);  background: var(--clay-soft); border-style: dashed; }
+.b-ai         { color: var(--ai);    background: var(--ai-soft); border-style: dotted; }
+.b-pass       { color: var(--ok);    background: var(--ok-soft); }
+.b-waiting    { color: var(--warn);  background: var(--warn-soft); }
+.b-blocked    { color: var(--clay);  background: var(--clay-soft); }
+.b-neutral    { color: var(--sand);  background: rgba(217, 198, 165, .07); }
+.b-human      { color: var(--gold);  background: rgba(207, 174, 107, .10); }
+
+/* ---------- AI observation panel: distinct, calm, never "success" ------------------------ */
+.etp-ai {
+  border: 1px dashed rgba(127, 179, 200, .45); background:
+    repeating-linear-gradient(135deg, rgba(127,179,200,.035) 0 10px, transparent 10px 20px), var(--surface);
+  border-radius: var(--r-lg); padding: 1rem 1.15rem;
+}
+.etp-ai-head { display: flex; align-items: center; gap: .6rem; color: var(--ai); font-weight: 600; font-size: .92rem; margin-bottom: .45rem; }
+.etp-ai p, .etp-ai li { color: var(--text-2); font-size: .9rem; }
+
+/* evidence layer panels (human): neutral, a thin left rule in the layer colour */
+.etp-layer { border-left: 3px solid var(--line-strong); padding: .2rem 0 .2rem 1rem; margin: .6rem 0 1rem; }
+.etp-layer.expert { border-left-color: var(--gold); }
+.etp-layer.project { border-left-color: var(--sand); }
+.etp-layer.verified { border-left-color: var(--ok); }
+.etp-layer h5 { margin: 0 0 .3rem; font-size: .95rem; font-weight: 600; color: var(--text); display: flex; gap: .5rem; align-items: center; }
+.etp-layer p { margin: 0; color: var(--muted); font-size: .9rem; }
+
+/* key/value rows (provenance, facts) */
+.etp-kv { display: grid; grid-template-columns: minmax(8.5rem, 34%) 1fr; gap: .35rem 1rem; font-size: .9rem; }
+.etp-kv dt { color: var(--muted); }
+.etp-kv dd { margin: 0; color: var(--text); overflow-wrap: anywhere; }
+.etp-kv dd.mono { font-family: var(--mono); font-size: .82rem; }
+
+/* findings list in the analysis panel */
+.etp-finding { padding: .85rem 0; border-top: 1px solid var(--line); }
+.etp-finding:first-child { border-top: 0; }
+.etp-finding .k { font-family: var(--mono); font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; color: var(--copper); }
+.etp-finding .v { font-size: 1.02rem; color: var(--text); margin-top: .25rem; line-height: 1.5; }
+.etp-finding .who { font-size: .8rem; color: var(--muted); margin-top: .2rem; }
+
+/* summary verdict */
+.etp-verdict { font-family: var(--serif); font-size: clamp(1.5rem, 2.4vw, 2.1rem); font-weight: 520; letter-spacing: -0.015em; color: var(--text); margin: .1rem 0 .3rem; }
+
+/* ---------- workflow timeline ------------------------------------------------------------ */
+.etp-timeline { position: relative; margin: .5rem 0 0 .4rem; padding-left: 1.9rem; border-left: 1px solid var(--line-strong); }
+.etp-stage { position: relative; padding: .2rem 0 1.4rem; }
+.etp-stage .dot { position: absolute; left: -2.42rem; top: .2rem; width: 1.05rem; height: 1.05rem; border-radius: 50%; display: grid; place-items: center; font-size: .6rem; font-family: var(--mono); background: var(--bg); border: 1.5px solid var(--muted); color: var(--muted); }
+.etp-stage.pass .dot { border-color: var(--ok); color: var(--ok); }
+.etp-stage.waiting .dot { border-color: var(--warn); color: var(--warn); }
+.etp-stage.blocked .dot { border-color: var(--clay); color: var(--clay); }
+.etp-stage.current .dot { box-shadow: 0 0 0 5px rgba(212, 174, 90, .13); }
+.etp-stage .row { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+.etp-stage .name { font-family: var(--serif); font-size: 1.1rem; color: var(--text); }
+.etp-stage .num { font-family: var(--mono); font-size: .72rem; color: var(--muted); }
+.etp-stage .detail { color: var(--text-2); font-size: .9rem; margin-top: .3rem; max-width: 95ch; line-height: 1.55; }
+.etp-stage .next { margin-top: .45rem; font-size: .84rem; color: var(--muted); }
+.etp-stage .next code { background: var(--surface-2); padding: .1rem .35rem; border-radius: 4px; color: var(--sand); }
+
+/* ---------- artifact gallery ------------------------------------------------------------- */
+.etp-thumb { border-radius: var(--r-md); overflow: hidden; border: 1px solid var(--line); background: var(--surface); }
+.etp-thumb img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; filter: saturate(.92); transition: transform .5s var(--ease); }
+.etp-thumb:hover img { transform: scale(1.03); }
+.etp-thumb .cap { padding: .6rem .75rem .75rem; }
+.etp-thumb .cap b { display: block; font-family: var(--mono); font-size: .74rem; color: var(--sand); font-weight: 500; overflow-wrap: anywhere; }
+.etp-thumb .cap span { display: block; font-size: .74rem; color: var(--muted); margin-top: .2rem; line-height: 1.4; }
+
+/* callout used for honest empty / blocked states */
+.etp-note { border: 1px solid var(--line); border-radius: var(--r-md); padding: .9rem 1rem; background: rgba(217, 198, 165, .04); color: var(--text-2); font-size: .92rem; line-height: 1.55; }
+.etp-note b { color: var(--text); }
+.etp-rule { height: 1px; background: linear-gradient(90deg, transparent, var(--line-strong), transparent); margin: 2.4rem 0 1rem; border: 0; }
+.etp-foot { color: var(--muted); font-size: .8rem; line-height: 1.6; margin-top: 3rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+
+/* ---------- Streamlit widgets ------------------------------------------------------------- */
+[data-testid="stMetric"] { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: .7rem .9rem; }
+[data-testid="stMetricValue"] { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+[data-testid="stExpander"] details { border-radius: var(--r-md); border-color: var(--line); background: var(--surface); }
+[data-testid="stVerticalBlockBorderWrapper"] { border-radius: var(--r-lg); }
+button[kind], [data-testid^="stBaseButton"] { transition: transform .15s var(--ease), background-color .2s, border-color .2s; }
+button[kind]:active, [data-testid^="stBaseButton"]:active { transform: translateY(1px) scale(.99); }
+[data-testid="stDataFrame"] { border: 1px solid var(--line); border-radius: var(--r-md); }
+[data-testid="stSlider"] * { white-space: nowrap; }   /* thumb values ("0.00") must not wrap per character */
+
+/* visible focus everywhere (keyboard users) */
+a:focus-visible, button:focus-visible, [role="button"]:focus-visible, input:focus-visible,
+textarea:focus-visible, select:focus-visible, [tabindex]:focus-visible, summary:focus-visible, iframe:focus-visible {
+  outline: 2px solid var(--gold) !important; outline-offset: 2px !important; border-radius: 4px;
+}
+a { text-underline-offset: 3px; }
+
+.etp-sr { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- motion: restrained, and none at all when the user asks ----------------------- */
+@keyframes etp-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.etp-rise { animation: etp-rise .5s var(--ease) both; }
+.etp-rise.d1 { animation-delay: .06s; } .etp-rise.d2 { animation-delay: .12s; } .etp-rise.d3 { animation-delay: .18s; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  .etp-card.tilt:hover, .etp-thumb:hover img { transform: none; }
+}
+html { scroll-behavior: smooth; }

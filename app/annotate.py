@@ -29,16 +29,19 @@ import os
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from ui.boot import boot
+
+boot("Annotation")
 
 import streamlit as st
 from PIL import Image, ImageOps
+from ui.components import page_header
+from ui.viewer import render_viewer
 
 from src.annotation.agreement import compute_agreement, render_agreement
 from src.annotation.ai_draft import AI_DRAFT_BANNER, AI_DRAFT_WARNING, load_ai_draft
-from src.annotation.form import build_annotation, crop_view, draw_regions
+from src.annotation.form import build_annotation, crop_view
 from src.annotation.model import ANNOTATIONS_PATH, load_annotation_schema
 from src.annotation.pilot import load_pilot, load_review_flags, pilot_status, render_pilot
 from src.annotation.quality import quality_report
@@ -73,16 +76,16 @@ def thumbnail(path: str, size: int = 360) -> Image.Image:
     return out
 
 
-st.set_page_config(page_title="Pottery annotation", layout="wide")
 store = AnnotationStore(Path(os.environ.get("ETPAI_ANNOTATIONS_PATH", ANNOTATIONS_PATH)))
 records = read_jsonl(RESEARCH_RECORDS_PATH) if RESEARCH_RECORDS_PATH.exists() else []
 by_artifact: dict[str, list[dict]] = {}
 for r in sorted(records, key=lambda r: r["image_id"]):
     by_artifact.setdefault(r["artifact_id"], []).append(r)
 
-st.title("Early Tamil Pottery - annotation")
-st.caption("Annotations are appended, never overwritten. Leave anything you cannot determine "
-           "as 'unknown'. Do not label from a guess, from the file name, or from an AI suggestion.")
+page_header("Annotation", "Digital archaeology workstation",
+            "Annotations are appended, never overwritten. Leave anything you cannot determine as 'unknown' or "
+            "'uncertain'. Do not label from a guess, a file name, a caption or an AI suggestion. Your identity and "
+            "role are set in the sidebar.")
 
 if not by_artifact:
     st.warning("No research records found. Nothing to annotate.")
@@ -187,7 +190,10 @@ with tab_annotate:
     display.thumbnail((1600, 1600))
     c1, c2 = st.columns(2)
     with c1:
-        st.image(draw_regions(display, regions, image_id), caption=f"{image_id} (regions in red)")
+        pending = [{**r, "source": "user_supplied"} for r in regions if r["image_id"] == image_id]
+        render_viewer(display, pending, alt=f"Photograph {image_id} of artifact {artifact_id}", height=440,
+                      meta=f"{image_id} · regions you have marked but not yet saved are shown dashed",
+                      max_side=1600)
     with c2:
         st.markdown("**Zoom** (normalised window)")
         zx = st.slider("x range", 0.0, 1.0, (0.0, 1.0), 0.01, key="zx")

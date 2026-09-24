@@ -121,7 +121,7 @@ python -m src.acquisition registry                # what has been acquired, by l
 ### Annotation and reasoning commands
 
 ```bash
-streamlit run app/annotate.py                     # annotation interface (append-only)
+streamlit run app/main.py                         # the application (7 pages; annotation is append-only)
 python -m src.annotation validate                 # rules N1-N15 + knowledge base K1-K5
 python -m src.annotation summary                  # per-artifact status, disagreements
 python -m src.annotation quality                  # technical quality vs archaeological usability
@@ -199,7 +199,7 @@ early-tamil-pottery-ai/
 │   ├── evaluation/           metrics, artifact aggregation, blocked reports
 │   ├── classification/  detection/  ocr/
 │   ├── translation/     dating/     knowledge/
-├── app/annotate.py           Streamlit annotation interface
+├── app/                      Streamlit application: main.py, analyze.py, annotate.py, views/, ui/
 ├── configs/project.yaml      chronology, classes, splits, integrity gates
 ├── configs/training.yaml     model, optimiser, augmentation, runtime (untuned defaults)
 ├── configs/acquisition/      curated acquisition plans (no licences: those are read from the source)

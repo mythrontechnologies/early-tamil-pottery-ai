@@ -1,0 +1,27 @@
+# Early Tamil Pottery AI - Streamlit theme and server settings.
+# Fonts load from Google Fonts when online; every family falls back to a system font offline.
+
+[theme]
+base = "dark"
+primaryColor = "#C8693F"            # terracotta: the single accent
+backgroundColor = "#14110F"         # warm charcoal
+secondaryBackgroundColor = "#1E1A16"
+textColor = "#ECE4D8"               # parchment
+linkColor = "#DDA46F"
+borderColor = "#3A322B"
+baseRadius = "0.6rem"
+showWidgetBorder = true
+font = "Geist:https://fonts.googleapis.com/css2?family=Geist:wght@300..700&display=swap, system-ui, sans-serif"
+headingFont = "Fraunces:https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..650&display=swap, Georgia, serif"
+codeFont = "JetBrains Mono:https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap, ui-monospace, monospace"
+headingFontWeights = [550, 550, 500, 500, 500, 500]
+
+[client]
+toolbarMode = "minimal"
+showSidebarNavigation = false
+
+[browser]
+gatherUsageStats = false
+
+[server]
+maxUploadSize = 50

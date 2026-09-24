@@ -33,9 +33,15 @@ src/
   workflow.py     the 11-stage data workflow, checked in order
   console.py      UTF-8 console set-up for every CLI
 app/
-  main.py         Streamlit entry: analysis page + annotation tool
-  analyze.py      upload / pick a photograph; all result sections; layers drawn apart
-  annotate.py     annotation tool (project annotator / expert), append-only
+  main.py         Streamlit entry: top navigation over seven pages
+  analyze.py      Analysis: photograph inspection viewer + analysis panel; layers drawn apart
+  annotate.py     Annotation workstation (project annotator / expert), append-only; logic unchanged
+  views/          Overview (hero + illustrative 3D sherd), Dataset, Evidence, Workflow, About
+  ui/             presentation only: theme.css (design tokens), components.py (escaped HTML
+                  building blocks, status badges), data.py (cached read-only loaders),
+                  viewer.py (zoom / pan / fullscreen / graticule / overlays / compare),
+                  sherd3d.py (CSS-3D illustrative sherd, no library), boot.py
+.streamlit/config.toml   theme (warm charcoal, terracotta accent; Geist / Fraunces / JetBrains Mono)
 ```
 
 ## Data flow
