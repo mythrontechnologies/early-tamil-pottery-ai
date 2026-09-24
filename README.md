@@ -6,13 +6,16 @@ inscriptions and graffiti.
 > **This system provides AI-assisted archaeological analysis and is not a substitute for expert
 > epigraphic or archaeological assessment.**
 
-**Status: Milestones 1–7 complete — structure, schema, ingestion/validation, preprocessing,
-data source audit, dataset & training framework, public dataset acquisition, annotation &
-archaeological reasoning layer.**
-The project holds **30 real, openly licensed photographs of Tamil Nadu archaeological pottery**
-(17 artifacts), but **none carries an expert label**, so there is **no trained model**. The
-system cannot analyse an image yet, and no part of it should be presented as if it could.
-Training is blocked in code by a readiness gate.
+**Status: engineering complete; blocked on real evidence.** Everything engineering can honestly
+complete is complete: acquisition, validation, preprocessing, annotation (append-only,
+tamper-evident), agreement, reversible promotion, knowledge base and verification workflow,
+evidence-based reasoning, an inference API/CLI/HTTP service, a Streamlit application,
+evaluation and a gated training pipeline. What remains is **real archaeological evidence**:
+expert annotation, reference verification, enough labelled artifacts per class, then training.
+The project holds **30 openly licensed photographs (17 artifacts)**, **none carries an expert
+label**, and there is **no trained model**. The analysis tool therefore answers most questions
+with "Insufficient evidence", which is the correct answer. See
+[`docs/FINAL_ENGINEERING_STATUS.md`](docs/FINAL_ENGINEERING_STATUS.md).
 
 ---
 
@@ -47,16 +50,29 @@ An LLM-generated explanation is not evidence and is never presented as such.
 | Expert-labelled images | **0** — every record has `script_type = unknown` pending annotation |
 | Supporting images | 15 in `data/external/` (out-of-region pottery, Tamil-Brahmi rock inscriptions) |
 | Verified references | **0** — verification registry built (Milestone 8); R1, S01, S03 not yet checked against the publications (`python -m src.knowledge status`) |
-| Models | none — the training framework exists and has never run on data |
+| Models | none — training pipeline complete (AMP, resume, fingerprints) and smoke-tested on synthetic noise; never run on data |
 | Training ready | **false** — blocked by `src/dataset/readiness.py` (gates G1–G11) |
 | Annotations | **0** — annotation tool, evidence-based reasoning, expert pilot (six Keezhadi close-ups) ready ([`docs/ANNOTATION_GUIDE.md`](docs/ANNOTATION_GUIDE.md)). Pilot opened 2026-09-24: no human or expert input yet; 107/109 flagged "REVIEW REQUIRED — possible reproduction / duplicate inscription" (unconfirmed); per-sherd questions in [`docs/PILOT_ANNOTATION_CHECKLIST.md`](docs/PILOT_ANNOTATION_CHECKLIST.md) ([`docs/MILESTONE_8_PILOT_RESULTS.md`](docs/MILESTONE_8_PILOT_RESULTS.md)) |
 | Label promotion | built, dry-run by default, reversible; **0 promotions** ([`docs/MILESTONE_8_REPORT.md`](docs/MILESTONE_8_REPORT.md)) |
-| Tests | 708 passing |
+| Tests | see `python -m pytest tests/ -q` (final count in [`docs/FINAL_ENGINEERING_STATUS.md`](docs/FINAL_ENGINEERING_STATUS.md)) |
 
 No dataset has been fabricated. A synthetic pottery corpus would produce a model that is confident
 and baseless — the exact failure this project exists to avoid.
 
 ---
+
+## Run it
+
+```powershell
+.\scripts\setup.ps1                 # once (add -Cpu for CPU-only); Linux: scripts/setup.sh
+.\scripts\start_app.ps1             # http://localhost:8501  (analysis page + annotation tool)
+python -m src.inference analyze photo.jpg     # the same analysis on the command line
+python -m src.workflow status                 # every stage, raw data -> evaluation, and the next step
+```
+Guides: [`USER_GUIDE`](docs/USER_GUIDE.md) · [`ARCHITECTURE`](docs/ARCHITECTURE.md) ·
+[`ANNOTATION_GUIDE`](docs/ANNOTATION_GUIDE.md) · [`DATASET_POLICY`](docs/DATASET_POLICY.md) ·
+[`MODEL_CARD`](docs/MODEL_CARD.md) · [`REPRODUCIBILITY`](docs/REPRODUCIBILITY.md) ·
+[`LIMITATIONS`](docs/LIMITATIONS.md) · [`DEPLOYMENT`](docs/DEPLOYMENT.md).
 
 ## Quickstart
 

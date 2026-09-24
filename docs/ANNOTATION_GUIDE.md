@@ -3,7 +3,7 @@
 **For:** anyone annotating artifacts in this project: project annotators and experts.
 **Tool:** `streamlit run app/annotate.py`
 **Store:** `data/metadata/annotations/annotations.jsonl` (append-only; created on first save)
-**Schema:** `data/metadata/schema/annotation.schema.json`; rules N1–N14
+**Schema:** `data/metadata/schema/annotation.schema.json` (1.1.0); rules N1–N16
 (`python -m src.annotation rules`)
 
 > **The one rule.** Record what *you* can see or what a *cited source* says, and nothing
@@ -234,3 +234,15 @@ python -m src.annotation promote --revert <promotion_id>   # dry run; add --exec
 Never promoted: disputed artifacts, project-only labels, AI predictions, experts without a
 stated qualification, and anything that would overwrite a label from another source. Expert
 readings or dates that differ are recorded as disputed, with every position kept.
+
+## 10. Integrity of what you save (final engineering phase)
+
+* Every save is chained in `annotations.jsonl.ledger`. Editing, deleting or hand-adding a line
+  makes validation fail (rule **N16**), blocks promotion and refuses further saves until a
+  human investigates. Check with `python -m src.annotation integrity`.
+* A record marked as AI-prepared (annotator id `ai_...`, or an "AI DRAFT" marker) can only be
+  an `ai_prediction` (rule **N15**). You cannot copy the AI draft into your own annotation.
+* Record the object's status (`original` / `reproduction` / `uncertain`) with its basis. A
+  reproduction is never promoted (**P10**).
+* The analysis page (`streamlit run app/main.py`) shows your saved annotation in its own panel
+  for registered photographs, apart from the expert panel and the AI observation.
