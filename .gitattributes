@@ -28,3 +28,10 @@
 *.pth  binary
 *.onnx binary
 *.safetensors binary
+
+# Shell scripts and container files must keep LF endings (bash in Linux containers fails on CR).
+*.sh               text eol=lf
+Dockerfile         text eol=lf
+.dockerignore      text eol=lf
+# PowerShell scripts are Windows-native.
+*.ps1              text eol=crlf
