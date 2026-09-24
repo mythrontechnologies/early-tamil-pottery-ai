@@ -55,10 +55,10 @@ class CheckpointError(RuntimeError):
 
 def _plain(value: Any, where: str = "checkpoint") -> Any:
     """Metadata -> tensors and plain Python only (what ``weights_only`` loading accepts)."""
+    if isinstance(value, np.generic):          # before the float check: np.float64 IS a float subclass
+        return value.item()
     if value is None or isinstance(value, (bool, int, float, str, torch.Tensor)):
         return value
-    if isinstance(value, np.generic):
-        return value.item()
     if isinstance(value, np.ndarray):
         return value.tolist()
     if isinstance(value, Path):

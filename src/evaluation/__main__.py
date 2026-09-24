@@ -1,6 +1,7 @@
 """Command-line interface for evaluation.
 
     python -m src.evaluation evaluate --checkpoint PATH [--partition test|val]
+    python -m src.evaluation reproducibility [--json]
 
 Evaluation runs only on the canonical research dataset, and only when the readiness
 gate passes. Otherwise it prints ``NO REAL DATA — EVALUATION BLOCKED`` and exits with
@@ -78,6 +79,14 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def cmd_reproducibility(args: argparse.Namespace) -> int:
+    from .reproducibility import render_report, reproducibility_report
+
+    rep = reproducibility_report()
+    print(json.dumps(rep, indent=2, ensure_ascii=False) if args.json else render_report(rep))
+    return EXIT_OK
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="python -m src.evaluation",
                                 description="Evaluation (gated on real data).")
@@ -88,6 +97,9 @@ def build_parser() -> argparse.ArgumentParser:
     e.add_argument("--partition", choices=["test", "val"], default="test")
     e.add_argument("--json", action="store_true")
     e.set_defaults(func=cmd_evaluate)
+    r = sub.add_parser("reproducibility", help="code, environment, data, config and store fingerprints")
+    r.add_argument("--json", action="store_true")
+    r.set_defaults(func=cmd_reproducibility)
     return p
 
 

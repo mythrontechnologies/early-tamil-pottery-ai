@@ -26,7 +26,10 @@ from typing import Any, Literal
 
 import numpy as np
 
+from .calibration import calibration_report
+
 BLOCKED_MESSAGE = "NO REAL DATA — EVALUATION BLOCKED"
+BLOCKED_REASON = "Evaluation blocked — insufficient expert-labelled archaeological data."
 Provenance = Literal["research", "synthetic_test"]
 
 
@@ -57,6 +60,7 @@ class ClassificationMetrics:
     confusion_matrix: list[list[int]]           # rows = true, columns = predicted
     top_k_accuracy: dict[int, float] = field(default_factory=dict)
     classes_without_support: list[str] = field(default_factory=list)
+    calibration: dict[str, Any] | None = None     # ECE / MCE / Brier / reliability (src.evaluation.calibration)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -147,6 +151,7 @@ def compute_metrics(
         confusion_matrix=cm.tolist(),
         top_k_accuracy=topk,
         classes_without_support=[c for c in class_names if c not in supported],
+        calibration=calibration_report(y_true, y_prob) if y_prob is not None else None,
     )
 
 
@@ -205,6 +210,10 @@ class EvaluationReport:
                   f"  weighted F1        {_fmt(m.weighted_f1)}"]
         for k, v in m.top_k_accuracy.items():
             lines.append(f"  top-{k} accuracy     {v:.4f}")
+        if m.calibration:
+            c = m.calibration
+            lines.append(f"  calibration        ECE {c['ece']:.4f}  MCE {c['mce']:.4f}  Brier {c['brier']:.4f}"
+                         f"  (model probabilities; n={c['n_samples']})")
         lines.append("  per class (precision / recall / F1 / support):")
         for name, c in m.per_class.items():
             lines.append(f"    {name:<28} {_fmt(c.precision)} / {_fmt(c.recall)} / "
@@ -224,7 +233,8 @@ def _fmt(v: float | None) -> str:
 
 
 def blocked_report(reason: str = BLOCKED_MESSAGE, *, unit: str = "artifact") -> EvaluationReport:
-    message = BLOCKED_MESSAGE if reason == BLOCKED_MESSAGE else f"{BLOCKED_MESSAGE}\n{reason}"
+    tail = "" if reason in (BLOCKED_MESSAGE, BLOCKED_REASON) else f"\n{reason}"
+    message = f"{BLOCKED_MESSAGE}\n{BLOCKED_REASON}{tail}"
     return EvaluationReport("BLOCKED", "none", unit, message)
 
 
@@ -248,6 +258,7 @@ def evaluate_predictions(
 
 __all__ = [
     "BLOCKED_MESSAGE",
+    "BLOCKED_REASON",
     "ClassMetrics",
     "ClassificationMetrics",
     "EmptyEvaluationError",

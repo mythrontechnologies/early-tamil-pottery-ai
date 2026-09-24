@@ -1,0 +1,105 @@
+"""Minimal HTTP API around ``analyze`` (standard library only; no extra dependency).
+
+    python -m src.inference serve [--host 127.0.0.1] [--port 8765] [--max-mb 25]
+
+    GET  /health                     {"status": "ok", "training_ready": false, ...}
+    POST /analyze[?artifact_id=ID]   body = raw image bytes (Content-Type image/*)
+                                     -> InferenceResult as JSON
+
+Safety:
+
+* the client sends image BYTES; the API never accepts a file path or a URL, so it cannot be
+  made to read arbitrary files or fetch remote content;
+* ``Content-Length`` is required and capped (``--max-mb``); larger bodies are refused unread;
+* decoding goes through the same guarded loader as everything else (format allow-list,
+  truncation check, decompression-bomb pixel ceiling);
+* it binds to 127.0.0.1 by default. Exposing it more widely is a deployment decision
+  (docs/DEPLOYMENT.md): there is no authentication.
+* nothing is written: no store, no record, no raw file.
+"""
+
+from __future__ import annotations
+
+import json
+import sys
+from http import HTTPStatus
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from typing import Any
+from urllib.parse import parse_qs, urlparse
+
+from . import InferenceError, analyze
+
+ALLOWED_TYPES = ("image/jpeg", "image/png", "image/tiff", "image/webp", "image/bmp", "application/octet-stream")
+
+
+def make_handler(max_bytes: int) -> type[BaseHTTPRequestHandler]:
+    class Handler(BaseHTTPRequestHandler):
+        server_version = "EarlyTamilPotteryAI/1.0"
+
+        def _send(self, status: int, payload: dict[str, Any]) -> None:
+            body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, fmt: str, *args: Any) -> None:     # concise, to stderr
+            sys.stderr.write(f"[api] {self.address_string()} {fmt % args}\n")
+
+        def do_GET(self) -> None:
+            if urlparse(self.path).path != "/health":
+                self._send(HTTPStatus.NOT_FOUND, {"error": "not found"})
+                return
+            from src.dataset.readiness import evaluate
+
+            rep = evaluate()
+            self._send(HTTPStatus.OK, {"status": "ok", "training_ready": rep.training_ready,
+                                       "readiness_reason": rep.reason,
+                                       "note": "Analyses return 'Insufficient evidence' where the evidence is insufficient."})
+
+        def do_POST(self) -> None:
+            url = urlparse(self.path)
+            if url.path != "/analyze":
+                self._send(HTTPStatus.NOT_FOUND, {"error": "not found"})
+                return
+            ctype = (self.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+            if ctype not in ALLOWED_TYPES:
+                self._send(HTTPStatus.UNSUPPORTED_MEDIA_TYPE, {"error": f"Content-Type must be one of {ALLOWED_TYPES}"})
+                return
+            try:
+                length = int(self.headers.get("Content-Length", ""))
+            except ValueError:
+                self._send(HTTPStatus.LENGTH_REQUIRED, {"error": "Content-Length is required"})
+                return
+            if length <= 0 or length > max_bytes:
+                self._send(HTTPStatus.REQUEST_ENTITY_TOO_LARGE if length > 0 else HTTPStatus.BAD_REQUEST,
+                           {"error": f"body must be 1..{max_bytes} bytes"})
+                return
+            data = self.rfile.read(length)
+            artifact = (parse_qs(url.query).get("artifact_id") or [None])[0]
+            try:
+                result = analyze(data, artifact_id=artifact, max_bytes=max_bytes)
+            except InferenceError as exc:
+                self._send(HTTPStatus.UNPROCESSABLE_ENTITY, {"error": str(exc)})
+                return
+            self._send(HTTPStatus.OK, result.to_dict())
+
+    return Handler
+
+
+def serve(host: str = "127.0.0.1", port: int = 8765, max_bytes: int = 25 * 2**20) -> None:
+    if host not in ("127.0.0.1", "localhost", "::1"):
+        print(f"WARNING: binding to {host}: the API has no authentication (docs/DEPLOYMENT.md).", file=sys.stderr)
+    httpd = ThreadingHTTPServer((host, port), make_handler(max_bytes))
+    print(f"Serving on http://{host}:{port}  (GET /health, POST /analyze)", file=sys.stderr)
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:  # pragma: no cover
+        pass
+    finally:
+        httpd.server_close()
+
+
+__all__ = ["ALLOWED_TYPES", "make_handler", "serve"]
