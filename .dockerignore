@@ -1,0 +1,23 @@
+# Never bake data, models, environments or history into the image.
+.git
+.venv
+venv
+env
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.ruff_cache
+.mypy_cache
+data/raw
+data/interim
+data/processed
+data/external
+data/metadata/annotations
+data/metadata/promotions
+outputs
+models
+notebooks/.ipynb_checkpoints
+.env
+.env.*
+*.key
+credentials.json

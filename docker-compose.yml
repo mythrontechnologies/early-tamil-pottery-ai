@@ -1,0 +1,40 @@
+# docker compose up --build            -> UI on http://localhost:8501, API on http://localhost:8765
+#
+# Both ports are published on 127.0.0.1 ONLY. Neither service has authentication; exposing
+# them to a network is a deliberate deployment decision (docs/DEPLOYMENT.md).
+# data/ and knowledge/verification are bind-mounted so images, records, the annotation store,
+# the verification registry and their ledgers live on the host, not in the container.
+
+services:
+  app:
+    build: .
+    image: etpai:cpu
+    ports:
+      - "127.0.0.1:8501:8501"
+    volumes:
+      - ./data:/app/data
+      - ./knowledge/verification:/app/knowledge/verification
+      - ./outputs:/app/outputs
+    restart: unless-stopped
+
+  api:
+    image: etpai:cpu
+    depends_on: [app]
+    command: ["python", "-m", "src.inference", "serve", "--host", "0.0.0.0", "--port", "8765", "--max-mb", "25"]
+    ports:
+      - "127.0.0.1:8765:8765"          # 0.0.0.0 inside the container; localhost only on the host
+    volumes:
+      - ./data:/app/data:ro
+      - ./knowledge/verification:/app/knowledge/verification:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/health', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+# GPU: build with --build-arg TORCH_INDEX=https://download.pytorch.org/whl/cu126 and add to a service:
+#   deploy:
+#     resources:
+#       reservations:
+#         devices: [{driver: nvidia, count: 1, capabilities: [gpu]}]
