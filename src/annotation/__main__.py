@@ -11,6 +11,7 @@
     python -m src.annotation promote    --revert <promotion_id> [--execute --approve <digest> --approver <id>]
     python -m src.annotation promote    --log
     python -m src.annotation handoff    [--out DIR]                   # blank worksheets for the expert pack
+    python -m src.annotation integrity  [--seal PATH]                 # append-only ledgers intact?
 
 ``promote`` is a DRY RUN unless ``--execute`` is given together with the digest printed by
 the dry run and the approving human's id. Nothing else in this CLI writes anything.
@@ -172,6 +173,29 @@ def cmd_promote(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_integrity(args: argparse.Namespace) -> int:
+    """Check the append-only ledgers of the annotation store, verification registry and
+    promotion log. ``--seal PATH`` adopts one ledger-less file as it stands (human action)."""
+    from src.integrity import seal, verify
+    from src.knowledge.verification import registry_path
+
+    from .promote import _settings as promotion_settings
+
+    if args.seal:
+        rep = seal(args.seal)
+        print(f"sealed {rep.path}: {rep.lines} line(s), head {rep.head[:16]}")
+        return 0 if rep.ok else 1
+    ok = True
+    for name, path in (("annotations", args.store), ("verification registry", registry_path()),
+                       ("promotion log", promotion_settings(None)[0])):
+        rep = verify(path)
+        ok &= rep.ok
+        print(f"{name:<22} {rep.status:<22} lines {rep.lines:<4} head {rep.head[:16]}  {path}")
+        for p in rep.problems:
+            print(f"    {p}")
+    return 0 if ok else 1
+
+
 def cmd_handoff(args: argparse.Namespace) -> int:
     from .handoff import DEFAULT_OUT, build_handoff
 
@@ -210,7 +234,10 @@ def main(argv: list[str] | None = None) -> int:
     pr.add_argument("--log", action="store_true", help="list the promotion audit log")
     ho = sub.add_parser("handoff", help="write blank pilot worksheets + verification checklist")
     ho.add_argument("--out", type=Path, help="output directory (default outputs/pilot_handoff, git-ignored)")
-    for sp, fn in ((pl, cmd_pilot), (ag, cmd_agreement), (pr, cmd_promote), (ho, cmd_handoff)):
+    it = sub.add_parser("integrity", help="verify the append-only ledgers (tamper evidence)")
+    it.add_argument("--seal", type=Path, help="adopt a ledger-less file as it stands (human action)")
+    for sp, fn in ((pl, cmd_pilot), (ag, cmd_agreement), (pr, cmd_promote), (ho, cmd_handoff),
+                   (it, cmd_integrity)):
         sp.add_argument("--store", type=Path, default=ANNOTATIONS_PATH)
         sp.add_argument("--json", action="store_true")
         sp.set_defaults(func=fn)

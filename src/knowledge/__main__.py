@@ -4,6 +4,7 @@
     python -m src.knowledge claims [--ref R1]        # what the project relies on each reference for
     python -m src.knowledge status [--all] [--json]  # effective verification status (key refs by default)
     python -m src.knowledge claim-report [--ref R1] [--json]   # per claim: publication, status, verifier
+    python -m src.knowledge entries [--json]         # every claim: id, source, provenance, status, scope, uncertainty
     python -m src.knowledge verify --ref S03 --claim-id s03_keeladi_sathan --status verified_against_source \
         --verifier ID --role expert --date YYYY-MM-DD --locator "p. 12, Fig. 16" \
         --source-location "LIBRARY, shelfmark" --access physical_copy [--notes TEXT] [--commit]
@@ -58,6 +59,27 @@ def cmd_claims(args: argparse.Namespace) -> int:
         if args.ref and args.ref not in c.ref_ids:
             continue
         print(f"{c.claim_id:<44} {','.join(c.ref_ids):<10} {c.where:<32} {c.statement[:110]}")
+    return 0
+
+
+def cmd_entries(args: argparse.Namespace) -> int:
+    from .base import describe
+
+    rows = describe()
+    if args.json:
+        print(json.dumps(rows, indent=2, ensure_ascii=False))
+        return 0
+    for r in rows:
+        refs = ", ".join(f"{s['ref_id']} ({s['reference_status']})" for s in r["source"])
+        print(f"\n{r['id']}  [{r['verification_status']}]")
+        print(f"  claim       : {r['claim']}")
+        print(f"  source      : {refs};  locator: {r['locator']}")
+        print(f"  provenance  : {r['provenance']}")
+        print(f"  scope       : {r['scope']}")
+        print(f"  uncertainty : {r['uncertainty']}")
+        if r["notes"]:
+            print(f"  notes       : {r['notes']}")
+    print(f"\n{len(rows)} claim(s); verified: {sum(r['verification_status'] == 'verified_against_source' for r in rows)}")
     return 0
 
 
@@ -183,6 +205,9 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--all", action="store_true")
     s.add_argument("--json", action="store_true")
     s.set_defaults(func=cmd_status)
+    en = sub.add_parser("entries", help="every knowledge-base claim in one normalised shape")
+    en.add_argument("--json", action="store_true")
+    en.set_defaults(func=cmd_entries)
     cr = sub.add_parser("claim-report", help="per-claim verification report (key refs + unresolved ids)")
     cr.add_argument("--ref", action="append", help="limit to a reference id (repeatable)")
     cr.add_argument("--json", action="store_true")

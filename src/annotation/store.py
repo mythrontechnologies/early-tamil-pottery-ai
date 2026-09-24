@@ -1,6 +1,8 @@
 """Append-only annotation store (``data/metadata/annotations/annotations.jsonl``).
 
 * Records are only ever appended. A revision is a new record with ``supersedes``.
+* Every append is chained in ``annotations.jsonl.ledger`` (``src.integrity``); an edited,
+  deleted or hand-appended line fails validation (rule N16) and blocks promotion.
 * Nothing in ``records.jsonl`` or the acquisition provenance is touched.
 * Every append validates the new record **together with** the existing store, so
   cross-record rules (N11 supersession, N12 id uniqueness) see the whole picture.
@@ -15,9 +17,10 @@ from typing import Any
 
 from src.dataset.convert import read_jsonl
 from src.dataset.schema import RESEARCH_RECORDS_PATH
+from src.integrity import append_line, verify
 
 from .model import ANNOTATIONS_PATH
-from .validate import AnnotationValidation, validate_annotations
+from .validate import AnnotationValidation, Problem, validate_annotations
 
 
 class AnnotationRejected(ValueError):
@@ -59,10 +62,13 @@ class AnnotationStore:
     def validate(self, extra: list[dict[str, Any]] | None = None,
                  knowledge_ref_ids: set[str] | None = None,
                  verified_ref_ids: set[str] | None = None) -> AnnotationValidation:
-        return validate_annotations(self.all() + list(extra or []),
-                                    artifact_images=artifact_images(self.records_path),
-                                    knowledge_ref_ids=knowledge_ref_ids,
-                                    verified_ref_ids=verified_ref_ids)
+        result = validate_annotations(self.all() + list(extra or []),
+                                      artifact_images=artifact_images(self.records_path),
+                                      knowledge_ref_ids=knowledge_ref_ids,
+                                      verified_ref_ids=verified_ref_ids)
+        integrity = verify(self.path)
+        result.problems += [Problem("N16", p) for p in integrity.problems]
+        return result
 
     def append(self, annotation: dict[str, Any], *, knowledge_ref_ids: set[str] | None = None,
                verified_ref_ids: set[str] | None = None) -> dict[str, Any]:
@@ -82,9 +88,7 @@ class AnnotationStore:
                 if p.annotation_id in (annotation.get("annotation_id"), annotation.get("supersedes"))]
         if mine:
             raise AnnotationRejected(AnnotationValidation(mine, 1))
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.path.open("a", encoding="utf-8", newline="\n") as fh:
-            fh.write(json.dumps(annotation, ensure_ascii=False, sort_keys=True) + "\n")
+        append_line(self.path, json.dumps(annotation, ensure_ascii=False, sort_keys=True))
         return annotation
 
 

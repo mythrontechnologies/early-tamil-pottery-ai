@@ -55,3 +55,28 @@ entries:
     citation: "ISO 15919 - Transliteration of Devanagari and related Indic scripts into Latin characters."
     verification_status: unverified
     audit_ref: "docs/CHRONOLOGICAL_SCOPE.md#6"
+
+  # --- Unresolved author-level placeholders (structural fix, 2026-09-24) -------------------
+  # configs/project.yaml cites R3 (position B) and R5 (position D). docs/CHRONOLOGICAL_SCOPE.md
+  # §6 defines both as an AUTHOR'S BODY OF WORK, not one publication, and flags them as the
+  # drafting assistant's least certain entries. They are recorded here so every cited id
+  # resolves, and so the gap is explicit: status 'unverified', resolution 'unresolved'.
+  # Rule K8 forbids verifying anything against them, and rule V9 refuses a registry record for
+  # them, until a scholar names the exact work (then: add that work, point the position at it).
+  - id: R3
+    citation: "UNRESOLVED author-level placeholder: Rajan, K. - publications on early writing, Porunthal and Kodumanal. No specific work established."
+    verification_status: unverified
+    resolution: unresolved
+    candidate_works:
+      - "R3a (Rajan & Yatheeskumar 2013, Pragdhara 21-22; bibliographic_only) - title matches position B's subject; not read"
+      - "S01 (Rajan & Sivanantham 2026; ch. 10 argues the chronology) - transcribed_unverified"
+    project_notes: "Whether position B's -500 to -400 comes from R3a, S01 or another Rajan work is not established (docs/PILOT_HANDOFF.md §3)."
+    audit_ref: "docs/CHRONOLOGICAL_SCOPE.md#6"
+  - id: R5
+    citation: "UNRESOLVED author-level placeholder: Falk, Harry - publications on the origins of Brahmi. No specific work established."
+    verification_status: unverified
+    resolution: unresolved
+    candidate_works:
+      - "Falk, H. 2014. 'Owners' graffiti on pottery from Tissamaharama.' Zeitschrift für Archäologie Außereuropäischer Kulturen 6: 45-94 - identified from a SECONDARY source only (Wikipedia 'Tamil-Brahmi', note 26, consulted 2026-09-24); not read"
+    project_notes: "Whether R5 means this work, and whether it states the 'association not secure' objection as position D puts it, is not established."
+    audit_ref: "docs/CHRONOLOGICAL_SCOPE.md#6"

@@ -60,6 +60,8 @@ RULES: dict[str, str] = {
     "V6": "an unverified record carries no verification date",
     "V7": "claim_id resolves to a knowledge-base claim or is 'not_applicable'",
     "V8": "ids unique; a revision supersedes one earlier record of the same reference and claim",
+    "V9": "no record may verify a claim against an unresolved placeholder reference (e.g. R3, R5)",
+    "V10": "the registry matches its append-only ledger (no record edited, removed or added by hand)",
     "K6": "a knowledge-base reference claiming verified_against_source is backed by the registry",
 }
 
@@ -181,6 +183,10 @@ def validate_verification(v: dict[str, Any], kb: KnowledgeBase, claim_ids: set[s
         return out
     if v["ref_id"] not in kb.references:
         add("V2", f"reference {v['ref_id']!r} is not in knowledge/references")
+    elif (kb.references[v["ref_id"]].get("resolution") == "unresolved"
+          and v["status"] in (VERIFIED, "discrepancy_found")):
+        add("V9", f"{v['ref_id']!r} is an unresolved placeholder: identify the exact work, add it to the "
+                  "knowledge base, then verify the claim against THAT work")
     status, today = v["status"], today or datetime.now(timezone.utc).date()
     checked = v["verification_date"] != NA
     if checked and date.fromisoformat(v["verification_date"]) > today:
@@ -291,7 +297,11 @@ class VerificationRegistry:
 
     def validate(self, extra: list[dict[str, Any]] | None = None, *, kb: KnowledgeBase | None = None,
                  today: date | None = None) -> VerificationValidation:
-        return validate_registry(self.all() + list(extra or []), kb, today=today)
+        from src.integrity import verify
+
+        res = validate_registry(self.all() + list(extra or []), kb, today=today)
+        res.problems += [VProblem("V10", p, None) for p in verify(self.path).problems]
+        return res
 
     def append(self, record: dict[str, Any], *, kb: KnowledgeBase | None = None,
                today: date | None = None) -> dict[str, Any]:
@@ -301,9 +311,9 @@ class VerificationRegistry:
                 if p.verification_id in (record.get("verification_id"), record.get("supersedes"))]
         if mine:
             raise VerificationRejected(mine)
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.path.open("a", encoding="utf-8", newline="\n") as fh:
-            fh.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+        from src.integrity import append_line
+
+        append_line(self.path, json.dumps(record, ensure_ascii=False, sort_keys=True))
         return record
 
 
@@ -361,7 +371,7 @@ def effective_statuses(*, kb: KnowledgeBase | None = None,
 
 
 #: Shown for a claim whose cited id is not a work in the knowledge base (e.g. R3, R5).
-UNRESOLVED_REF = "UNRESOLVED: cited id is not a work in the knowledge base; requires source verification"
+UNRESOLVED_REF = "UNRESOLVED: cited id does not identify a specific work; requires source verification"
 
 
 def claim_report(ref_ids: list[str] | None = None, *, kb: KnowledgeBase | None = None,
@@ -373,7 +383,8 @@ def claim_report(ref_ids: list[str] | None = None, *, kb: KnowledgeBase | None =
     kb = kb or default_kb()
     current = VerificationRegistry().current() if current is None else current
     all_claims = claims(kb, config)
-    unresolved = sorted({r for c in all_claims for r in c.ref_ids if r not in kb.references})
+    unresolved = sorted({r for c in all_claims for r in c.ref_ids
+                         if r not in kb.references or kb.references[r].get("resolution") == "unresolved"})
     wanted = ref_ids or [*key_references(config), *unresolved]
     by_key = {_claim_key(v): v for v in current}
     rows = []
@@ -386,7 +397,8 @@ def claim_report(ref_ids: list[str] | None = None, *, kb: KnowledgeBase | None =
             ref = kb.references.get(rid)
             rows.append({
                 "ref_id": rid, "claim_id": c.claim_id, "claim": c.statement,
-                "expected_publication": ref["citation"] if ref else UNRESOLVED_REF,
+                "expected_publication": (ref["citation"] if ref and ref.get("resolution") != "unresolved"
+                                         else UNRESOLVED_REF + (f" ({ref['citation']})" if ref else "")),
                 "knowledge_base_status": ref.get("verification_status", "unknown") if ref else "not_in_knowledge_base",
                 "locator_recorded": c.locator,
                 "verification_status": v.get("status", "unverified"),

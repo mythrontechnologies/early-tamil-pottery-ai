@@ -76,6 +76,7 @@ from src.dataset.schema import (
     load_config,
 )
 from src.dataset.validation import sha256_file, validate_records
+from src.integrity import append_line, verify
 
 from .model import is_real, region_to_pixels, utc_now
 from .pilot import load_review_flags
@@ -183,6 +184,7 @@ class PromotionPlan:
     validation_errors: list[str]
     plan_digest: str = ""
     dry_run: bool = True
+    annotations_ledger_head: str = ""   # src.integrity chain head of the annotation store
 
     @property
     def executable(self) -> bool:
@@ -367,7 +369,7 @@ def plan_promotion(
         by_art.setdefault(r["artifact_id"], []).append(r)
     plan = PromotionPlan(
         records_path=_rel(records_path), records_sha256=_sha_text(records_path),
-        annotations_sha256=_sha_text(store.path),
+        annotations_sha256=_sha_text(store.path), annotations_ledger_head=verify(store.path).head,
         registry_sha256=_sha_text(Path(registry_path)) if registry_path else "absent",
         candidates=[], rejections=[], unchanged=[], validation_status="FAIL", validation_errors=[])
 
@@ -509,9 +511,8 @@ def _write_records_atomic(path: Path, records: list[dict[str, Any]]) -> None:
 
 
 def _append_log(log: Path, entry: dict[str, Any]) -> None:
-    log.parent.mkdir(parents=True, exist_ok=True)
-    with log.open("a", encoding="utf-8", newline="\n") as fh:
-        fh.write(json.dumps(entry, ensure_ascii=False, sort_keys=True) + "\n")
+    """Append-only, ledger-chained (src.integrity): a tampered log refuses further entries."""
+    append_line(log, json.dumps(entry, ensure_ascii=False, sort_keys=True))
 
 
 def read_log(log: Path | None = None, config: dict[str, Any] | None = None) -> list[dict[str, Any]]:
@@ -553,6 +554,7 @@ def execute_promotion(plan_fn: Callable[[], PromotionPlan], *, approver: str | N
         "records_path": _rel(path),
         "records_sha256_before": plan.records_sha256,
         "annotations_sha256": plan.annotations_sha256,
+        "annotations_ledger_head": plan.annotations_ledger_head,
         "registry_sha256": plan.registry_sha256,
         "artifacts": [c.artifact_id for c in plan.candidates],
         "source_annotation_ids": {c.artifact_id: c.source_annotation_ids for c in plan.candidates},

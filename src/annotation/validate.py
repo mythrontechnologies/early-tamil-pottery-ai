@@ -40,6 +40,7 @@ RULES: dict[str, str] = {
     "N14": "a cited reference claims verified_against_source only if the verification registry "
            "verified it (Milestone 8)",
     "N15": "an AI-marked record (annotator id 'ai_...' or an AI-draft marker) is only ever an ai_prediction",
+    "N16": "the store matches its append-only ledger (no line edited, removed or added by hand)",
 }
 
 

@@ -208,7 +208,7 @@ class TestLivePilotFlagsAndClaims:
         assert {"R1", "S01", "S03", "R3", "R5"} <= by_ref
         for r in rows:
             if r["ref_id"] in ("R3", "R5"):
-                assert r["expected_publication"] == UNRESOLVED_REF
+                assert r["expected_publication"].startswith(UNRESOLVED_REF)
         # Live registry: until a human verifier commits a check, every claim is unverified.
         from src.knowledge.verification import VerificationRegistry
 
