@@ -28,6 +28,13 @@ sherds displayed at the Keezhadi site museum, taken through or near display glas
 knows **nothing else** about them: no excavation context, trench, layer, catalogue number or
 publication is recorded.
 
+**Are 107 and 109 original sherds?** In the photographs, 107 and 109 look like painted
+reproductions: brushed paint, white-filled grooves, screwed to a wall. They appear to reproduce
+the sherds in 106 and 108. Please confirm or reject this before annotating them. If they are
+reproductions, mark them `usable_for_annotation = no` and say so in the notes. Do not read
+their inscriptions as evidence for the originals. (Project observation, 2026-09-24, not
+confirmed: [`MILESTONE_8_PILOT_RESULTS.md`](MILESTONE_8_PILOT_RESULTS.md) §3.)
+
 **About the uploader's caption.** Each Commons page says the Keeladi cultural deposit "could be
 safely dated between 6th century BCE and 1st century CE". That describes the site's deposit as
 a whole, as the uploader understood it. It is **not** a date for any of these sherds, and it
@@ -108,6 +115,13 @@ Two citation questions need a scholar's answer, and the project has not guessed 
 "Early AMS determinations" position cites `R3`, while the knowledge base holds `R3a` (Rajan &
 Yatheeskumar, *Pragdhara* 21–22). Is that the intended work? The "association not secure"
 objection cites `R5`, which is not in the knowledge base. Which work is it?
+
+What the repository does record (`CHRONOLOGICAL_SCOPE.md` §6): `R3` is an author-level entry,
+"Rajan, K. — publications on early writing, Porunthal and Kodumanal". `R3a` is one of two
+candidate titles located later; the other is S01. `R5` is "Falk, Harry — publications on the
+origins of Brahmi", with no title established. Both entries were drafted by an assistant and are
+unverified. The questions are therefore: **which Rajan work** supports position B, and **which
+Falk work** supports position D?
 
 ## 4. What happens next (project team)
 

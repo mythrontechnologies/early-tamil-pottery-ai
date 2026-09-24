@@ -49,7 +49,7 @@ An LLM-generated explanation is not evidence and is never presented as such.
 | Verified references | **0** — verification registry built (Milestone 8); R1, S01, S03 not yet checked against the publications (`python -m src.knowledge status`) |
 | Models | none — the training framework exists and has never run on data |
 | Training ready | **false** — blocked by `src/dataset/readiness.py` (gates G1–G11) |
-| Annotations | **0** — annotation tool, evidence-based reasoning, expert pilot (six Keezhadi close-ups) ready ([`docs/ANNOTATION_GUIDE.md`](docs/ANNOTATION_GUIDE.md)) |
+| Annotations | **0** — annotation tool, evidence-based reasoning, expert pilot (six Keezhadi close-ups) ready ([`docs/ANNOTATION_GUIDE.md`](docs/ANNOTATION_GUIDE.md)). Pilot opened 2026-09-24: no human or expert input yet; 107/109 appear to be reproductions of 106/108 ([`docs/MILESTONE_8_PILOT_RESULTS.md`](docs/MILESTONE_8_PILOT_RESULTS.md)) |
 | Label promotion | built, dry-run by default, reversible; **0 promotions** ([`docs/MILESTONE_8_REPORT.md`](docs/MILESTONE_8_REPORT.md)) |
 | Tests | 686 passing |
 
@@ -216,7 +216,8 @@ early-tamil-pottery-ai/
     ├── ARCHAEOLOGICAL_REASONING.md  evidence hierarchy, dating, confidence, translation limits
     ├── MILESTONE_7_REPORT.md
     ├── MILESTONE_8_REPORT.md    expert pilot, agreement, verification, promotion
-    └── PILOT_HANDOFF.md         brief for the expert, the annotator and the reference verifier
+    ├── PILOT_HANDOFF.md         brief for the expert, the annotator and the reference verifier
+    └── MILESTONE_8_PILOT_RESULTS.md  first processing run of the six-artifact pilot
 ```
 
 Data files are git-ignored; **the metadata describing them is committed**, so the dataset is
