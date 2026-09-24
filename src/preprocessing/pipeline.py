@@ -30,8 +30,9 @@ array: it can always be traced back to the photograph and the record it came fro
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field as dc_field
-from datetime import date
+from dataclasses import dataclass
+from dataclasses import field as dc_field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -250,7 +251,7 @@ def preprocess_image(
 
     provenance: dict[str, Any] = {
         "pipeline_version": cfg.pipeline_version,
-        "processed_utc_date": date.today().isoformat(),
+        "processed_utc_date": datetime.now(timezone.utc).date().isoformat(),
         "config": cfg.to_dict(),
         **loaded.source_facts(),
     }

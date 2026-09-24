@@ -45,8 +45,9 @@ from __future__ import annotations
 import csv
 import json
 import sys
+from collections.abc import Iterable, Sequence
 from pathlib import Path
-from typing import Any, Iterable, Sequence
+from typing import Any
 
 from .schema import enum_values, field_kinds, field_order, load_schema
 
@@ -285,17 +286,17 @@ def load_records(path: Path | str) -> list[dict[str, Any]]:
 
 
 __all__ = [
-    "ConversionError",
     "EMPTY_LIST_TOKEN",
     "NULL_TOKEN",
+    "ConversionError",
+    "csv_to_jsonl",
+    "enum_values",
+    "jsonl_to_csv",
+    "load_records",
+    "read_csv",
+    "read_jsonl",
     "record_to_row",
     "row_to_record",
-    "read_jsonl",
-    "write_jsonl",
-    "read_csv",
     "write_csv",
-    "jsonl_to_csv",
-    "csv_to_jsonl",
-    "load_records",
-    "enum_values",
+    "write_jsonl",
 ]

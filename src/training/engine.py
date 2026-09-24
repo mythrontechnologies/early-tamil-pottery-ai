@@ -27,7 +27,7 @@ from torch.utils.data import DataLoader
 
 from src.evaluation.metrics import compute_metrics
 
-from .checkpoint import build_checkpoint, save_checkpoint
+from .checkpoint import build_checkpoint, load_checkpoint, save_checkpoint
 from .config import TrainingConfig
 from .model import backbone_parameters, head_parameters, set_backbone_trainable
 from .runtime import DeviceInfo
@@ -132,6 +132,36 @@ class Trainer:
         self.checkpoint_dir = Path(checkpoint_dir) if checkpoint_dir else None
         self.provenance = provenance or {}
         self.backbone_trainable = not config.model.freeze_backbone
+        es = config.early_stopping
+        self.stopper = EarlyStopping(es.mode, es.patience, es.min_delta)
+        self.start_epoch = 0
+
+    # -- resume -------------------------------------------------------------
+
+    def resume(self, checkpoint_path: Path | str) -> int:
+        """Continue from a checkpoint written by this trainer: weights, optimizer, scheduler,
+        early-stopping state and epoch. Refuses a checkpoint for other classes, another model,
+        or another dataset version. Returns the epoch training will continue from."""
+        ckpt = load_checkpoint(checkpoint_path, class_names=self.class_names)
+        if ckpt["model_name"] != self.cfg.model.name:
+            raise TrainingError(f"checkpoint is a {ckpt['model_name']!r}, config wants {self.cfg.model.name!r}")
+        want = self.provenance.get("dataset_fingerprint")
+        if want is not None and ckpt["dataset_fingerprint"] != want:
+            raise TrainingError("checkpoint was trained on a different dataset version; not resuming")
+        ts = ckpt.get("trainer_state") or {}
+        if ts.get("backbone_trainable") and not self.backbone_trainable:
+            set_backbone_trainable(self.model, True)
+            self.backbone_trainable = True
+        self.model.load_state_dict(ckpt["state_dict"])
+        if ckpt.get("optimizer_state") is not None:
+            self.optimizer.load_state_dict(ckpt["optimizer_state"])
+        if self.scheduler is not None and ckpt.get("scheduler_state") is not None:
+            self.scheduler.load_state_dict(ckpt["scheduler_state"])
+        es = ts.get("early_stopping") or {}
+        self.stopper.best = es.get("best")
+        self.stopper.bad_epochs = int(es.get("bad_epochs", 0))
+        self.start_epoch = int(ckpt["epoch"]) + 1
+        return self.start_epoch
 
     # -- construction -------------------------------------------------------
 
@@ -221,11 +251,12 @@ class Trainer:
 
     def fit(self, train_loader: DataLoader, val_loader: DataLoader) -> FitResult:
         es_cfg = self.cfg.early_stopping
-        stopper = EarlyStopping(es_cfg.mode, es_cfg.patience, es_cfg.min_delta)
-        result = FitResult(epochs_run=0, best_epoch=None, best_monitor=None, stopped_early=False)
+        stopper = self.stopper
+        result = FitResult(epochs_run=self.start_epoch, best_epoch=None, best_monitor=stopper.best,
+                           stopped_early=False)
         unfreeze_at = self.cfg.model.unfreeze_backbone_at_epoch
 
-        for epoch in range(self.cfg.optimization.epochs):
+        for epoch in range(self.start_epoch, self.cfg.optimization.epochs):
             start = time.perf_counter()
             if (not self.backbone_trainable and unfreeze_at is not None
                     and epoch >= unfreeze_at):
@@ -278,7 +309,10 @@ class Trainer:
             dataset_fingerprint=str(self.provenance.get("dataset_fingerprint", "unknown")),
             split_digest=str(self.provenance.get("split_digest", "unknown")),
             git=dict(self.provenance.get("git", {"commit": "unknown", "dirty": None})),
-            optimizer=self.optimizer, scheduler=self.scheduler)
+            optimizer=self.optimizer, scheduler=self.scheduler,
+            trainer_state={"early_stopping": {"best": self.stopper.best,
+                                              "bad_epochs": self.stopper.bad_epochs},
+                           "backbone_trainable": self.backbone_trainable})
         return str(save_checkpoint(ckpt, self.checkpoint_dir / f"{which}.pt"))
 
 

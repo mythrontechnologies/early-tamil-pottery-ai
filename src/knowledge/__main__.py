@@ -20,8 +20,9 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from pathlib import Path
+
+from src.console import utf8_console
 
 from .base import load
 from .verification import (
@@ -171,11 +172,7 @@ def cmd_rules(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    for s in (sys.stdout, sys.stderr):
-        try:
-            s.reconfigure(encoding="utf-8", errors="replace")
-        except (AttributeError, ValueError):  # pragma: no cover
-            pass
+    utf8_console()
     p = argparse.ArgumentParser(prog="python -m src.knowledge")
     sub = p.add_subparsers(dest="command", required=True)
     sub.add_parser("validate").set_defaults(func=cmd_validate)

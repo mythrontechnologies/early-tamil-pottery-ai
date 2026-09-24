@@ -10,6 +10,7 @@ import argparse
 import json
 import sys
 
+from src.console import utf8_console
 from src.dataset.convert import read_jsonl
 from src.dataset.schema import RESEARCH_RECORDS_PATH
 
@@ -18,11 +19,7 @@ from .from_annotations import build_inputs
 
 
 def main(argv: list[str] | None = None) -> int:
-    for s in (sys.stdout, sys.stderr):
-        try:
-            s.reconfigure(encoding="utf-8", errors="replace")
-        except (AttributeError, ValueError):  # pragma: no cover
-            pass
+    utf8_console()
     p = argparse.ArgumentParser(prog="python -m src.reasoning")
     sub = p.add_subparsers(dest="command", required=True)
     a = sub.add_parser("analyze")

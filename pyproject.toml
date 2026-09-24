@@ -1,0 +1,32 @@
+# Tool configuration only. The project is run from the repository root
+# (`python -m src.<package>`); it is not packaged for installation.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+extend-exclude = ["notebooks", "outputs", "models", "data"]
+
+[tool.ruff.lint]
+# Correctness, bugbear, imports, modernisation, comprehensions, simplification,
+# timezone-aware datetimes, and the security checks that matter here (no eval/exec,
+# no shell=True, no pickle/unsafe deserialisation, no blind excepts).
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "DTZ", "RUF", "BLE",
+          "S102", "S301", "S307", "S506", "S602", "S604", "S605", "S606"]
+ignore = [
+    "E501",    # long lines: tables of messages read better unwrapped; the formatter is not enforced
+    "RUF001", "RUF002", "RUF003",  # Tamil, en dashes and typographic quotes are intentional
+    "B905",    # zip() strictness: lengths are validated where it matters
+    "SIM108",  # ternaries are not always clearer
+    "C408",    # dict(key=value) is used deliberately for keyword-style records
+    "C416",    # explicit comprehensions are kept where they document the pairing
+    "RUF005",  # tuple concatenation reads more clearly than unpacking in class lists
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "B011", "B017"]
+"app/*" = ["E402"]        # the app puts the repository root on sys.path before importing src
+"scripts/*" = ["E402"]

@@ -18,17 +18,26 @@ weights are, and *what data they were trained on*, travels with the weights:
     split_digest         SplitManifest.digest
     git                  {"commit": ..., "dirty": ...}
     created_utc          ISO timestamp
+    model_fingerprint    SHA-256 over the weights (key, dtype, shape, bytes); re-checked on load
+    trainer_state        optional: early-stopping best/bad_epochs and backbone state, for resume
 
-:func:`load_checkpoint` refuses a file whose structure or class list does not match.
+:func:`load_checkpoint` refuses a file whose structure or class list does not match, or whose
+weights no longer match their fingerprint.
+
+**Safe loading.** Checkpoints hold only tensors and plain Python values (the metadata is
+converted on save), and are read with ``torch.load(..., weights_only=True)``: a checkpoint
+cannot execute code when it is loaded. A file that needs arbitrary unpickling is refused.
 """
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+import hashlib
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import torch
 from torch import nn
 
@@ -41,7 +50,36 @@ REQUIRED_KEYS = (
 
 
 class CheckpointError(RuntimeError):
-    """The checkpoint is malformed or incompatible."""
+    """The checkpoint is malformed, incompatible, unsafe to load, or tampered with."""
+
+
+def _plain(value: Any, where: str = "checkpoint") -> Any:
+    """Metadata -> tensors and plain Python only (what ``weights_only`` loading accepts)."""
+    if value is None or isinstance(value, (bool, int, float, str, torch.Tensor)):
+        return value
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    if isinstance(value, Path):
+        return value.as_posix()
+    if isinstance(value, Mapping):
+        return {k if isinstance(k, (str, int)) else str(k): _plain(v, f"{where}.{k}") for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return type(value)(_plain(v, f"{where}[]") for v in value)
+    raise CheckpointError(f"{where}: {type(value).__name__} cannot be stored safely in a checkpoint")
+
+
+def model_fingerprint(state_dict: Mapping[str, torch.Tensor]) -> str:
+    """Deterministic SHA-256 over the weights: key, dtype, shape and raw bytes, in key order."""
+    h = hashlib.sha256()
+    for key in sorted(state_dict):
+        t = state_dict[key].detach().cpu().contiguous()
+        h.update(key.encode("utf-8"))
+        h.update(str(t.dtype).encode())
+        h.update(str(tuple(t.shape)).encode())
+        h.update(t.reshape(-1).view(torch.uint8).numpy().tobytes() if t.numel() else b"")
+    return h.hexdigest()
 
 
 def build_checkpoint(
@@ -58,23 +96,27 @@ def build_checkpoint(
     git: dict[str, Any],
     optimizer: torch.optim.Optimizer | None = None,
     scheduler: Any | None = None,
+    trainer_state: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    state = {k: v.detach().cpu() for k, v in model.state_dict().items()}
     return {
         "format_version": CHECKPOINT_FORMAT,
         "model_name": model_name,
         "num_classes": len(class_names),
         "class_names": list(class_names),
-        "state_dict": {k: v.detach().cpu() for k, v in model.state_dict().items()},
-        "optimizer_state": optimizer.state_dict() if optimizer is not None else None,
-        "scheduler_state": scheduler.state_dict() if scheduler is not None else None,
+        "state_dict": state,
+        "model_fingerprint": model_fingerprint(state),
+        "optimizer_state": _plain(optimizer.state_dict(), "optimizer_state") if optimizer is not None else None,
+        "scheduler_state": _plain(scheduler.state_dict(), "scheduler_state") if scheduler is not None else None,
         "epoch": int(epoch),
-        "metrics": metrics,
-        "monitor": monitor,
-        "config": config,
-        "dataset_fingerprint": dataset_fingerprint,
-        "split_digest": split_digest,
-        "git": git,
+        "metrics": _plain(metrics, "metrics"),
+        "monitor": _plain(monitor, "monitor"),
+        "config": _plain(config, "config"),
+        "dataset_fingerprint": str(dataset_fingerprint),
+        "split_digest": str(split_digest),
+        "git": _plain(git, "git"),
         "created_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "trainer_state": _plain(trainer_state or {}, "trainer_state"),
     }
 
 
@@ -89,6 +131,9 @@ def check_checkpoint(ckpt: dict[str, Any], *, class_names: Sequence[str] | None 
     if class_names is not None and list(class_names) != list(ckpt["class_names"]):
         raise CheckpointError(
             f"class list mismatch: checkpoint {ckpt['class_names']} vs expected {list(class_names)}")
+    fp = ckpt.get("model_fingerprint")
+    if fp is not None and fp != model_fingerprint(ckpt["state_dict"]):
+        raise CheckpointError("model weights do not match the checkpoint's model_fingerprint (modified file?)")
 
 
 def save_checkpoint(ckpt: dict[str, Any], path: Path | str) -> Path:
@@ -103,7 +148,10 @@ def save_checkpoint(ckpt: dict[str, Any], path: Path | str) -> Path:
 
 def load_checkpoint(path: Path | str, *, class_names: Sequence[str] | None = None,
                     map_location: str = "cpu") -> dict[str, Any]:
-    ckpt = torch.load(Path(path), map_location=map_location, weights_only=False)
+    try:
+        ckpt = torch.load(Path(path), map_location=map_location, weights_only=True)
+    except Exception as exc:
+        raise CheckpointError(f"{path} could not be loaded safely (weights_only): {exc}") from exc
     if not isinstance(ckpt, dict):
         raise CheckpointError(f"{path} does not contain a checkpoint dict")
     check_checkpoint(ckpt, class_names=class_names)
@@ -117,5 +165,6 @@ __all__ = [
     "build_checkpoint",
     "check_checkpoint",
     "load_checkpoint",
+    "model_fingerprint",
     "save_checkpoint",
 ]

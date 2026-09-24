@@ -22,10 +22,10 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from collections import Counter
 from pathlib import Path
 
+from src.console import utf8_console
 from src.dataset.convert import read_jsonl
 from src.dataset.schema import RESEARCH_RECORDS_PATH
 
@@ -184,11 +184,7 @@ def cmd_handoff(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    for s in (sys.stdout, sys.stderr):
-        try:
-            s.reconfigure(encoding="utf-8", errors="replace")
-        except (AttributeError, ValueError):  # pragma: no cover
-            pass
+    utf8_console()
     p = argparse.ArgumentParser(prog="python -m src.annotation")
     sub = p.add_subparsers(dest="command", required=True)
     for name, fn in (("validate", cmd_validate), ("summary", cmd_summary),

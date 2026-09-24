@@ -87,7 +87,7 @@ class CommonsClient:
         return data
 
     def describe(self, titles: list[str]) -> dict[str, Candidate | None]:
-        out: dict[str, Candidate | None] = {t: None for t in titles}
+        out: dict[str, Candidate | None] = dict.fromkeys(titles)
         for i in range(0, len(titles), 40):
             chunk = titles[i:i + 40]
             params = {

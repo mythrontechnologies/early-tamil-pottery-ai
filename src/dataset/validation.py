@@ -23,9 +23,11 @@ from __future__ import annotations
 
 import hashlib
 from collections import defaultdict
-from dataclasses import dataclass, field as dc_field
+from collections.abc import Iterable
+from dataclasses import dataclass
+from dataclasses import field as dc_field
 from pathlib import Path
-from typing import Any, Iterable, Literal
+from typing import Any, Literal
 
 from jsonschema import Draft202012Validator
 
@@ -277,11 +279,10 @@ class DatasetValidator:
                         f"got {rec[fld]!r}", fld)
 
         # R7 - 'other_script' must say which script.
-        if rec.get("script_type") == "other_script":
-            if not has_real_value(rec, "script_type_other_detail"):
-                add("R7", "error",
-                    "script_type='other_script' requires script_type_other_detail "
-                    "to name the script", "script_type_other_detail")
+        if rec.get("script_type") == "other_script" and not has_real_value(rec, "script_type_other_detail"):
+            add("R7", "error",
+                "script_type='other_script' requires script_type_other_detail "
+                "to name the script", "script_type_other_detail")
 
         # R8 - date bounds ordered.
         lo, hi = rec.get("dating_lower_year"), rec.get("dating_upper_year")
@@ -435,13 +436,13 @@ def missing_required(record: dict[str, Any]) -> list[str]:
 
 
 __all__ = [
+    "RECOMMENDED_FIELDS",
+    "RULE_TITLES",
     "DatasetValidator",
     "Finding",
     "ValidationResult",
-    "RULE_TITLES",
-    "RECOMMENDED_FIELDS",
-    "validate_records",
+    "is_sentinel",
     "missing_required",
     "sha256_file",
-    "is_sentinel",
+    "validate_records",
 ]

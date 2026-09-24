@@ -16,6 +16,8 @@ import json
 import sys
 from pathlib import Path
 
+from src.console import utf8_console
+
 EXIT_OK, EXIT_USAGE, EXIT_BLOCKED = 0, 2, 3
 
 
@@ -90,11 +92,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    for stream in (sys.stdout, sys.stderr):
-        try:
-            stream.reconfigure(encoding="utf-8", errors="replace")
-        except (AttributeError, ValueError):  # pragma: no cover
-            pass
+    utf8_console()
     args = build_parser().parse_args(argv)
     return args.func(args)
 

@@ -98,7 +98,7 @@ class TestConfig:
             _cfg(model={"nme": "resnet18"})
 
     def test_bad_values_are_errors(self):
-        with pytest.raises(TrainingConfigError, match="model.name"):
+        with pytest.raises(TrainingConfigError, match=r"model\.name"):
             _cfg(model={"name": "vit_huge"})
         with pytest.raises(TrainingConfigError, match="rotation_degrees"):
             _cfg(augmentation={"rotation_degrees": 90})

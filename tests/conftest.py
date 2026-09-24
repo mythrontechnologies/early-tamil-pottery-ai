@@ -6,13 +6,16 @@ All record data originates from ``tests/fixtures/`` and is synthetic. See
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
+from collections.abc import Callable
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import pytest
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
@@ -164,3 +167,53 @@ def load_fixture() -> Callable[[str], list[dict[str, Any]]]:
         return data if isinstance(data, list) else [data]
 
     return _load
+
+
+# --------------------------------------------------------------------------- #
+# Synthetic world: unlabelled records (like the real 30) + real image files + a store
+# --------------------------------------------------------------------------- #
+
+
+def _unlabelled(base: dict, aid: str, iid: str, rel: str, sha: str, size: int) -> dict:
+    r = deepcopy(base)
+    r.update({
+        "image_id": iid, "artifact_id": aid, "image_path": rel, "image_sha256": sha,
+        "image_width_px": size, "image_height_px": size, "split": "unassigned",
+        "context_reliability": "unknown", "stratigraphic_context": "not_available",
+        "inscription_present": "unknown", "script_type": "unknown", "label_source": "unknown",
+        "label_confidence": "unknown", "inscription_regions": [], "character_count_visible": None,
+        "transcription": "not_available", "transcription_encoding": "not_available",
+        "transliteration": "not_available", "transliteration_scheme": "not_available",
+        "translation_en": "not_available", "translation_ta": "not_available",
+        "reading_status": "unknown", "alternative_readings": [], "reading_source": "not_available",
+        "dating_text": "not_available", "dating_lower_year": None, "dating_upper_year": None,
+        "dating_basis": ["not_available"], "dating_reliability": "unknown",
+        "dating_source": "not_available", "annotator": "not_applicable",
+        "annotation_date": "not_applicable", "inscription_technique": "unknown",
+        "notes": "SYNTHETIC TEST FIXTURE generated in tmp_path. Not data.",
+    })
+    return r
+
+
+@pytest.fixture
+def world(tmp_path, base_record):
+    """Six unlabelled synthetic artifacts (one photo each), images on disk, empty store."""
+    raw = tmp_path / "raw"
+    (raw / "fixture").mkdir(parents=True)
+    records = []
+    for n in range(1, 7):
+        aid, iid = f"FIXTURE_PILOT_{n}", f"FIXTURE_PILOT_{n}__1"
+        rel = f"fixture/{iid}.png"
+        img = Image.new("RGB", (100, 100), (30 * n, 90, 140))
+        img.putpixel((n, n), (255, 255, 255))
+        img.save(raw / rel)
+        sha = hashlib.sha256((raw / rel).read_bytes()).hexdigest()
+        records.append(_unlabelled(base_record, aid, iid, rel, sha, 100))
+    from src.annotation.store import AnnotationStore
+    from src.dataset.convert import write_jsonl
+
+    rp = tmp_path / "records.jsonl"
+    write_jsonl(rp, records)
+    store = AnnotationStore(tmp_path / "annotations.jsonl", rp)
+    return {"records_path": rp, "raw": raw, "store": store, "log": tmp_path / "promotion_log.jsonl",
+            "arts": [r["artifact_id"] for r in records], "records": records, "tmp": tmp_path}

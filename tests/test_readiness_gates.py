@@ -31,7 +31,7 @@ def _gates(report) -> dict[str, bool | None]:
 
 def _ready_corpus(tmp_path, synthetic_corpus, n=20, **kw):
     """A synthetic corpus that satisfies every gate, plus its split manifest."""
-    c = synthetic_corpus(tmp_path, {c: n for c in FOUR}, **kw)
+    c = synthetic_corpus(tmp_path, dict.fromkeys(FOUR, n), **kw)
     ds = load_dataset(c["records_path"], c["data_root"])
     manifest = make_split(ds).save(tmp_path / "manifest.json")
     return c, manifest
@@ -92,13 +92,13 @@ class TestGateFailures:
         assert "none" in next(g["detail"] for g in report.gates if g["id"] == "G9")
 
     def test_insufficient_artifacts_block(self, tmp_path, synthetic_corpus):
-        c = synthetic_corpus(tmp_path, {cl: 4 for cl in FOUR})
+        c = synthetic_corpus(tmp_path, dict.fromkeys(FOUR, 4))
         report = _eval(c)
         assert _gates(report)["G10"] is False
         assert set(report.classes_below_threshold) == set(FOUR)
 
     def test_kfold_manifest_uses_k_as_the_threshold(self, tmp_path, synthetic_corpus):
-        c = synthetic_corpus(tmp_path, {cl: 6 for cl in FOUR})
+        c = synthetic_corpus(tmp_path, dict.fromkeys(FOUR, 6))
         ds = load_dataset(c["records_path"], c["data_root"])
         manifest = make_split(ds).save(tmp_path / "kfold.json")
         report = _eval(c, manifest)
@@ -129,7 +129,7 @@ class TestGateFailures:
         assert _gates(report)["G6"] is False
 
     def test_artifact_across_splits_blocks(self, tmp_path, synthetic_corpus):
-        c = synthetic_corpus(tmp_path, {cl: 20 for cl in FOUR}, images_per_artifact=2)
+        c = synthetic_corpus(tmp_path, dict.fromkeys(FOUR, 20), images_per_artifact=2)
         recs = c["records"]
         recs[0]["split"], recs[1]["split"] = "train", "test"   # same artifact, two splits
         c["records_path"].write_text("".join(json.dumps(r) + "\n" for r in recs), encoding="utf-8")
@@ -138,24 +138,24 @@ class TestGateFailures:
         assert not report.training_ready
 
     def test_unknown_label_source_blocks(self, tmp_path, synthetic_corpus):
-        c = synthetic_corpus(tmp_path, {cl: 20 for cl in FOUR}, overrides={"label_source": "unknown"})
+        c = synthetic_corpus(tmp_path, dict.fromkeys(FOUR, 20), overrides={"label_source": "unknown"})
         assert _gates(_eval(c))["G7"] is False
 
     def test_rights_not_established_blocks(self, tmp_path, synthetic_corpus):
-        c = synthetic_corpus(tmp_path, {cl: 20 for cl in FOUR},
+        c = synthetic_corpus(tmp_path, dict.fromkeys(FOUR, 20),
                              overrides={"research_usable": "unknown"})
         report = _eval(c)
         assert _gates(report)["G8"] is False
         assert "research_usable" in next(g["detail"] for g in report.gates if g["id"] == "G8")
 
     def test_absent_rights_field_counts_as_not_permitted(self, tmp_path, synthetic_corpus):
-        c = synthetic_corpus(tmp_path, {cl: 20 for cl in FOUR})
+        c = synthetic_corpus(tmp_path, dict.fromkeys(FOUR, 20))
         recs = [{k: v for k, v in r.items() if k != "research_usable"} for r in c["records"]]
         c["records_path"].write_text("".join(json.dumps(r) + "\n" for r in recs), encoding="utf-8")
         assert _gates(_eval(c))["G8"] is False
 
     def test_missing_manifest_blocks(self, tmp_path, synthetic_corpus):
-        c = synthetic_corpus(tmp_path, {cl: 20 for cl in FOUR})
+        c = synthetic_corpus(tmp_path, dict.fromkeys(FOUR, 20))
         report = _eval(c, tmp_path / "no_such_manifest.json")
         assert _gates(report)["G11"] is False
 
@@ -204,4 +204,8 @@ class TestNoBypass:
     def test_run_training_takes_no_data_paths(self):
         from src.training.run import run_training
 
-        assert set(inspect.signature(run_training).parameters) == {"config_path", "manifest_path"}
+        params = set(inspect.signature(run_training).parameters)
+        # resume_from is a CHECKPOINT of the canonical dataset (the trainer refuses one from
+        # another dataset version); it cannot point training at other records or images.
+        assert params == {"config_path", "manifest_path", "resume_from"}
+        assert not any(w in p for p in params for w in ("record", "data", "root", "image", "permit"))

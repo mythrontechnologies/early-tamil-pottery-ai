@@ -20,15 +20,17 @@ import json
 import sys
 from pathlib import Path
 
+from src.console import utf8_console
+
 from .audit import audit
 from .convert import ConversionError, csv_to_jsonl, jsonl_to_csv, load_records
 from .ingest import ingest
+from .loader import LOADER_RULES, DatasetLoadError, load_dataset
 from .readiness import evaluate, write_report
 from .schema import RESEARCH_DATA_ROOT, RESEARCH_RECORDS_PATH
-from .validation import RULE_TITLES, validate_records
-from .loader import LOADER_RULES, DatasetLoadError, load_dataset
 from .splits import SplitError, SplitSettings, adopt_existing_split, make_split
 from .statistics import compute_statistics
+from .validation import RULE_TITLES, validate_records
 
 EXIT_OK, EXIT_FAIL, EXIT_USAGE = 0, 1, 2
 
@@ -40,11 +42,7 @@ def _force_utf8_output() -> None:
     record content routinely contains it, a report that raises UnicodeEncodeError
     halfway through is worse than one with a few replacement characters.
     """
-    for stream in (sys.stdout, sys.stderr):
-        try:
-            stream.reconfigure(encoding="utf-8", errors="replace")
-        except (AttributeError, ValueError):  # pragma: no cover - non-reconfigurable stream
-            pass
+    utf8_console()
 
 
 def _add_validation_flags(p: argparse.ArgumentParser) -> None:

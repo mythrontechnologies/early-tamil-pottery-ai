@@ -115,7 +115,7 @@ def class_availability(records: Iterable[Any], spec: ClassSpec) -> list[ClassAva
     and reported as such, so their absence from training is visible rather than silent.
     """
     artifacts: dict[str, set[str]] = {lbl: set() for lbl in spec.schema_labels}
-    images: dict[str, int] = {lbl: 0 for lbl in spec.schema_labels}
+    images: dict[str, int] = dict.fromkeys(spec.schema_labels, 0)
     for rec in records:
         get = rec.get
         if get("split", "unassigned") == "excluded":

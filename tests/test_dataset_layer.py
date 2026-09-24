@@ -265,7 +265,7 @@ class TestFingerprint:
 
 
 def _balanced(tmp_path, synthetic_corpus, n=20, ipa=2, **kw):
-    c = synthetic_corpus(tmp_path, {c: n for c in FOUR}, images_per_artifact=ipa, **kw)
+    c = synthetic_corpus(tmp_path, dict.fromkeys(FOUR, n), images_per_artifact=ipa, **kw)
     return c, load_dataset(c["records_path"], c["data_root"])
 
 
@@ -334,13 +334,13 @@ class TestSplits:
         assert make_split(ds, strategy="holdout").digest == make_split(ds2, strategy="holdout").digest
 
     def test_insufficient_artifacts_for_holdout(self, tmp_path, synthetic_corpus):
-        c = synthetic_corpus(tmp_path, {c: 6 for c in FOUR})
+        c = synthetic_corpus(tmp_path, dict.fromkeys(FOUR, 6))
         ds = load_dataset(c["records_path"], c["data_root"])
         with pytest.raises(SplitError, match="holdout needs >= 20"):
             make_split(ds, strategy="holdout")
 
     def test_auto_falls_back_to_grouped_kfold(self, tmp_path, synthetic_corpus):
-        c = synthetic_corpus(tmp_path, {c: 6 for c in FOUR})
+        c = synthetic_corpus(tmp_path, dict.fromkeys(FOUR, 6))
         ds = load_dataset(c["records_path"], c["data_root"])
         m = make_split(ds, strategy="auto")
         assert m.strategy == "grouped_kfold" and m.k == 5
@@ -350,7 +350,7 @@ class TestSplits:
             assert p["train"] & p["val"] == set() and p["val"]
 
     def test_too_few_for_anything_is_refused(self, tmp_path, synthetic_corpus):
-        c = synthetic_corpus(tmp_path, {c: 3 for c in FOUR})
+        c = synthetic_corpus(tmp_path, dict.fromkeys(FOUR, 3))
         ds = load_dataset(c["records_path"], c["data_root"])
         with pytest.raises(SplitError, match="grouped k-fold"):
             make_split(ds, strategy="auto")
@@ -375,7 +375,7 @@ class TestSplits:
             make_split(ds)
 
     def test_adopt_existing_split(self, tmp_path, synthetic_corpus):
-        c = synthetic_corpus(tmp_path, {c: 3 for c in FOUR}, images_per_artifact=2)
+        c = synthetic_corpus(tmp_path, dict.fromkeys(FOUR, 3), images_per_artifact=2)
         recs = c["records"]
         for r in recs:
             r["split"] = ["train", "val", "test"][int(r["artifact_id"][-1]) % 3]
@@ -384,7 +384,7 @@ class TestSplits:
         assert m.strategy == "adopted" and m.artifacts_in("test")
 
     def test_inconsistent_label_within_artifact_is_refused(self, tmp_path, synthetic_corpus):
-        c = synthetic_corpus(tmp_path, {c: 20 for c in FOUR}, images_per_artifact=2)
+        c = synthetic_corpus(tmp_path, dict.fromkeys(FOUR, 20), images_per_artifact=2)
         recs = c["records"]
         recs[1].update({"script_type": "graffiti"})   # recs[0], recs[1] share an artifact
         _write(c["records_path"], recs)
@@ -393,7 +393,7 @@ class TestSplits:
         assert any("inconsistent script_type" in p for p in problems)
 
     def test_held_out_labels_are_excluded_not_relabelled(self, tmp_path, synthetic_corpus):
-        c = synthetic_corpus(tmp_path, {**{c: 20 for c in FOUR}, "other_script": 2,
+        c = synthetic_corpus(tmp_path, {**dict.fromkeys(FOUR, 20), "other_script": 2,
                                         "tamil_brahmi_and_graffiti": 1})
         m = make_split(load_dataset(c["records_path"], c["data_root"]), strategy="holdout")
         assert len(m.excluded) == 3
@@ -514,7 +514,7 @@ class TestStatisticsAndCli:
         assert not list(tmp_path.iterdir())
 
     def test_split_command_writes_a_manifest(self, capsys, tmp_path, synthetic_corpus):
-        c = synthetic_corpus(tmp_path, {c: 20 for c in FOUR})
+        c = synthetic_corpus(tmp_path, dict.fromkeys(FOUR, 20))
         out = tmp_path / "manifests"
         code = dataset_cli(["split", "--records", str(c["records_path"]), "--data-root",
                             str(c["data_root"]), "--out-dir", str(out)])

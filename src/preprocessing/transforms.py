@@ -12,7 +12,8 @@ changes between Pillow versions would silently change every cached image.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field as dc_field
+from dataclasses import dataclass
+from dataclasses import field as dc_field
 from typing import Any, Literal
 
 import numpy as np
@@ -328,8 +329,8 @@ __all__ = [
     "RESAMPLE_FILTERS",
     "TransformLog",
     "apply_exif_orientation",
-    "to_rgb",
+    "map_box_to_original",
     "resize_preserving_aspect",
     "to_model_array",
-    "map_box_to_original",
+    "to_rgb",
 ]

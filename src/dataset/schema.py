@@ -122,6 +122,4 @@ def has_real_value(record: dict[str, Any], field: str) -> bool:
         return False
     if isinstance(value, str) and not value.strip():
         return False
-    if isinstance(value, (list, tuple)) and not value:
-        return False
-    return True
+    return not (isinstance(value, (list, tuple)) and not value)

@@ -17,6 +17,8 @@ import json
 import sys
 from pathlib import Path
 
+from src.console import utf8_console
+
 from .loader import EXTENSION_FORMATS, ISSUE_TITLES
 from .pipeline import (
     DEFAULT_OUTPUT_ROOT,
@@ -31,11 +33,7 @@ EXIT_OK, EXIT_FAIL, EXIT_USAGE = 0, 1, 2
 
 
 def _force_utf8_output() -> None:
-    for stream in (sys.stdout, sys.stderr):
-        try:
-            stream.reconfigure(encoding="utf-8", errors="replace")
-        except (AttributeError, ValueError):  # pragma: no cover
-            pass
+    utf8_console()
 
 
 def _config_from_args(args: argparse.Namespace) -> PreprocessConfig:

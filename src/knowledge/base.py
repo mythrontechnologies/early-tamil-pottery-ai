@@ -69,7 +69,7 @@ def load(root: Path | None = None) -> KnowledgeBase:
             continue
         docs.append((path, data))
 
-    for path, data in docs:                       # references first, so K3 can resolve
+    for _path, data in docs:                      # references first, so K3 can resolve
         if data["kind"] != "references":
             continue
         for e in data["entries"]:

@@ -17,13 +17,11 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+from src.console import utf8_console
+
 
 def _utf8() -> None:
-    for s in (sys.stdout, sys.stderr):
-        try:
-            s.reconfigure(encoding="utf-8", errors="replace")
-        except (AttributeError, ValueError):  # pragma: no cover
-            pass
+    utf8_console()
 
 
 def cmd_plan(args: argparse.Namespace) -> int:

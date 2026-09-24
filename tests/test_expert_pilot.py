@@ -16,7 +16,6 @@ from datetime import date
 from pathlib import Path
 
 import pytest
-from PIL import Image
 
 from src.annotation.agreement import (
     char_similarity,
@@ -75,55 +74,6 @@ PROTECTED = ("image_id", "artifact_id", "image_path", "image_sha256", "source", 
              "license", "redistributable", "research_usable", "commercially_usable", "rights_notes",
              "site", "collection", "split", "context_reliability", "stratigraphic_context",
              "verification_status", "image_width_px", "image_height_px")
-
-
-# --------------------------------------------------------------------------- #
-# Synthetic world: unlabelled records (like the real 30) + real image files + a store
-# --------------------------------------------------------------------------- #
-
-
-def _unlabelled(base: dict, aid: str, iid: str, rel: str, sha: str, size: int) -> dict:
-    r = deepcopy(base)
-    r.update({
-        "image_id": iid, "artifact_id": aid, "image_path": rel, "image_sha256": sha,
-        "image_width_px": size, "image_height_px": size, "split": "unassigned",
-        "context_reliability": "unknown", "stratigraphic_context": "not_available",
-        "inscription_present": "unknown", "script_type": "unknown", "label_source": "unknown",
-        "label_confidence": "unknown", "inscription_regions": [], "character_count_visible": None,
-        "transcription": "not_available", "transcription_encoding": "not_available",
-        "transliteration": "not_available", "transliteration_scheme": "not_available",
-        "translation_en": "not_available", "translation_ta": "not_available",
-        "reading_status": "unknown", "alternative_readings": [], "reading_source": "not_available",
-        "dating_text": "not_available", "dating_lower_year": None, "dating_upper_year": None,
-        "dating_basis": ["not_available"], "dating_reliability": "unknown",
-        "dating_source": "not_available", "annotator": "not_applicable",
-        "annotation_date": "not_applicable", "inscription_technique": "unknown",
-        "notes": "SYNTHETIC TEST FIXTURE generated in tmp_path. Not data.",
-    })
-    return r
-
-
-@pytest.fixture
-def world(tmp_path, base_record):
-    """Six unlabelled synthetic artifacts (one photo each), images on disk, empty store."""
-    raw = tmp_path / "raw"
-    (raw / "fixture").mkdir(parents=True)
-    records = []
-    for n in range(1, 7):
-        aid, iid = f"FIXTURE_PILOT_{n}", f"FIXTURE_PILOT_{n}__1"
-        rel = f"fixture/{iid}.png"
-        img = Image.new("RGB", (100, 100), (30 * n, 90, 140))
-        img.putpixel((n, n), (255, 255, 255))
-        img.save(raw / rel)
-        sha = hashlib.sha256((raw / rel).read_bytes()).hexdigest()
-        records.append(_unlabelled(base_record, aid, iid, rel, sha, 100))
-    rp = tmp_path / "records.jsonl"
-    from src.dataset.convert import write_jsonl
-
-    write_jsonl(rp, records)
-    store = AnnotationStore(tmp_path / "annotations.jsonl", rp)
-    return {"records_path": rp, "raw": raw, "store": store, "log": tmp_path / "promotion_log.jsonl",
-            "arts": [r["artifact_id"] for r in records], "records": records, "tmp": tmp_path}
 
 
 def annotation(art, *, who="SYN_project", prov="project_annotation", script="tamil_brahmi",
@@ -732,7 +682,7 @@ class TestPromotionExecution:
         assert rec["inscription_regions"] == [{"x": 10, "y": 20, "w": 30, "h": 40, "region_label": "inscription",
                                                "annotator": "SYN_expert",
                                                "notes": f"expert annotation {e['annotation_id']}"}]
-        assert e["annotation_id"] in rec["notes"] and e["annotation_id"] in rec["annotator"] or QUAL in rec["annotator"]
+        assert (e["annotation_id"] in rec["notes"] and e["annotation_id"] in rec["annotator"]) or QUAL in rec["annotator"]
         assert entry["source_annotation_ids"] == {art: [e["annotation_id"]]}
         assert entry["notes"][art][0].startswith("Recorded disagreement")      # project said graffiti
         from src.dataset.validation import validate_records

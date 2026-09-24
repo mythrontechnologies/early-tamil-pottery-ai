@@ -29,7 +29,7 @@ import json
 import re
 import shutil
 from dataclasses import asdict, dataclass, field
-from datetime import date
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -374,7 +374,7 @@ def run(
     acquisition_dir: Path = ACQUISITION_DIR,
     today: str | None = None,
 ) -> AcquisitionReport:
-    today = today or date.today().isoformat()
+    today = today or datetime.now(timezone.utc).date().isoformat()
     report = AcquisitionReport(dry_run=dry_run)
     max_file = int(plan.max_file_mb * 2**20)
     registry_path = acquisition_dir / "provenance.jsonl"

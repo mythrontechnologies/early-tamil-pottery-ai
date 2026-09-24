@@ -12,7 +12,7 @@ import json
 from copy import deepcopy
 
 import pytest
-from test_expert_pilot import NOREFS, annotation, expert, plan, world  # noqa: F401  (fixture)
+from test_expert_pilot import NOREFS, annotation, expert, plan
 
 from src.annotation.agreement import compute_agreement, render_agreement
 from src.annotation.ai_draft import AI_DRAFT_WARNING, is_ai_marked, load_ai_draft

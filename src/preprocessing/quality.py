@@ -20,7 +20,8 @@ otherwise a Pillow + NumPy layer.
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field as dc_field
+from dataclasses import asdict, dataclass
+from dataclasses import field as dc_field
 from typing import Any
 
 import numpy as np

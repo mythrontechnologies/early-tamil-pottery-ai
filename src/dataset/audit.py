@@ -9,7 +9,8 @@ that a fixture count can never be mistaken for a corpus count.
 from __future__ import annotations
 
 from collections import Counter
-from dataclasses import asdict, dataclass, field as dc_field
+from dataclasses import asdict, dataclass
+from dataclasses import field as dc_field
 from pathlib import Path
 from typing import Any
 

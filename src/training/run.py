@@ -38,7 +38,7 @@ from src.dataset.splits import SplitManifest, partition_records
 from src.evaluation.metrics import aggregate_by_artifact, evaluate_predictions
 
 from .augmentation import ImageGeometry, build_eval_transform, build_train_transform
-from .checkpoint import load_checkpoint
+from .checkpoint import load_checkpoint, model_fingerprint
 from .config import TrainingConfig
 from .data import PotteryImageDataset, make_loader
 from .engine import Trainer
@@ -74,8 +74,12 @@ def _resolve(path: str) -> Path:
 
 
 def run_training(config_path: Path | str | None = None,
-                 manifest_path: Path | str | None = None) -> RunOutcome:
-    """Train on the canonical research dataset, or explain why not."""
+                 manifest_path: Path | str | None = None,
+                 resume_from: Path | str | None = None) -> RunOutcome:
+    """Train on the canonical research dataset, or explain why not.
+
+    ``resume_from`` continues a single-split run from its checkpoint, after the gate has passed
+    again; the trainer refuses a checkpoint from another dataset version, model or class list."""
     cfg = TrainingConfig.load(config_path)
     spec = ClassSpec.from_config()
     cfg.check_against_project(spec)
@@ -92,15 +96,18 @@ def run_training(config_path: Path | str | None = None,
     dataset = load_dataset()
     manifest = SplitManifest.load(ROOT / report.split_manifest)  # type: ignore[operator]
     folds = list(range(int(manifest.k))) if manifest.strategy == "grouped_kfold" else [None]
+    if resume_from is not None and len(folds) > 1:
+        return RunOutcome("blocked", "Resume is supported for a single split, not a k-fold run "
+                                     "(resume each fold's checkpoint separately).", report)
     outcome = RunOutcome("completed", "training completed", report)
     for fold in folds:
-        path = _train_one(cfg, spec, dataset, manifest, report, fold)
+        path = _train_one(cfg, spec, dataset, manifest, report, fold, resume_from)
         outcome.experiments.append(str(path))
     return outcome
 
 
 def _train_one(cfg: TrainingConfig, spec: ClassSpec, dataset: Any, manifest: SplitManifest,
-               report: ReadinessReport, fold: int | None) -> Path:
+               report: ReadinessReport, fold: int | None, resume_from: Path | str | None = None) -> Path:
     parts = partition_records(manifest, dataset, fold=fold)
     train_recs, val_recs = parts["train"], parts["val"]
     test_recs = parts.get("test")
@@ -136,6 +143,8 @@ def _train_one(cfg: TrainingConfig, spec: ClassSpec, dataset: Any, manifest: Spl
         checkpoint_dir=_resolve(cfg.checkpoint.directory) / exp_id,
         provenance={"dataset_fingerprint": dataset.fingerprint,
                     "split_digest": manifest.digest, "git": git})
+    if resume_from is not None:
+        print(f"Resuming from {resume_from} at epoch {trainer.resume(resume_from)}")
     fit = trainer.fit(train_loader, val_loader)
 
     metrics: dict[str, Any] = {"fit": fit.to_dict()}
@@ -163,7 +172,9 @@ def _train_one(cfg: TrainingConfig, spec: ClassSpec, dataset: Any, manifest: Spl
                          "image_set_fingerprint": dataset.image_fingerprint,
                          "source": dataset.source, "records": dataset.raw_record_count},
         config=cfg.to_dict(),
-        model={"name": cfg.model.name, "parameters": count_parameters(trainer.model)},
+        model={"name": cfg.model.name, "parameters": count_parameters(trainer.model),
+               "fingerprint": model_fingerprint(trainer.model.state_dict()),
+               "resumed_from": str(resume_from) if resume_from else None},
         seed=cfg.runtime.seed,
         device={**device.to_dict(), "seed_state": seed_state},
         environment=environment(),

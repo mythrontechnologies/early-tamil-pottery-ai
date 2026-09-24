@@ -31,6 +31,13 @@ APPROVED_SOURCES: dict[str, str] = {
     "wikimedia_commons": "Wikimedia Commons (MediaWiki API; licence read from extmetadata)",
 }
 
+#: Hosts each adapter may name (defence in depth: a candidate is refused if its page or its
+#: image URL points anywhere else, even when the domain is not on the block list).
+APPROVED_HOSTS: dict[str, dict[str, tuple[str, ...]]] = {
+    "wikimedia_commons": {"source_url": ("commons.wikimedia.org",),
+                          "original_image_url": ("upload.wikimedia.org",)},
+}
+
 BLOCKED_DOMAINS: tuple[str, ...] = (
     "scribd.com", "pdfcoffee.com", "toaz.info", "archive.org",
     "tnarch.gov.in", "tamildigitallibrary.in",
@@ -118,6 +125,9 @@ def evaluate(candidate: Candidate, *, max_file_bytes: int, excluded: dict[str, s
             reasons.append(f"A2: {label} is not https: {url}")
         elif _blocked(url):
             reasons.append(f"A2: {label} is on a blocked source ({_domain(url)})")
+        elif (hosts := APPROVED_HOSTS.get(c.source, {}).get(label)) and _domain(url) not in hosts:
+            reasons.append(f"A2: {label} host {_domain(url)!r} is not an approved host for {c.source} "
+                           f"({', '.join(hosts)})")
     if not lic.accepted:
         reasons.append(f"A3: {lic.reason}")
     if not any(m in c.credit.lower() for m in OWN_WORK_MARKERS):
@@ -142,6 +152,7 @@ def evaluate(candidate: Candidate, *, max_file_bytes: int, excluded: dict[str, s
 
 
 __all__ = [
+    "APPROVED_HOSTS",
     "APPROVED_SOURCES",
     "BLOCKED_DOMAINS",
     "RULES",

@@ -1,6 +1,6 @@
 """Command-line interface for training.
 
-    python -m src.training train  [--config PATH] [--manifest PATH]
+    python -m src.training train  [--config PATH] [--manifest PATH] [--resume CHECKPOINT]
     python -m src.training device [--config PATH]
     python -m src.training config [--config PATH]
 
@@ -18,15 +18,13 @@ import json
 import sys
 from pathlib import Path
 
+from src.console import utf8_console
+
 EXIT_OK, EXIT_USAGE, EXIT_BLOCKED = 0, 2, 3
 
 
 def _force_utf8_output() -> None:
-    for stream in (sys.stdout, sys.stderr):
-        try:
-            stream.reconfigure(encoding="utf-8", errors="replace")
-        except (AttributeError, ValueError):  # pragma: no cover
-            pass
+    utf8_console()
 
 
 def cmd_train(args: argparse.Namespace) -> int:
@@ -34,7 +32,7 @@ def cmd_train(args: argparse.Namespace) -> int:
     from .run import run_training
 
     try:
-        outcome = run_training(args.config, args.manifest)
+        outcome = run_training(args.config, args.manifest, resume_from=args.resume)
     except TrainingConfigError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_USAGE
@@ -83,6 +81,8 @@ def build_parser() -> argparse.ArgumentParser:
     t.add_argument("--config", type=Path, default=None)
     t.add_argument("--manifest", type=Path, default=None, help="split manifest to use")
     t.add_argument("--verbose", action="store_true", help="print the full gate report")
+    t.add_argument("--resume", type=Path, default=None,
+                   help="continue from a checkpoint of THIS dataset version (the gate still runs first)")
     t.set_defaults(func=cmd_train)
 
     d = sub.add_parser("device", help="report the selected device and GPU")

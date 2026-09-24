@@ -57,7 +57,7 @@ def main() -> int:
 
     print("\n-- Packages " + "-" * 56)
     missing = []
-    for mod, dist, milestone in REQUIRED:
+    for _mod, dist, milestone in REQUIRED:
         ver = _version(dist)
         if ver is None:
             print(f"[{MISSING}] {dist:<18} needed for {milestone}")
