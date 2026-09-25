@@ -16,7 +16,7 @@ import streamlit as st
 OUTLINE = "M40,78 C70,40 150,22 238,26 C300,30 350,52 372,86 L356,132 L366,176 L330,214 C290,246 226,262 168,254 L120,236 L96,248 L58,206 L64,168 L30,128 Z"
 LAYERS = 16
 
-_HTML = r"""<!doctype html><html lang="en"><head><meta charset="utf-8">
+_HTML = r"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Illustrative sherd</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
 <style>

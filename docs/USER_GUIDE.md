@@ -14,19 +14,33 @@ Seven pages in the top navigation:
 
 | Page | What it is for |
 |---|---|
-| Overview | what the system is, live headline numbers, how it reasons; a rotating sherd labelled **Illustrative visualization** (drawn by the interface; not a model of any real object; its marks are not an inscription) |
-| Analysis | inspect a photograph and read everything the project can honestly say about it |
-| Annotation | the annotation workstation for project annotators and experts |
-| Dataset | every photograph with licence, source and hash; training readiness against the unchanged gate |
+| Overview | what the system is, live headline numbers, how it reasons; an interactive 3D sherd labelled **Illustrative 3D visualization — not an archaeological artifact** (drawn by the interface from abstract texture; not a model of any real object; carries no inscription) |
+| Analysis | inspection workstation: the photograph (2D, authoritative) or a labelled 2.5D inspection view, a findings panel, and the **evidence chain** from observation to reference |
+| Annotation | the annotation lab: inspection stage (photograph, overlays, region marking) beside the unchanged form (Object · Inscription · Meaning · Dating · Evidence · Review), provenance and revision history below |
+| Dataset | the collection as museum plinths; **Inspect** opens the Artifact Inspector (source, licence, annotation, expert and training state); training readiness against the unchanged gate |
 | Evidence | references and claims with their verification state: verified / transcribed / bibliographic / **unresolved** |
-| Workflow | the eleven stages from `python -m src.workflow status`, as a timeline, with the next action |
-| About | purpose, limits, visual language |
+| Workflow | the eleven stages from `python -m src.workflow status` as a journey; stages after the current one read **not yet reached**; each stage expands to its detail and next action |
+| About | purpose, limits, visual language, keyboard shortcuts, modes and 2D alternatives |
 
 **Photograph viewer** (Analysis and Annotation): wheel or `+`/`-` to zoom, drag or arrow keys to
 pan, `0` to fit, `G` graticule, `R` regions, `F` fullscreen, *Compare* for a split view against a
 contrast-enhanced copy (a viewing aid, not evidence). The readout shows normalised and
 original-pixel coordinates. Region outlines differ by pattern and label: human-marked (solid),
 yours (dashed), AI proposal (dotted).
+
+**Command palette:** `Ctrl + K` (`⌘ K`), or the *Commands* button, opens a searchable list:
+analyse, dataset, annotation lab, evidence, workflow, about, search an artifact (opens its
+inspector), switch mode, reduce motion, reset interface. Arrow keys, Enter and Esc work.
+
+**Research and Presentation modes** (switch at the top right of each page, or `?mode=`).
+Research shows hashes, paths, gate detail and verification tables; Presentation hides that
+detail. AI warnings, labels and limitations stay in both.
+
+**3D and 2.5D views.** Drag to orbit, wheel or pinch to zoom, right-drag or two fingers to pan;
+arrow keys orbit, `+`/`-` zoom, `0` resets, `Space` pauses auto-rotate, `C` focus, `F`
+fullscreen. Every 3D view has a **2D** button. Without WebGL the page says *"3D unavailable —
+switching to accessible 2D inspection."*; `?no3d` in the address forces 2D. Adjusted,
+edge-emphasised and 2.5D views are labelled *"Derived display — original source preserved."*
 
 **Status never relies on colour alone:** every badge has a word and a glyph (✓ verified,
 ○ unverified, ? unresolved, ◇ AI observation, ■ blocked). Motion stops entirely when the

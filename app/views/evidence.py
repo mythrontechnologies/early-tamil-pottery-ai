@@ -1,8 +1,9 @@
-"""Evidence explorer: references, claims, verification state, provenance and uncertainty.
+"""Evidence explorer: references, claims and their evidence trails.
 
-Status comes from the verification registry (EFFECTIVE status), never from a declaration.
-Unresolved placeholders (R3, R5) are always shown as UNRESOLVED; nothing is styled as verified
-unless a human verification record exists.
+Status is the EFFECTIVE status from the verification registry, never a declaration.
+Unresolved placeholders (R3, R5) always show as UNRESOLVED; nothing is styled as verified
+unless a human verification record exists. Every claim expands into its trail:
+claim → source → verification record → uncertainty.
 """
 
 from __future__ import annotations
@@ -11,7 +12,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from ui.boot import boot
+from ui.boot import boot, research
 
 boot("Evidence")
 
@@ -19,12 +20,14 @@ import streamlit as st
 from ui import data
 from ui.components import badge, e, footer, grid, note, page_header, reference_badge, stat
 
-page_header("Evidence", "Sources, claims and their status",
-            "What the project relies on, where each claim comes from, and how far it has been checked. "
-            "A claim is verified only when a named person checked it in the publication itself.")
+page_header("Evidence", "Sources, claims and their trails",
+            "What the project relies on, where each claim comes from, and how far it has been checked. A claim is verified "
+            "only when a named person checked it in the publication itself.")
 
 k = data.knowledge()
 refs, claims = k["references"], k["claims"]
+by_ref = {r["ref_id"]: r for r in refs}
+records = {(c["ref_id"], c["claim_id"]): c for c in k["claim_report"]}
 n_ver = sum(r["effective_status"] == "verified_against_source" and r["resolution"] != "unresolved" for r in refs)
 n_unres = sum(r["resolution"] == "unresolved" for r in refs)
 grid([
@@ -33,15 +36,43 @@ grid([
     stat(len(refs) - n_ver - n_unres, "unverified", "bibliographic or transcribed only"),
     stat(n_unres, "unresolved", "the source work itself is not identified"),
 ], "cols-4")
-
 st.html('<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin:1rem 0 .2rem" aria-label="Status legend">'
         + badge("verified") + badge("transcribed") + badge("bibliographic") + badge("unresolved") + badge("ai")
-        + '<span style="color:var(--muted);font-size:.82rem;align-self:center">AI observations never enter '
-          "the knowledge base; they appear only on the Analysis page.</span></div>")
+        + '<span style="color:var(--muted);font-size:.84rem;align-self:center">AI observations never enter the knowledge base; '
+          "they appear only on the Analysis page, in their own panel.</span></div>")
 
-tab_refs, tab_claims, tab_verify = st.tabs(["References", "Claims", "Verification checklist"])
+tabs = ["Claims", "References"] + (["Verification checklist"] if research() else [])
+tab_objs = st.tabs(tabs)
 
-with tab_refs:
+with tab_objs[0]:
+    q = st.text_input("Search claims", placeholder="e.g. Kodumanal, position B, sathan", key="ev_q")
+    rows = [c for c in claims if not q or q.lower() in (c["claim"] + c["id"]).lower()]
+    trails = []
+    for c in rows:
+        unresolved = "unresolved placeholder" in c["uncertainty"]
+        b = badge("unresolved") if unresolved else reference_badge(c["verification_status"])
+        src_html = "".join(
+            f'<li><b class="etp-mono">{e(s["ref_id"])}</b> {reference_badge(by_ref.get(s["ref_id"], {}).get("effective_status", s["reference_status"]), by_ref.get(s["ref_id"], {}).get("resolution"))}'
+            f'<div style="color:var(--text-2);font-size:.86rem;margin-top:.2rem">{e(s["citation"])}</div></li>' for s in c["source"])
+        ver_html = "".join(
+            f'<li>{e(s["ref_id"])}: {e(v["verification_status"])} · verifier {e(v["verifier"])} · date {e(v["verification_date"])} · '
+            f'locator found {e(v["locator_found"])}</li>'
+            for s in c["source"] if (v := records.get((s["ref_id"], c["id"])))) or \
+            "<li>No verification record: no named person has checked this claim in the publication.</li>"
+        trails.append(
+            f'<li class="etp-node"><details><summary><span class="num">{len(trails) + 1:02d}</span>'
+            f'<span class="t" style="font-size:.95rem">{e(c["id"])}</span>{b}<span class="v">{e(c["claim"])}</span></summary>'
+            f'<dl class="etp-kv"><dt>Claim</dt><dd>{e(c["claim"])}</dd>'
+            f'<dt>Source</dt><dd><ul style="margin:0;padding-left:1rem">{src_html}</ul></dd>'
+            f'<dt>Locator (recorded)</dt><dd>{e(c["locator"])}</dd><dt>Provenance</dt><dd>{e(c["provenance"])}</dd>'
+            f'<dt>Scope</dt><dd>{e(c["scope"])}</dd><dt>Verification</dt><dd><ul style="margin:0;padding-left:1rem">{ver_html}</ul></dd>'
+            f'<dt>Uncertainty</dt><dd>{e(c["uncertainty"])}</dd></dl></details></li>')
+    if trails:
+        st.html('<ol class="etp-chain" aria-label="Claims and their evidence trails">' + "".join(trails) + "</ol>")
+    else:
+        note("No claim matches.")
+
+with tab_objs[1]:
     flt = st.segmented_control("Status", ["All", "Unverified", "Unresolved", "Verified"], default="All", key="ev_ref")
     shown = [r for r in refs if flt in (None, "All")
              or (flt == "Unresolved" and r["resolution"] == "unresolved")
@@ -63,28 +94,11 @@ with tab_refs:
             + "</article>")
     grid(cards, "cols-2") if cards else note("No reference has this status.")
 
-with tab_claims:
-    st.caption("Each claim with its source, provenance, scope and uncertainty (python -m src.knowledge entries).")
-    q = st.text_input("Search claims", placeholder="e.g. Kodumanal, position B, sathan", key="ev_q")
-    rows = [c for c in claims if not q or q.lower() in (c["claim"] + c["id"]).lower()]
-    for c in rows:
-        unresolved = "unresolved placeholder" in c["uncertainty"]
-        b = badge("unresolved") if unresolved else reference_badge(c["verification_status"])
-        refs_txt = ", ".join(f'{s["ref_id"]}' for s in c["source"])
-        st.html(
-            f'<article class="etp-card" style="margin-bottom:.7rem;padding:1rem 1.1rem"><div style="display:flex;'
-            f'justify-content:space-between;gap:.8rem;align-items:flex-start"><div><div class="etp-eyebrow">{e(c["id"])}</div>'
-            f'<p style="margin:.35rem 0 0;color:var(--text);font-size:.98rem;line-height:1.5">{e(c["claim"])}</p></div>{b}</div>'
-            f'<dl class="etp-kv" style="margin-top:.7rem"><dt>Source</dt><dd>{e(refs_txt)} · locator {e(c["locator"])}</dd>'
-            f'<dt>Provenance</dt><dd>{e(c["provenance"])}</dd><dt>Scope</dt><dd>{e(c["scope"])}</dd>'
-            f'<dt>Uncertainty</dt><dd>{e(c["uncertainty"])}</dd></dl></article>')
-    if not rows:
-        note("No claim matches.")
-
-with tab_verify:
-    st.caption("The claims the project relies on its key references for, plus the unresolved citations. "
-               "Filled only by a human verifier (python -m src.knowledge import-checklist).")
-    st.dataframe([{"ref": r["ref_id"], "claim": r["claim"], "status": r["verification_status"],
-                   "verifier": r["verifier"], "date": r["verification_date"], "locator found": r["locator_found"],
-                   "publication": r["expected_publication"]} for r in k["claim_report"]], hide_index=True)
+if research():
+    with tab_objs[2]:
+        st.caption("The claims the project relies on its key references for, plus the unresolved citations. Filled only by a "
+                   "human verifier (python -m src.knowledge import-checklist).")
+        st.dataframe([{"ref": r["ref_id"], "claim": r["claim"], "status": r["verification_status"], "verifier": r["verifier"],
+                       "date": r["verification_date"], "locator found": r["locator_found"],
+                       "publication": r["expected_publication"]} for r in k["claim_report"]], hide_index=True)
 footer()

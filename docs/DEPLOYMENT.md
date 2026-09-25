@@ -54,6 +54,13 @@ curl.exe -X POST --data-binary "@photo.jpg" -H "Content-Type: image/jpeg" http:/
 Only image bytes are accepted (never a path or URL); `Content-Length` is required and capped
 (`--max-mb`, default 25); decoding uses the guarded loader.
 
+## Static files (3D views)
+
+`.streamlit/config.toml` sets `server.enableStaticServing = true`, which serves `app/static/`
+at `/app/static/`. The 3D views load the vendored three.js (r170, MIT; see
+`app/static/vendor/three/README.txt`) from there: no CDN, works offline. If static serving is
+disabled, the 3D views fall back to their 2D equivalents and say so.
+
 ## Exposing it beyond localhost
 
 There is **no authentication**. Before binding to anything but localhost, put it behind a

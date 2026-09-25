@@ -28,6 +28,8 @@ BADGES = {
     "human": ("b-human", "●", "Human action"),
     "expert": ("b-human", "●", "Expert"),
     "project": ("b-neutral", "●", "Project"),
+    "insufficient": ("b-insufficient", "∅", "Insufficient evidence"),
+    "future": ("b-future", "◌", "Not yet reached"),
     "neutral": ("b-neutral", "·", ""),
 }
 
@@ -39,7 +41,7 @@ def e(value: Any) -> str:
 
 @lru_cache(maxsize=1)
 def _css() -> str:
-    return CSS_PATH.read_text(encoding="utf-8")
+    return CSS_PATH.read_text(encoding="utf-8") + "\n" + CSS_PATH.with_name("theme_v3.css").read_text(encoding="utf-8")
 
 
 def inject_theme() -> None:
@@ -73,10 +75,22 @@ def nav_link(page: str, label: str, icon: str | None = None) -> None:
         st.caption(label)
 
 
+def mode_switch() -> None:
+    """Research / Presentation view switch (presentation only; never changes data)."""
+    with st.container(key="etp_mode_switch"):
+        st.segmented_control("View mode", ["Research", "Presentation"], key="ui_mode", label_visibility="collapsed",
+                             help="Research shows provenance, hashes and verification detail; Presentation keeps the "
+                                  "findings, the AI warning and every limitation but collapses implementation detail.")
+
+
 def page_header(eyebrow: str, title: str, subtitle: str = "") -> None:
-    st.html(f'<header class="etp-rise"><div class="etp-eyebrow">{e(eyebrow)}</div>'
-            f'<h1 class="etp-page-title">{e(title)}</h1>'
-            + (f'<p class="etp-page-sub">{e(subtitle)}</p>' if subtitle else "") + "</header>")
+    left, right = st.columns([5, 1.6], vertical_alignment="top")
+    with left:
+        st.html(f'<header class="etp-rise"><div class="etp-pill">{e(eyebrow)}</div>'
+                f'<h1 class="etp-page-title">{e(title)}</h1>'
+                + (f'<p class="etp-page-sub">{e(subtitle)}</p>' if subtitle else "") + "</header>")
+    with right:
+        mode_switch()
 
 
 def section(title: str, kicker: str = "") -> None:
@@ -96,6 +110,13 @@ def grid(items: list[str], cols: str = "cols-4") -> None:
 def card(title: str, body_html: str, *, tilt: bool = True, extra: str = "") -> str:
     return (f'<div class="etp-card{" tilt" if tilt else ""}">{extra}<h4>{e(title)}</h4>'
             f"<p>{body_html}</p></div>")
+
+
+def blocked_state(kind: str, title: str, message: str, reasons: list[str], *, why: str = "Why is this blocked?") -> str:
+    """An intentional, honest blocked/waiting state: what, why (expandable), never hidden."""
+    items = "".join(f"<li>{e(r)}</li>" for r in reasons)
+    return (f'<section class="etp-blocked" aria-label="{e(title)}">{badge(kind)}<h4>{e(title)}</h4><p>{e(message)}</p>'
+            + (f"<details><summary>{e(why)}</summary><ul>{items}</ul></details>" if reasons else "") + "</section>")
 
 
 def note(html_text: str) -> None:
@@ -123,5 +144,5 @@ def footer() -> None:
             "(attribution on each image). Illustrative visualizations are labelled as such.</div>")
 
 
-__all__ = ["AI_LABEL", "BADGES", "ai_panel", "badge", "card", "e", "footer", "grid", "inject_theme", "kv",
+__all__ = ["AI_LABEL", "BADGES", "ai_panel", "badge", "card", "e", "footer", "grid", "inject_theme", "kv", "mode_switch",
            "nav_link", "note", "page_header", "reference_badge", "section", "stat"]

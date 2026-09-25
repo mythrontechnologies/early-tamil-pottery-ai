@@ -25,3 +25,4 @@ gatherUsageStats = false
 
 [server]
 maxUploadSize = 50
+enableStaticServing = true   # serves app/static/ (vendored three.js for the 3D views) at /app/static/

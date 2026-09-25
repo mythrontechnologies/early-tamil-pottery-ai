@@ -34,13 +34,19 @@ src/
   console.py      UTF-8 console set-up for every CLI
 app/
   main.py         Streamlit entry: top navigation over seven pages
-  analyze.py      Analysis: photograph inspection viewer + analysis panel; layers drawn apart
-  annotate.py     Annotation workstation (project annotator / expert), append-only; logic unchanged
-  views/          Overview (hero + illustrative 3D sherd), Dataset, Evidence, Workflow, About
+  analyze.py      Analysis workstation: 2D / 2.5D stage, findings panel, evidence chain; layers drawn apart
+  annotate.py     Annotation lab (stage + form + provenance/revision history); widgets, keys, save logic unchanged
+  views/          Overview (hero + WebGL illustrative sherd), Dataset (plinths + Artifact Inspector),
+                  Evidence (claim trails), Workflow (journey), About
   ui/             presentation only: theme.css (design tokens), components.py (escaped HTML
                   building blocks, status badges), data.py (cached read-only loaders),
                   viewer.py (zoom / pan / fullscreen / graticule / overlays / compare),
-                  sherd3d.py (CSS-3D illustrative sherd, no library), boot.py
+                  scene3d.py (three.js hero scene, lazy, 2D fallback), inspect3d.py (2.5D derived view),
+                  sherd3d.py (the shared sherd outline; its older CSS-3D renderer is no longer used by any
+                  page), chain.py (evidence chain: pure mapping of an
+                  analysis result), inspector.py (artifact facts from records/store/eligibility),
+                  palette.py (Ctrl+K palette + skip link), boot.py (Research/Presentation mode), theme_v3.css
+  static/vendor/three/   three.js r170 + OrbitControls (MIT), served locally at /app/static
 .streamlit/config.toml   theme (warm charcoal, terracotta accent; Geist / Fraunces / JetBrains Mono)
 ```
 
