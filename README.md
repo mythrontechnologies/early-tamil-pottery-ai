@@ -50,14 +50,18 @@ An LLM-generated explanation is not evidence and is never presented as such.
 | Expert-labelled images | **0** — every record has `script_type = unknown` pending annotation |
 | Supporting images | 15 in `data/external/` (out-of-region pottery, Tamil-Brahmi rock inscriptions) |
 | Verified references | **0** — verification registry built (Milestone 8); R1, S01, S03 not yet checked against the publications (`python -m src.knowledge status`) |
-| Models | none — training pipeline complete (AMP, resume, fingerprints) and smoke-tested on synthetic noise; never run on data |
+| Models | **no archaeological model.** Training pipeline complete (AMP, resume, fingerprints). Milestone 9 validated it end to end on a separate SYNTHETIC engineering dataset; the resulting models live in `models/synthetic/`, are marked SYNTHETIC ONLY, and are refused wherever an archaeological model is expected ([`docs/SYNTHETIC_TRAINING.md`](docs/SYNTHETIC_TRAINING.md)) |
+| Synthetic engineering data | 1,000 generated objects / 2,202 images in `data/synthetic/` — **SYNTHETIC — NOT ARCHAEOLOGICAL EVIDENCE**; never counted, never gated, never annotated or promoted ([`docs/SYNTHETIC_DATASET.md`](docs/SYNTHETIC_DATASET.md)) |
 | Training ready | **false** — blocked by `src/dataset/readiness.py` (gates G1–G11) |
 | Annotations | **0** — annotation tool, evidence-based reasoning, expert pilot (six Keezhadi close-ups) ready ([`docs/ANNOTATION_GUIDE.md`](docs/ANNOTATION_GUIDE.md)). Pilot opened 2026-09-24: no human or expert input yet; 107/109 flagged "REVIEW REQUIRED — possible reproduction / duplicate inscription" (unconfirmed); per-sherd questions in [`docs/PILOT_ANNOTATION_CHECKLIST.md`](docs/PILOT_ANNOTATION_CHECKLIST.md) ([`docs/MILESTONE_8_PILOT_RESULTS.md`](docs/MILESTONE_8_PILOT_RESULTS.md)) |
 | Label promotion | built, dry-run by default, reversible; **0 promotions** ([`docs/MILESTONE_8_REPORT.md`](docs/MILESTONE_8_REPORT.md)) |
 | Tests | see `python -m pytest tests/ -q` (final count in [`docs/FINAL_ENGINEERING_STATUS.md`](docs/FINAL_ENGINEERING_STATUS.md)) |
 
-No dataset has been fabricated. A synthetic pottery corpus would produce a model that is confident
-and baseless — the exact failure this project exists to avoid.
+No archaeological dataset has been fabricated. A synthetic pottery corpus used as research data would
+produce a model that is confident and baseless — the exact failure this project exists to avoid. The
+synthetic engineering dataset of Milestone 9 is therefore kept apart in code: it validates the
+pipeline, it cannot pass the training gate, and nothing trained on it is a model of Tamil-Brahmi,
+graffiti or any archaeological category.
 
 ---
 
@@ -145,6 +149,18 @@ python -m src.training device                     # CUDA / GPU / AMP report
 python -m src.training config                     # validated training configuration
 python -m src.training train                      # gate first; exit 3 "Training blocked" today
 python -m src.evaluation evaluate --checkpoint P  # "NO REAL DATA — EVALUATION BLOCKED" today
+```
+
+### Synthetic engineering commands (Milestone 9 — SYNTHETIC, NOT ARCHAEOLOGICAL EVIDENCE)
+
+```bash
+python -m src.synthetic generate [--force]        # data/synthetic/: 1,000 objects, 2,202 images (deterministic)
+python -m src.synthetic stats | verify            # counts, fingerprint; 14 integrity/separation/reproducibility checks
+python -m src.training train --dataset synthetic  # "SYNTHETIC TRAINING — NOT ARCHAEOLOGICAL MODEL EVALUATION"
+python -m src.evaluation evaluate --dataset synthetic --checkpoint models/synthetic/checkpoints/<run>/best.pt
+python -m src.synthetic robustness --checkpoint <best.pt>   # blur, exposure, noise, JPEG, rotation, scale, occlusion, background
+python -m src.synthetic ocr-benchmark             # "Synthetic glyph recognition benchmark" (not transcription)
+python -m src.inference serve --synthetic-checkpoint latest # applied to synthetic images only
 ```
 
 ### Preprocessing commands
@@ -309,6 +325,7 @@ checks them against the physical publications.
 | 6 | Public dataset acquisition | ✅ **complete** — 30 research + 15 supporting images, all openly licensed, none labelled |
 | 7 | Annotation + archaeological reasoning layer | ✅ **complete** — annotation UI, multi-annotator store, evidence-based reasoning; 0 annotations |
 | 8 | Expert annotation pilot + verification + reversible promotion | ✅ **complete** — workflow built; awaiting an expert; 0 expert labels, 0 verified references |
+| 9 | Synthetic dataset + full ML pipeline validation | ✅ **complete** — isolated synthetic data; pipeline validated end to end; real training still blocked ([`docs/MILESTONE_9_REPORT.md`](docs/MILESTONE_9_REPORT.md)) |
 | — | Classifier training *(originally M4)* | blocked on authorised data |
 | — | Evaluation and error analysis *(originally M5)* | infrastructure built; blocked on data |
 | — | Inscription-region detection *(originally M6)* | blocked |

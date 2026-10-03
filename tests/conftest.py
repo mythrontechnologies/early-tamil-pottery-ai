@@ -217,3 +217,66 @@ def world(tmp_path, base_record):
     store = AnnotationStore(tmp_path / "annotations.jsonl", rp)
     return {"records_path": rp, "raw": raw, "store": store, "log": tmp_path / "promotion_log.jsonl",
             "arts": [r["artifact_id"] for r in records], "records": records, "tmp": tmp_path}
+
+
+# --------------------------------------------------------------------------- #
+# Milestone 9: a tiny SYNTHETIC engineering dataset (and a tiny CPU model), session-scoped.
+# Generated under pytest's temporary directory, never under data/. SYNTHETIC — NOT
+# ARCHAEOLOGICAL EVIDENCE: these exist only to exercise the synthetic pipeline.
+# --------------------------------------------------------------------------- #
+
+
+def tiny_synthetic_config(**overrides: Any):
+    from src.synthetic.config import SyntheticDatasetConfig
+
+    data = SyntheticDatasetConfig.load().to_dict()
+    data.update(artifacts_per_class=5, object_px=192)
+    data["canvas"] = {"min_px": 160, "max_px": 200}
+    data["split"]["min_artifacts_per_class_for_holdout"] = 3
+    data.update(overrides)
+    return SyntheticDatasetConfig.from_dict(data)
+
+
+@pytest.fixture(scope="session")
+def tiny_synthetic(tmp_path_factory) -> dict[str, Any]:
+    """A generated and split tiny synthetic dataset: {"root", "cfg", "config_path", "records"}."""
+    import yaml
+
+    from src.dataset.convert import read_jsonl
+    from src.synthetic.dataset import generate_dataset, make_synthetic_split
+
+    base = tmp_path_factory.mktemp("synthetic")
+    cfg = tiny_synthetic_config()
+    config_path = base / "synthetic_dataset.yaml"
+    config_path.write_text(yaml.safe_dump(cfg.to_dict()), encoding="utf-8")
+    root = base / "data_synthetic"
+    generate_dataset(cfg, root)
+    make_synthetic_split(cfg, root)
+    return {"root": root, "cfg": cfg, "config_path": config_path, "base": base,
+            "records": read_jsonl(root / "metadata" / "records.jsonl")}
+
+
+@pytest.fixture(scope="session")
+def tiny_synthetic_model(tiny_synthetic) -> dict[str, Any]:
+    """One CPU epoch of resnet18 (no pretrained download) on the tiny synthetic dataset."""
+    import yaml
+
+    from src.synthetic.train import run_synthetic_training
+
+    base = tiny_synthetic["base"]
+    data = yaml.safe_load((ROOT / "configs" / "synthetic_training.yaml").read_text(encoding="utf-8"))
+    data["dataset_config"] = str(tiny_synthetic["config_path"])
+    data["reports_directory"] = str(base / "models" / "reports")
+    t = data["training"]
+    t["model"].update(pretrained=False, freeze_backbone=False)
+    t["data"].update(batch_size=8, num_workers=0, pin_memory=False)
+    t["optimization"]["epochs"] = 1
+    t["runtime"].update(device="cpu", mixed_precision=False)
+    t["checkpoint"]["directory"] = str(base / "models" / "checkpoints")
+    t["experiments"]["directory"] = str(base / "models" / "experiments")
+    config_path = base / "synthetic_training.yaml"
+    config_path.write_text(yaml.safe_dump(data), encoding="utf-8")
+    outcome = run_synthetic_training(config_path, root=tiny_synthetic["root"])
+    assert outcome.status == "completed", outcome.message
+    return {"outcome": outcome, "config_path": config_path, "checkpoint": Path(outcome.best_checkpoint),
+            "experiment": Path(outcome.experiment)}

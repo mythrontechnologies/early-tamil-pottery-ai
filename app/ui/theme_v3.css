@@ -157,3 +157,16 @@ button[aria-label^="Help for"] { min-width: 24px; min-height: 24px; display: inl
 /* ---- mode switch: never wider than its column ---- */
 .st-key-etp_mode_switch [data-testid="stButtonGroup"], .st-key-etp_mode_switch [data-testid="stButtonGroup"] > div { flex-wrap: wrap; max-width: 100%; }
 @media (max-width: 1100px) { .st-key-etp_mode_switch button { padding-inline: .6rem; font-size: .85rem; } }
+
+/* Milestone 9: dataset indicator. Every badge carries text + glyph; colour is never the only signal.
+   Synthetic content gets its own violet, hatched treatment so it can never pass for verified evidence. */
+:root { --synthetic: #b9a3e3; --synthetic-soft: rgba(185, 163, 227, .11); }
+.b-real       { color: var(--sand); background: rgba(217, 198, 165, .09); border-width: 1.5px; }
+.b-synthetic  { color: var(--synthetic); background: var(--synthetic-soft); border-style: double; border-width: 3px; }
+.etp-synthetic { margin: 0 0 1rem; padding: .9rem 1.1rem; border-radius: 14px; border: 1.5px dashed var(--synthetic);
+  background: repeating-linear-gradient(135deg, rgba(185, 163, 227, .07) 0 10px, rgba(185, 163, 227, .02) 10px 20px);
+  color: var(--text); }
+.etp-synthetic h3 { margin: .45rem 0 .25rem; font-family: var(--serif); font-size: 1.15rem; font-weight: 550; color: var(--synthetic); }
+.etp-synthetic p { margin: .25rem 0; color: var(--text-2); font-size: .92rem; max-width: 100ch; }
+.etp-synthetic .etp-kv { margin-top: .5rem; }
+.etp-dataset-line { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; margin: 0 0 .9rem; color: var(--muted); font-size: .86rem; }

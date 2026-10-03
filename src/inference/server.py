@@ -1,10 +1,16 @@
 """Minimal HTTP API around ``analyze`` (standard library only; no extra dependency).
 
     python -m src.inference serve [--host 127.0.0.1] [--port 8765] [--max-mb 25]
+                                  [--synthetic-checkpoint PATH|latest]
 
     GET  /health                     {"status": "ok", "training_ready": false, ...}
     POST /analyze[?artifact_id=ID]   body = raw image bytes (Content-Type image/*)
-                                     -> InferenceResult as JSON
+                                     -> InferenceResult as JSON, with "dataset_type":
+                                        research | synthetic | unregistered
+
+A synthetic image (SHA-256 in the synthetic engineering dataset) returns ``dataset_type:
+synthetic`` and the warning "Synthetic demonstration — not archaeological evidence"; the optional
+synthetic checkpoint is applied to synthetic images ONLY, never to a real or unregistered image.
 
 Safety:
 
@@ -32,7 +38,7 @@ from . import InferenceError, analyze
 ALLOWED_TYPES = ("image/jpeg", "image/png", "image/tiff", "image/webp", "image/bmp", "application/octet-stream")
 
 
-def make_handler(max_bytes: int) -> type[BaseHTTPRequestHandler]:
+def make_handler(max_bytes: int, synthetic_classifier: Any | None = None) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
         server_version = "EarlyTamilPotteryAI/1.0"
 
@@ -57,7 +63,9 @@ def make_handler(max_bytes: int) -> type[BaseHTTPRequestHandler]:
             rep = evaluate()
             self._send(HTTPStatus.OK, {"status": "ok", "training_ready": rep.training_ready,
                                        "readiness_reason": rep.reason,
-                                       "note": "Analyses return 'Insufficient evidence' where the evidence is insufficient."})
+                                       "synthetic_model_loaded": synthetic_classifier is not None,
+                                       "note": "Analyses return 'Insufficient evidence' where the evidence is insufficient. "
+                                               "A synthetic model, if loaded, is applied to synthetic images only."})
 
         def do_POST(self) -> None:
             url = urlparse(self.path)
@@ -80,7 +88,8 @@ def make_handler(max_bytes: int) -> type[BaseHTTPRequestHandler]:
             data = self.rfile.read(length)
             artifact = (parse_qs(url.query).get("artifact_id") or [None])[0]
             try:
-                result = analyze(data, artifact_id=artifact, max_bytes=max_bytes)
+                result = analyze(data, artifact_id=artifact, max_bytes=max_bytes,
+                                 synthetic_classifier=synthetic_classifier)
             except InferenceError as exc:
                 self._send(HTTPStatus.UNPROCESSABLE_ENTITY, {"error": str(exc)})
                 return
@@ -89,10 +98,11 @@ def make_handler(max_bytes: int) -> type[BaseHTTPRequestHandler]:
     return Handler
 
 
-def serve(host: str = "127.0.0.1", port: int = 8765, max_bytes: int = 25 * 2**20) -> None:
+def serve(host: str = "127.0.0.1", port: int = 8765, max_bytes: int = 25 * 2**20,
+          synthetic_classifier: Any | None = None) -> None:
     if host not in ("127.0.0.1", "localhost", "::1"):
         print(f"WARNING: binding to {host}: the API has no authentication (docs/DEPLOYMENT.md).", file=sys.stderr)
-    httpd = ThreadingHTTPServer((host, port), make_handler(max_bytes))
+    httpd = ThreadingHTTPServer((host, port), make_handler(max_bytes, synthetic_classifier))
     print(f"Serving on http://{host}:{port}  (GET /health, POST /analyze)", file=sys.stderr)
     try:
         httpd.serve_forever()

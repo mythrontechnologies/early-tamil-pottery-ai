@@ -31,6 +31,8 @@ from typing import Any, Literal
 
 from jsonschema import Draft202012Validator
 
+from src.synthetic import synthetic_reasons
+
 from .schema import (
     SENTINELS,
     has_real_value,
@@ -72,6 +74,7 @@ RULE_TITLES: dict[str, str] = {
     "E3": "image_path is a safe relative POSIX path",
     "E4": "schema_version is compatible",
     "E5": "no duplicate photograph within one artifact",
+    "E6": "record is not synthetic engineering data (Milestone 9: synthetic data never enters the research dataset)",
     "R1": "image_id is unique across the dataset",
     "R2": "image_path resolves to an existing file",
     "R3": "all records of one artifact share one split",
@@ -233,6 +236,12 @@ class DatasetValidator:
         for err in sorted(self._json_validator.iter_errors(rec), key=lambda e: list(e.path)):
             path = ".".join(str(p) for p in err.path) or None
             add("E1", "error", err.message, path)
+
+        # E6 - synthetic engineering data is never research data, whatever else it looks like.
+        reasons = synthetic_reasons(rec)
+        if reasons:
+            add("E6", "error", "synthetic record (SYNTHETIC — NOT ARCHAEOLOGICAL EVIDENCE) cannot enter the "
+                "research dataset: " + "; ".join(reasons))
 
         # E4 - schema version compatibility (major version must match).
         declared = rec.get("schema_version")

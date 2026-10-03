@@ -31,6 +31,11 @@ def _edit_distance(a: Sequence[Any], b: Sequence[Any]) -> int:
     return prev[-1]
 
 
+def edit_distance(a: Sequence[Any], b: Sequence[Any]) -> int:
+    """Levenshtein distance between two sequences (characters, glyph codes, words...)."""
+    return _edit_distance(a, b)
+
+
 def character_error_rate(reference: str, hypothesis: str) -> float:
     """Edit distance over Unicode code points (after NFC) / reference length. >1 is possible."""
     ref, hyp = _norm(reference), _norm(hypothesis)
@@ -62,4 +67,4 @@ def evaluate_ocr(pairs: Sequence[tuple[str, str | None]]) -> dict[str, Any]:
             "exact_match_rate": (sum(_norm(r) == _norm(h) for r, h in answered) / len(answered)) if answered else None}
 
 
-__all__ = ["OCR_BLOCKED", "character_error_rate", "evaluate_ocr", "word_error_rate"]
+__all__ = ["OCR_BLOCKED", "character_error_rate", "edit_distance", "evaluate_ocr", "word_error_rate"]

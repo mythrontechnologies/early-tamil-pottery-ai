@@ -106,6 +106,43 @@ def knowledge() -> dict[str, Any]:
     return {"references": refs, "claims": describe(), "claim_report": claim_report()}
 
 
+@st.cache_data(ttl=60, show_spinner=False)
+def synthetic_images() -> list[dict[str, Any]]:
+    """Held-out (test-split) images of the SYNTHETIC engineering dataset, for the demonstration mode.
+    Empty when no synthetic dataset has been generated. Never mixed with the research records."""
+    from src.synthetic import RECORDS_PATH
+    from src.synthetic.dataset import SyntheticDatasetError, find_manifest, load_synthetic_dataset
+
+    if not RECORDS_PATH.exists():
+        return []
+    try:     # a malformed or half-generated synthetic dataset must not take the Analysis page down
+        ds = load_synthetic_dataset(verify_hashes=False)
+    except (ValueError, KeyError, OSError):
+        return []
+    try:
+        test = find_manifest(ds).artifacts_in("test")
+    except (SyntheticDatasetError, ValueError, OSError):
+        test = {r.artifact_id for r in ds.records}
+    return [dict(r.record) | {"path": str(r.image_path)} for r in ds.records if r.artifact_id in test]
+
+
+def synthetic_checkpoint() -> str | None:
+    from src.synthetic.inference import latest_synthetic_checkpoint
+
+    p = latest_synthetic_checkpoint()
+    return str(p) if p else None
+
+
+@st.cache_resource(show_spinner="Loading the synthetic demonstration model…")
+def synthetic_classifier(path: str | None) -> Any:
+    """The SYNTHETIC demonstration classifier (applied by src.inference to synthetic images only)."""
+    if not path:
+        return None
+    from src.synthetic.inference import SyntheticCheckpointClassifier
+
+    return SyntheticCheckpointClassifier(path)
+
+
 def short_attribution(rights_notes: str | None) -> str:
     """'Attribution required: "X" by Y, CC-BY-SA-4.0 (url), via ...' -> '"X" by Y, CC-BY-SA-4.0'."""
     text = (rights_notes or "").removeprefix("Attribution required:").strip()
@@ -127,4 +164,5 @@ def thumbnail_b64(image_path: str, size: int = 520) -> str | None:
     return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
 
 
-__all__ = ["artifacts", "knowledge", "overview", "records", "short_attribution", "store", "thumbnail_b64", "workflow"]
+__all__ = ["artifacts", "knowledge", "overview", "records", "short_attribution", "store", "synthetic_checkpoint",
+           "synthetic_classifier", "synthetic_images", "thumbnail_b64", "workflow"]

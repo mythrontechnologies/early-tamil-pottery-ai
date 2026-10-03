@@ -1,12 +1,19 @@
 """Command-line interface for training.
 
     python -m src.training train  [--config PATH] [--manifest PATH] [--resume CHECKPOINT]
+    python -m src.training train --dataset synthetic [--config PATH] [--model NAME] [--epochs N]
     python -m src.training device [--config PATH]
     python -m src.training config [--config PATH]
 
 ``train`` evaluates the readiness gate on the canonical research dataset first. With
 no authorised data it prints why and exits cleanly with code 3. It never trains on
 fixtures, and it has no option that relaxes the gate.
+
+``--dataset synthetic`` (Milestone 9) is a separate, explicitly labelled path:
+"SYNTHETIC TRAINING — NOT ARCHAEOLOGICAL MODEL EVALUATION". It trains on the generated
+engineering dataset under data/synthetic/ with configs/synthetic_training.yaml, files everything
+under models/synthetic/, and never consults or satisfies the research gate. Without the flag,
+``train`` behaves exactly as before.
 
 Exit codes: 0 success, 2 configuration or usage error, 3 training blocked by the gate.
 """
@@ -31,6 +38,13 @@ def cmd_train(args: argparse.Namespace) -> int:
     from .config import TrainingConfigError
     from .run import run_training
 
+    if args.dataset == "synthetic":
+        return _train_synthetic(args)
+    if args.model is not None or args.epochs is not None:
+        print("error: --model/--epochs apply to --dataset synthetic only; the research run follows "
+              "configs/training.yaml", file=sys.stderr)
+        return EXIT_USAGE
+
     try:
         outcome = run_training(args.config, args.manifest, resume_from=args.resume)
     except TrainingConfigError as exc:
@@ -46,6 +60,27 @@ def cmd_train(args: argparse.Namespace) -> int:
         return EXIT_BLOCKED
     for path in outcome.experiments:
         print(f"experiment: {path}")
+    return EXIT_OK
+
+
+def _train_synthetic(args: argparse.Namespace) -> int:
+    from src.synthetic import SyntheticSeparationError
+    from src.synthetic.dataset import SyntheticDatasetError
+    from src.synthetic.train import run_synthetic_training
+
+    from .checkpoint import CheckpointError
+    from .config import TrainingConfigError
+
+    try:
+        outcome = run_synthetic_training(args.config, args.manifest, args.resume, model=args.model, epochs=args.epochs)
+    except (TrainingConfigError, SyntheticDatasetError, SyntheticSeparationError, CheckpointError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    print(outcome.message)
+    if outcome.status != "completed":
+        return EXIT_BLOCKED
+    print(json.dumps(outcome.summary, indent=2))
+    print(f"best checkpoint: {outcome.best_checkpoint}")
     return EXIT_OK
 
 
@@ -77,7 +112,11 @@ def build_parser() -> argparse.ArgumentParser:
                                 description="Training framework (gated on real data).")
     sub = p.add_subparsers(dest="command", required=True)
 
-    t = sub.add_parser("train", help="train on the canonical research dataset (gated)")
+    t = sub.add_parser("train", help="train on the canonical research dataset (gated), or --dataset synthetic")
+    t.add_argument("--dataset", choices=["research", "synthetic"], default="research",
+                   help="research (default; gated) or synthetic (engineering validation only, never gated research)")
+    t.add_argument("--model", default=None, help="synthetic only: override model.name")
+    t.add_argument("--epochs", type=int, default=None, help="synthetic only: override optimization.epochs")
     t.add_argument("--config", type=Path, default=None)
     t.add_argument("--manifest", type=Path, default=None, help="split manifest to use")
     t.add_argument("--verbose", action="store_true", help="print the full gate report")

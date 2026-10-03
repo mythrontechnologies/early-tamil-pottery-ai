@@ -11,6 +11,11 @@ holding everything needed to say what was trained, on what, and how it did:
     metrics, checkpoint {best, last}, readiness (gate snapshot), notes
 
 A blocked run is **not** recorded as an experiment: nothing was trained.
+
+``dataset_type`` (Milestone 9) says whether the run trained on the research dataset or on the
+SYNTHETIC engineering dataset. A synthetic record can only be saved under ``models/synthetic/``
+and a research record never there, so synthetic metrics cannot enter the archaeological
+experiment history.
 """
 
 from __future__ import annotations
@@ -21,6 +26,8 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from src.synthetic import SYNTHETIC_MODELS_ROOT, SyntheticSeparationError, assert_synthetic_model_destination
 
 EXPERIMENT_FORMAT = "1.0.0"
 
@@ -57,6 +64,7 @@ class ExperimentRecord:
     checkpoint: dict[str, Any] = field(default_factory=dict)
     readiness: dict[str, Any] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
+    dataset_type: str = "research"
     format_version: str = EXPERIMENT_FORMAT
 
     def to_dict(self) -> dict[str, Any]:
@@ -64,6 +72,15 @@ class ExperimentRecord:
 
     def save(self, experiments_dir: Path | str) -> Path:
         out = Path(experiments_dir) / self.experiment_id / "experiment.json"
+        if self.dataset_type == "synthetic":
+            assert_synthetic_model_destination(out)
+        else:
+            try:
+                out.resolve().relative_to(SYNTHETIC_MODELS_ROOT.resolve())
+            except ValueError:
+                pass
+            else:
+                raise SyntheticSeparationError("refusing to file a research experiment under models/synthetic/")
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(self.to_dict(), indent=2, ensure_ascii=False, default=str)
                        + "\n", encoding="utf-8")

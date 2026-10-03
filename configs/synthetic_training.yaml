@@ -1,0 +1,88 @@
+# Early Tamil Pottery AI — SYNTHETIC training configuration (Milestone 9)
+#
+#   SYNTHETIC TRAINING — NOT ARCHAEOLOGICAL MODEL EVALUATION
+#
+#   python -m src.training train --dataset synthetic
+#
+# Trains the unchanged baseline architecture on the SYNTHETIC engineering dataset
+# (data/synthetic/) to validate the pipeline end to end. Nothing trained with this file is a
+# model of Tamil-Brahmi, graffiti or any archaeological category, and no number it produces is
+# an archaeological result. See docs/SYNTHETIC_TRAINING.md.
+#
+# This file is deliberately separate from configs/training.yaml: it repeats every value
+# explicitly instead of inheriting research settings, and the loader refuses checkpoint or
+# experiment directories outside models/synthetic/. The `training:` block has exactly the
+# shape of configs/training.yaml and is validated by the same strict TrainingConfig loader.
+
+dataset_type: synthetic
+dataset_config: configs/synthetic_dataset.yaml     # the generator config the dataset was made with
+reports_directory: models/synthetic/reports        # evaluation, robustness and OCR benchmark reports
+
+training:
+  config_version: "1.0.0"
+
+  model:
+    name: resnet18                 # resnet18 | resnet34 | efficientnet_b0 | mobilenet_v3_large
+    num_classes: 4                 # the four synthetic task categories (same output slots as the real model)
+    pretrained: true               # torchvision ImageNet weights (general-purpose; downloaded on first use)
+    freeze_backbone: true
+    unfreeze_backbone_at_epoch: 2  # small strokes need fine-tuned features; unfreeze early
+    dropout: 0.2
+
+  data:
+    image_size: 224                # equals preprocessing.target_size (same geometry as the research pipeline)
+    batch_size: 32                 # fits a 6 GB RTX 4050 at 224 px with AMP
+    num_workers: 0                 # images are small; worker start-up on Windows costs more than it saves
+    pin_memory: true
+    split_manifest: null           # null = newest verified manifest under data/synthetic/splits/
+
+  optimization:
+    epochs: 30
+    optimizer: adamw
+    learning_rate: 0.001
+    backbone_learning_rate: 0.0002
+    weight_decay: 0.0001
+    momentum: 0.9
+    scheduler: cosine
+    step_size: 10
+    gamma: 0.1
+    plateau_patience: 3
+    gradient_clip_norm: 1.0
+    label_smoothing: 0.0
+
+  early_stopping:
+    enabled: true
+    monitor: balanced_accuracy
+    mode: max
+    patience: 7
+    min_delta: 0.001
+
+  imbalance:
+    strategy: class_weighted_loss  # classes are balanced by construction; kept to exercise the research code path
+    count_unit: artifact
+    equalise_artifacts: true
+
+  runtime:
+    seed: 20261003
+    device: auto
+    mixed_precision: true
+    deterministic: true
+
+  checkpoint:
+    directory: models/synthetic/checkpoints   # never models/checkpoints
+    save_last: true
+    save_best: true
+
+  experiments:
+    directory: models/synthetic/experiments   # never models/experiments
+
+  augmentation:
+    enabled: true
+    horizontal_flip: false         # mirrored glyphs would be different synthetic glyphs
+    rotation_degrees: 5
+    brightness: 0.15
+    contrast: 0.15
+    saturation: 0.05
+    hue: 0.0
+    min_scale: 0.90
+    translate: true

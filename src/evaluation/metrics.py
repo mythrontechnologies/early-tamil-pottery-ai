@@ -15,7 +15,8 @@ undefined instead of being turned into zeros:
 Nothing here decides whether a number is meaningful. :func:`evaluate_predictions` does:
 an empty evaluation returns a ``BLOCKED`` report carrying
 ``NO REAL DATA — EVALUATION BLOCKED``, and a non-research provenance is stamped on the
-report so a fixture score can never be read as a result.
+report so a fixture score can never be read as a result. A ``synthetic`` provenance (Milestone 9)
+prints ``SYNTHETIC DATA ONLY — NOT ARCHAEOLOGICAL PERFORMANCE`` on every rendering.
 """
 
 from __future__ import annotations
@@ -26,11 +27,13 @@ from typing import Any, Literal
 
 import numpy as np
 
+from src.synthetic import EVALUATION_BANNER as SYNTHETIC_BANNER
+
 from .calibration import calibration_report
 
 BLOCKED_MESSAGE = "NO REAL DATA — EVALUATION BLOCKED"
 BLOCKED_REASON = "Evaluation blocked — insufficient expert-labelled archaeological data."
-Provenance = Literal["research", "synthetic_test"]
+Provenance = Literal["research", "synthetic_test", "synthetic"]
 
 
 class EmptyEvaluationError(ValueError):
@@ -199,7 +202,9 @@ class EvaluationReport:
         m = self.metrics
         assert m is not None
         lines = ["=" * 68]
-        if self.provenance != "research":
+        if self.provenance == "synthetic":
+            lines.append(f"!! {SYNTHETIC_BANNER} !!")
+        elif self.provenance != "research":
             lines.append(f"!! {self.provenance.upper()} DATA - NOT AN ARCHAEOLOGICAL RESULT !!")
         lines += [f"Evaluation ({self.unit}-level, n={m.n_samples})",
                   f"  accuracy           {m.accuracy:.4f}",
@@ -251,8 +256,12 @@ def evaluate_predictions(
     if len(y_true) == 0:
         return blocked_report(unit=unit)
     metrics = compute_metrics(y_true, y_pred, class_names, y_prob=y_prob)
-    message = ("evaluation completed" if provenance == "research"
-               else f"{provenance} data: metrics exercise the code, they are not a result")
+    if provenance == "research":
+        message = "evaluation completed"
+    elif provenance == "synthetic":
+        message = f"{SYNTHETIC_BANNER}: metrics measure the pipeline on generated images, not archaeology"
+    else:
+        message = f"{provenance} data: metrics exercise the code, they are not a result"
     return EvaluationReport("COMPLETED", provenance, unit, message, metrics)
 
 

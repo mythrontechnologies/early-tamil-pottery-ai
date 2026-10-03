@@ -27,3 +27,7 @@
   `docker compose config` validates.
 * No static type checker is configured (ruff lint only).
 * Chronology positions (A-D) are unverified and contested; the tool reports them, it does not choose.
+* Synthetic engineering results (Milestone 9) measure the pipeline on generated images. A model
+  that does well on them has learned the generator, not pottery; synthetic accuracy, robustness
+  and glyph-recognition scores are not forecasts of archaeological performance
+  ([`SYNTHETIC_DATASET.md`](SYNTHETIC_DATASET.md) §10).

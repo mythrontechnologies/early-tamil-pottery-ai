@@ -30,6 +30,9 @@ BADGES = {
     "project": ("b-neutral", "●", "Project"),
     "insufficient": ("b-insufficient", "∅", "Insufficient evidence"),
     "future": ("b-future", "◌", "Not yet reached"),
+    "research_data": ("b-real", "■", "Real research data"),
+    "synthetic": ("b-synthetic", "◆", "Synthetic demonstration"),
+    "unregistered": ("b-unresolved", "?", "Unregistered image"),
     "neutral": ("b-neutral", "·", ""),
 }
 
@@ -131,6 +134,28 @@ def kv(rows: list[tuple[str, Any, bool]]) -> str:
 
 AI_LABEL = "AI observation — not archaeological evidence."
 
+#: dataset_type (src.inference result) -> badge kind of the dataset indicator
+DATASET_BADGE = {"research": "research_data", "synthetic": "synthetic", "unregistered": "unregistered"}
+
+
+def dataset_badge(dataset_type: str) -> str:
+    """The small dataset indicator: REAL RESEARCH DATA / SYNTHETIC DEMONSTRATION / UNREGISTERED IMAGE."""
+    return badge(DATASET_BADGE.get(dataset_type, "unregistered"))
+
+
+def synthetic_banner(block: dict[str, Any], prediction: dict[str, Any] | None = None) -> str:
+    """The unmistakable notice shown whenever a synthetic image is analysed."""
+    gt = block.get("ground_truth") or {}
+    rows = [("Synthetic image", block.get("image_id"), True), ("Synthetic object", block.get("artifact_id"), True),
+            ("Generator", f'v{block.get("generator_version")} · seed {block.get("generation_seed")}', True),
+            ("Generator ground truth", f'{gt.get("label")} (task label, not evidence)', True)]
+    if prediction and prediction.get("status") == "predicted":
+        rows.append(("Synthetic model prediction", f'{prediction.get("label")} · AI observation', True))
+    return (f'<section class="etp-synthetic" role="note" aria-label="{e(block.get("statement"))}">'
+            f'{badge("synthetic")}<h3>{e(block.get("statement"))}</h3>'
+            f'<p>{e(block.get("marker"))}. {e(block.get("purpose"))}</p>'
+            f'<p>{e(block.get("label_warning"))}</p>{kv(rows)}</section>')
+
 
 def ai_panel(body_html: str, title: str = AI_LABEL) -> None:
     st.html(f'<section class="etp-ai" aria-label="{e(title)}"><div class="etp-ai-head">'
@@ -144,5 +169,6 @@ def footer() -> None:
             "(attribution on each image). Illustrative visualizations are labelled as such.</div>")
 
 
-__all__ = ["AI_LABEL", "BADGES", "ai_panel", "badge", "card", "e", "footer", "grid", "inject_theme", "kv", "mode_switch",
-           "nav_link", "note", "page_header", "reference_badge", "section", "stat"]
+__all__ = ["AI_LABEL", "BADGES", "DATASET_BADGE", "ai_panel", "badge", "card", "dataset_badge", "e", "footer", "grid",
+           "inject_theme", "kv", "mode_switch", "nav_link", "note", "page_header", "reference_badge", "section", "stat",
+           "synthetic_banner"]

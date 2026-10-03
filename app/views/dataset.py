@@ -16,13 +16,16 @@ boot("Dataset")
 
 import streamlit as st
 from ui import data
-from ui.components import badge, blocked_state, e, footer, grid, note, page_header, section, stat
+from ui.components import badge, blocked_state, dataset_badge, e, footer, grid, note, page_header, section, stat
 from ui.inspector import artifact_facts, render_inspector
 
 page_header("Collection", "The research collection",
             "Every artifact with its photograph, licence and state. Counts are live and honest: a zero means nothing has "
             "been established yet, not that something is broken.")
 
+st.html(f'<div class="etp-dataset-line">{dataset_badge("research")}<span>Every count on this page is the research '
+        "dataset only. The synthetic engineering dataset (data/synthetic, Milestone 9) is kept separate, is never "
+        "counted here, and can never satisfy the training gate.</span></div>")
 o = data.overview()
 ready = o["training_ready"]
 grid([

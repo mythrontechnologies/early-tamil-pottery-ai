@@ -13,6 +13,16 @@ Nothing in this repository reports an accuracy, a calibration or an OCR error ra
 The numbers produced by the test suite come from synthetic noise tensors and exist only to
 exercise code.
 
+### Synthetic engineering models (Milestone 9) are not this model
+
+`models/synthetic/` holds models trained on the SYNTHETIC engineering dataset
+([`SYNTHETIC_TRAINING.md`](SYNTHETIC_TRAINING.md)). They classify four *synthetic visual task
+categories* drawn by a procedural generator; they are **not** models of Tamil-Brahmi, graffiti or
+any archaeological category, and their metrics are **SYNTHETIC DATA ONLY — NOT ARCHAEOLOGICAL
+PERFORMANCE**. Every such checkpoint carries `dataset_type: synthetic` and the SYNTHETIC ONLY
+marker; the research classifier, research evaluation and resume refuse it, and the inference
+pipeline applies it to synthetic images only.
+
 ## Intended model (when data exists)
 
 | | |

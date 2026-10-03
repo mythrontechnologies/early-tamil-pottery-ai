@@ -15,6 +15,8 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
+from src.synthetic import SYNTHETIC_LABELS, synthetic_reasons
+
 from .model import (
     PROVENANCE_ROLE,
     SELF_REFERENCES,
@@ -41,6 +43,8 @@ RULES: dict[str, str] = {
            "verified it (Milestone 8)",
     "N15": "an AI-marked record (annotator id 'ai_...' or an AI-draft marker) is only ever an ai_prediction",
     "N16": "the store matches its append-only ledger (no line edited, removed or added by hand)",
+    "N17": "the annotation is not about synthetic engineering data (Milestone 9: synthetic images are never "
+           "annotated as archaeological evidence)",
 }
 
 
@@ -93,7 +97,7 @@ def validate_annotation(
     knowledge_ref_ids: set[str] | None = None,
     verified_ref_ids: set[str] | None = None,
 ) -> list[Problem]:
-    """Problems with one annotation (N1-N10, N13-N15). Empty list = valid.
+    """Problems with one annotation (N1-N10, N13-N15, N17). Empty list = valid.
 
     ``verified_ref_ids`` (from ``src.knowledge.verification``) enables N14; ``None`` skips it."""
     aid = a.get("annotation_id") if isinstance(a, dict) else None
@@ -102,6 +106,13 @@ def validate_annotation(
     def add(rule: str, msg: str) -> None:
         out.append(Problem(rule, msg, aid))
 
+    if isinstance(a, dict):         # N17 first: reported even when the record is malformed
+        reasons = synthetic_reasons(a)
+        nested = (a.get("inscription") or {}).get("script_type") if isinstance(a.get("inscription"), dict) else None
+        if nested in SYNTHETIC_LABELS:
+            reasons.append(f"inscription.script_type {nested!r} is a synthetic task label")
+        if reasons:
+            add("N17", "synthetic engineering data cannot enter the annotation store: " + "; ".join(reasons))
     for err in sorted(_schema_validator().iter_errors(a), key=lambda e: list(e.path)):
         add("N1", f"{'.'.join(map(str, err.path)) or '<root>'}: {err.message}")
     if out:

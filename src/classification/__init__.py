@@ -61,7 +61,8 @@ class CheckpointClassifier:
         from src.training.model import build_model
 
         spec = ClassSpec.from_config()
-        ckpt = load_checkpoint(checkpoint, class_names=spec.trainable, map_location=device)
+        ckpt = load_checkpoint(checkpoint, class_names=spec.trainable, map_location=device,
+                               expected_dataset_type="research")
         model = build_model(ModelConfig(name=ckpt["model_name"], num_classes=ckpt["num_classes"],
                                         pretrained=False))
         model.load_state_dict(ckpt["state_dict"])

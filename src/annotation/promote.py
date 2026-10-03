@@ -29,6 +29,8 @@ Candidate checks (a failure rejects the artifact, with the reason, and never blo
 ``P8`` only ``promotion.writable_fields`` change; provenance, rights, path, SHA-256, site and
        split are verified unchanged
 ``P9`` the promoted records pass the dataset validator (E*/R* rules)
+``P0`` the artifact is not synthetic engineering data (Milestone 9): a synthetic task label is never
+       an archaeological label, and records carrying synthetic data block the whole plan
 ``P10`` the object is an original: no expert records it as a ``reproduction`` or leaves it
        ``uncertain``, and an artifact carrying a ``possible_reproduction`` review flag
        (``annotation_pilot.review_flags``) is refused until every expert states ``original``.
@@ -77,6 +79,7 @@ from src.dataset.schema import (
 )
 from src.dataset.validation import sha256_file, validate_records
 from src.integrity import append_line, verify
+from src.synthetic import is_synthetic_id, synthetic_reasons
 
 from .model import is_real, region_to_pixels, utc_now
 from .pilot import load_review_flags
@@ -373,6 +376,12 @@ def plan_promotion(
         registry_sha256=_sha_text(Path(registry_path)) if registry_path else "absent",
         candidates=[], rejections=[], unchanged=[], validation_status="FAIL", validation_errors=[])
 
+    synthetic = [r.get("image_id") for r in records if synthetic_reasons(r)]
+    if synthetic:
+        plan.validation_errors = [f"P0 {len(synthetic)} synthetic record(s) in {_rel(records_path)} (e.g. "
+                                  f"{synthetic[:3]}): synthetic engineering data is never promoted"]
+        plan.plan_digest = _digest(_digest_body(plan))
+        return plan
     validation = store.validate(knowledge_ref_ids=knowledge_ref_ids, verified_ref_ids=verified_ref_ids)
     if not validation.ok:
         plan.validation_errors = [f"annotation store invalid: {p}" for p in validation.problems]
@@ -383,6 +392,10 @@ def plan_promotion(
     current = store.current()
     wanted = sorted(set(artifact_ids) if artifact_ids else {a["artifact_id"] for a in current})
     for art in wanted:
+        if is_synthetic_id(art):
+            plan.rejections.append(Rejection(art, "synthetic", ["P0 synthetic artifact: a synthetic task label is "
+                                                                "never an archaeological label"]))
+            continue
         res = resolve_artifact(art, current)
         if res.status != "expert_label" or not res.ground_truth_eligible:
             reason = REJECTION_BY_STATUS.get(res.status, f"P1 status {res.status}")

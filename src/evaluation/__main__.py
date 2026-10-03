@@ -1,11 +1,16 @@
 """Command-line interface for evaluation.
 
     python -m src.evaluation evaluate --checkpoint PATH [--partition test|val]
+    python -m src.evaluation evaluate --dataset synthetic --checkpoint PATH [--partition test|val]
     python -m src.evaluation reproducibility [--json]
 
 Evaluation runs only on the canonical research dataset, and only when the readiness
 gate passes. Otherwise it prints ``NO REAL DATA — EVALUATION BLOCKED`` and exits with
 code 3. It never produces a score from fixtures or from an empty dataset.
+
+``--dataset synthetic`` (Milestone 9) evaluates a SYNTHETIC checkpoint on the synthetic engineering
+dataset instead, under the banner "SYNTHETIC DATA ONLY — NOT ARCHAEOLOGICAL PERFORMANCE". It does not
+consult the research gate, refuses research checkpoints, and writes only under models/synthetic/.
 
 Exit codes: 0 success, 2 usage error, 3 evaluation blocked.
 """
@@ -23,6 +28,8 @@ EXIT_OK, EXIT_USAGE, EXIT_BLOCKED = 0, 2, 3
 
 
 def cmd_evaluate(args: argparse.Namespace) -> int:
+    if args.dataset == "synthetic":
+        return _evaluate_synthetic(args)
     from src.dataset.readiness import evaluate as readiness
 
     from .metrics import blocked_report
@@ -53,7 +60,7 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
 
     spec = ClassSpec.from_config()
     cfg = TrainingConfig.load(args.config)
-    ckpt = load_checkpoint(args.checkpoint, class_names=spec.trainable)
+    ckpt = load_checkpoint(args.checkpoint, class_names=spec.trainable, expected_dataset_type="research")
     dataset = load_dataset()
     if ckpt["dataset_fingerprint"] != dataset.fingerprint:
         print("error: checkpoint was trained on a different dataset version", file=sys.stderr)
@@ -79,6 +86,23 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _evaluate_synthetic(args: argparse.Namespace) -> int:
+    from src.synthetic.dataset import SyntheticDatasetError
+    from src.synthetic.evaluate import evaluate_checkpoint, render_evaluation
+    from src.training.checkpoint import CheckpointError
+
+    if args.checkpoint is None:
+        print("error: --checkpoint is required (a SYNTHETIC checkpoint under models/synthetic/)", file=sys.stderr)
+        return EXIT_USAGE
+    try:
+        rep = evaluate_checkpoint(args.checkpoint, args.partition)
+    except (CheckpointError, SyntheticDatasetError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    print(json.dumps(rep, indent=2, ensure_ascii=False) if args.json else render_evaluation(rep))
+    return EXIT_OK
+
+
 def cmd_reproducibility(args: argparse.Namespace) -> int:
     from .reproducibility import render_report, reproducibility_report
 
@@ -92,6 +116,8 @@ def build_parser() -> argparse.ArgumentParser:
                                 description="Evaluation (gated on real data).")
     sub = p.add_subparsers(dest="command", required=True)
     e = sub.add_parser("evaluate", help="evaluate a checkpoint on a held-out partition")
+    e.add_argument("--dataset", choices=["research", "synthetic"], default="research",
+                   help="research (default; gated) or synthetic (engineering validation; never archaeological)")
     e.add_argument("--checkpoint", type=Path, required=False, default=None)
     e.add_argument("--config", type=Path, default=None)
     e.add_argument("--partition", choices=["test", "val"], default="test")

@@ -19,6 +19,11 @@ Human evidence is applied only to a registered photograph: an uploaded image pic
 artifact's annotations **only if its SHA-256 equals a research record's** ``image_sha256``.
 Naming an artifact id does not attach its annotations to an arbitrary picture.
 
+Every result states its ``dataset_type`` (Milestone 9): ``research`` (REAL RESEARCH DATA),
+``synthetic`` (SYNTHETIC DEMONSTRATION: the SHA-256 matches the synthetic engineering dataset) or
+``unregistered``. A synthetic image receives no human evidence and is classified only by a
+synthetic model (``synthetic_classifier``); a research or unregistered image is never shown to one.
+
 The result keeps four layers apart - ``ai_observation``, ``project_annotation``,
 ``expert_annotation`` and ``verified_evidence`` - and nothing moves between them.
 Nothing is written anywhere: no store, no record, no raw file.
@@ -29,7 +34,7 @@ from __future__ import annotations
 import hashlib
 import json
 import tempfile
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -54,8 +59,12 @@ from src.preprocessing import PreprocessConfig, apply_exif_orientation, assess, 
 from src.reasoning.engine import DISCLAIMER, INSUFFICIENT, analyze_artifact
 from src.reasoning.from_annotations import build_inputs
 from src.reasoning.types import ReasoningInputs
+from src.synthetic import MARKER as SYNTHETIC_MARKER
+from src.synthetic import PURPOSE as SYNTHETIC_PURPOSE
+from src.synthetic import UI_BANNER as SYNTHETIC_BANNER
+from src.synthetic.inference import NoSyntheticModel, dataset_block, synthetic_index
 
-RESULT_SCHEMA_VERSION = "1.0.0"
+RESULT_SCHEMA_VERSION = "1.1.0"
 MAX_UPLOAD_BYTES = 50 * 2**20          # 50 MiB; the pixel ceiling is preprocessing.max_pixels
 LAYERS = ("ai_observation", "project_annotation", "expert_annotation", "verified_evidence")
 
@@ -82,6 +91,8 @@ class InferenceResult:
     layers: dict[str, Any]
     status_statements: list[str]
     summary: str
+    dataset_type: str = "unregistered"            # research | synthetic | unregistered
+    dataset: dict[str, Any] = field(default_factory=dict)
     disclaimer: str = DISCLAIMER
     schema_version: str = RESULT_SCHEMA_VERSION
     analysis_digest: str = ""
@@ -171,6 +182,8 @@ def analyze(
     records: list[dict[str, Any]] | None = None,
     max_bytes: int = MAX_UPLOAD_BYTES,
     config: dict[str, Any] | None = None,
+    synthetic_classifier: ScriptClassifier | None = None,
+    synthetic_records: dict[str, dict[str, Any]] | None = None,
 ) -> InferenceResult:
     """Analyse one photograph. Raises InferenceError only when the image itself is unusable;
     otherwise always returns a result, which may well be "Insufficient evidence"."""
@@ -202,7 +215,19 @@ def analyze(
         if artifact_id and artifact_id != rec["artifact_id"]:
             warnings.append(f"Requested artifact {artifact_id!r}, but this photograph is registered as "
                             f"{rec['artifact_id']!r}; the registered identity is used.")
+    syn = None if rec is not None else (synthetic_index() if synthetic_records is None
+                                        else synthetic_records).get(facts["sha256"])
+    if rec is not None:
+        dataset_type = "research"
+    elif syn is not None:
+        dataset_type = "synthetic"
+        facts.update(registered=False, artifact_id=None, image_id=None, synthetic=True,
+                     synthetic_artifact_id=syn["artifact_id"], synthetic_image_id=syn["image_id"])
+        warnings.append(f"{SYNTHETIC_MARKER}. {SYNTHETIC_BANNER}: this image was drawn by the project's synthetic "
+                        f"generator ({syn['image_id']}). {SYNTHETIC_PURPOSE}")
+        classifier = synthetic_classifier or NoSyntheticModel()
     else:
+        dataset_type = "unregistered"
         facts.update(registered=False, artifact_id=None, image_id=None)
         warnings.append("Unregistered image: it matches no research record by SHA-256, so it has no provenance "
                         "and no human annotation is applied to it.")
@@ -249,6 +274,8 @@ def analyze(
     # -- reasoning on HUMAN evidence only -----------------------------------------------
     if rec is not None:
         inputs = build_inputs(rec["artifact_id"], store=store, records=records)
+    elif syn is not None:
+        inputs = ReasoningInputs(artifact_id=f"synthetic_image:{syn['image_id']}")
     else:
         inputs = ReasoningInputs(artifact_id=f"unregistered_image:{facts['sha256'][:12]}")
     inputs.ai_predictions = tuple(inputs.ai_predictions) + tuple(ai_preds)
@@ -290,6 +317,8 @@ def analyze(
     }
     summary = (INSUFFICIENT if INSUFFICIENT in r.status_statements else
                "; ".join(r.status_statements) or "See the sections below.")
+    if dataset_type == "synthetic":
+        summary = f"{SYNTHETIC_BANNER}. {summary}"
     warnings = list(dict.fromkeys([*warnings, *r.limitations]))
     if classification.status != "predicted":
         warnings.append(classification.statement)
@@ -316,6 +345,8 @@ def analyze(
         layers=layers,
         status_statements=r.status_statements,
         summary=summary,
+        dataset_type=dataset_type,
+        dataset=dataset_block(dataset_type, syn),
     )
     result.analysis_digest = _digest({k: v for k, v in result.to_dict().items() if k != "analysis_digest"})
     return result
@@ -325,7 +356,8 @@ def render(result: InferenceResult) -> str:
     """Plain-text report for the CLI. Every line comes from the result."""
     d = result.to_dict()
     img, q = d["image"], d["image_quality"]
-    L = [f"IMAGE        {img['name']}  sha256 {img['sha256'][:16]}  {img['width_px']}x{img['height_px']} {img['format']}",
+    L = [f"DATASET      {d['dataset']['indicator']}: {d['dataset']['statement']}",
+         f"IMAGE        {img['name']}  sha256 {img['sha256'][:16]}  {img['width_px']}x{img['height_px']} {img['format']}",
          f"REGISTERED   {'yes: ' + img['artifact_id'] + ' / ' + img['image_id'] if img['registered'] else 'no (no provenance; no annotations applied)'}",
          f"SUMMARY      {d['summary']}", ""]
     L += ["IMAGE QUALITY (technical, uncalibrated; not archaeological)",

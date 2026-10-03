@@ -142,7 +142,8 @@ class Trainer:
         """Continue from a checkpoint written by this trainer: weights, optimizer, scheduler,
         early-stopping state and epoch. Refuses a checkpoint for other classes, another model,
         or another dataset version. Returns the epoch training will continue from."""
-        ckpt = load_checkpoint(checkpoint_path, class_names=self.class_names)
+        ckpt = load_checkpoint(checkpoint_path, class_names=self.class_names,
+                               expected_dataset_type=self.provenance.get("dataset_type", "research"))
         if ckpt["model_name"] != self.cfg.model.name:
             raise TrainingError(f"checkpoint is a {ckpt['model_name']!r}, config wants {self.cfg.model.name!r}")
         want = self.provenance.get("dataset_fingerprint")
@@ -277,11 +278,12 @@ class Trainer:
 
             # Best-model selection always follows the monitor; only *stopping* is optional.
             is_best = stopper.improved(monitor)
+            saved = {**metrics, "train_loss": train_loss, "val_loss": preds.loss}
             if is_best:
                 result.best_epoch, result.best_monitor = epoch, monitor
-                result.best_checkpoint = self._save(epoch, metrics, monitor, "best")
+                result.best_checkpoint = self._save(epoch, saved, monitor, "best")
             if self.cfg.checkpoint.save_last:
-                result.last_checkpoint = self._save(epoch, metrics, monitor, "last")
+                result.last_checkpoint = self._save(epoch, saved, monitor, "last")
 
             result.history.append(EpochResult(
                 epoch=epoch, train_loss=train_loss, val_loss=preds.loss, val_metrics=metrics,
@@ -312,7 +314,9 @@ class Trainer:
             optimizer=self.optimizer, scheduler=self.scheduler,
             trainer_state={"early_stopping": {"best": self.stopper.best,
                                               "bad_epochs": self.stopper.bad_epochs},
-                           "backbone_trainable": self.backbone_trainable})
+                           "backbone_trainable": self.backbone_trainable},
+            dataset_type=str(self.provenance.get("dataset_type", "research")),
+            synthetic=self.provenance.get("synthetic"))
         return str(save_checkpoint(ckpt, self.checkpoint_dir / f"{which}.pt"))
 
 
