@@ -3,7 +3,9 @@
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra"
+# Browser tests start the app and drive Chromium (playwright-cli); run them with `pytest -m browser`.
+addopts = "-ra -m 'not browser'"
+markers = ["browser: drives the real Streamlit app in Chromium via playwright-cli (opt-in: pytest -m browser)"]
 
 [tool.ruff]
 target-version = "py310"

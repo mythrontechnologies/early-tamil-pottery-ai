@@ -135,8 +135,17 @@ Full numbers in [`SYNTHETIC_TRAINING.md`](SYNTHETIC_TRAINING.md). In brief (**sy
   "Synthetic demonstration — not archaeological evidence" banner, the SYNTHETIC DEMONSTRATION badge,
   generator ground truth vs model prediction and a "GENERATED synthetic image" caption; no real-data
   badge appears. Research photographs show REAL RESEARCH DATA and no synthetic element. The Dataset
-  page states it counts research data only. No horizontal scroll at 390 px. Badges carry text and a
+  page states it counts research data only. Badges carry text and a
   glyph, never colour alone; the banner is a labelled `role="note"` region.
+
+**Correction (follow-up fix).** This report originally said "no horizontal scroll at 390 px". That check
+measured only the document at the default text size. With phone-enlarged text (125 % and above) the
+synthetic analysis page was 41 px (390 px wide) to 71 px (360 px wide) wider than the screen, inside
+Streamlit's scroll container: status badges could not wrap, flex headings did not wrap, the 2D/2.5D
+control did not wrap, and long tokens (`synthetic_tamil_brahmi_like`, ids, hashes) could not break.
+Fixed in `app/ui/theme_v3.css` (wrap, never shrink text or hide content); every page and analysis state
+now reflows at 390x844 and 360x800 with text at 100-200 %. Regression tests:
+`python -m pytest -m browser` (`tests/test_browser_mobile.py`).
 
 ## 7. Real data unchanged (verified at the end of the milestone)
 

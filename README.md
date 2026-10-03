@@ -98,6 +98,7 @@ pip install -r requirements.txt -r requirements-dev.txt
 # 4. Verify
 python scripts/check_env.py
 python -m pytest tests/ -q
+python -m pytest -m browser    # opt-in: real app in Chromium at phone width (needs playwright-cli)
 ```
 
 ### Dataset commands

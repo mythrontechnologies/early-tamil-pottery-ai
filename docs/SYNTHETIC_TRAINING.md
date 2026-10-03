@@ -175,7 +175,8 @@ codes divided by the reference length; WER is over words (1–2 per row), so it 
   a hatched violet banner, a SYNTHETIC DEMONSTRATION badge (text + glyph, never colour alone),
   generator ground truth beside the synthetic model's prediction, and a caption stating the image
   is generated. Research photographs carry REAL RESEARCH DATA; the Dataset page states that it
-  counts research data only. Checked in Chromium at 1440 px and 390 px (no horizontal scroll).
+  counts research data only. Reflows without horizontal scrolling at 390x844 and 360x800 with text at
+  100-200 % (regression-tested in Chromium: `python -m pytest -m browser`).
 
 ## 9. What this does and does not show
 

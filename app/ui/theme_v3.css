@@ -170,3 +170,31 @@ button[aria-label^="Help for"] { min-width: 24px; min-height: 24px; display: inl
 .etp-synthetic p { margin: .25rem 0; color: var(--text-2); font-size: .92rem; max-width: 100ch; }
 .etp-synthetic .etp-kv { margin-top: .5rem; }
 .etp-dataset-line { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; margin: 0 0 .9rem; color: var(--muted); font-size: .86rem; }
+
+/* Reflow on phones (WCAG 1.4.10 reflow, 1.4.4 resize text). Nothing may make the page wider than the
+   screen, including when the phone enlarges text: components WRAP instead of overflowing. No font size
+   is reduced and nothing is hidden or clipped. Regression test: tests/test_browser_mobile.py. */
+.etp-layer h5, .etp-ai-head, .etp-section { flex-wrap: wrap; row-gap: .3rem; }
+/* long unbreakable tokens (synthetic labels, ids, SHA-256, paths) break at the edge instead of overflowing */
+[data-testid="stHtml"], [data-testid="stMarkdownContainer"], [data-testid="stCaptionContainer"] { overflow-wrap: break-word; }
+.etp-ai-head > span:not(.etp-badge) { min-width: 0; }
+/* the label column may narrow below 8.5rem on a narrow card; values can always shrink (and wrap) */
+.etp-kv { grid-template-columns: minmax(min(8.5rem, 38%), 34%) minmax(0, 1fr); }
+/* segmented controls (e.g. "Photograph · 2D | 2.5D inspection") wrap onto a second row when needed */
+[data-testid="stButtonGroup"], [data-testid="stButtonGroup"] > div { flex-wrap: wrap; max-width: 100%; }
+/* single-column grids on phones: a card may be narrower than its content's longest line, never wider */
+@media (max-width: 700px) {
+  .etp-grid.cols-6, .etp-grid.cols-4, .etp-grid.cols-3, .etp-grid.cols-2, .etp-grid.asym { grid-template-columns: minmax(0, 1fr); }
+}
+/* keyboard-shortcut table: fixed layout so columns share the width and long cells wrap (table semantics kept) */
+@media (max-width: 520px) {
+  .etp-keys { table-layout: fixed; }
+  .etp-keys th:first-child { width: 38%; }
+  .etp-keys th, .etp-keys td { overflow-wrap: anywhere; }
+}
+@media (max-width: 760px) {
+  /* a status badge wraps between words rather than pushing the page sideways (desktop keeps nowrap).
+     inline-block, not inline-flex: a flex box cannot shrink its label below its longest word. */
+  .etp-badge { display: inline-block; white-space: normal; max-width: 100%; overflow-wrap: anywhere; line-height: 1.35; }
+  .etp-badge .g { margin-right: .38rem; }
+}

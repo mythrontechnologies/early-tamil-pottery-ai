@@ -83,7 +83,7 @@ with tab_objs[1]:
         cand = "".join(f"<li>{e(c)}</li>" for c in r["candidate_works"])
         cards.append(
             f'<article class="etp-card" style="padding:1rem 1.1rem"><div style="display:flex;justify-content:space-between;'
-            f'gap:.6rem;align-items:center"><b class="etp-mono" style="color:var(--sand)">{e(r["ref_id"])}</b>'
+            f'gap:.6rem;align-items:center;flex-wrap:wrap"><b class="etp-mono" style="color:var(--sand)">{e(r["ref_id"])}</b>'
             f'{reference_badge(r["effective_status"], r["resolution"])}</div>'
             f'<p style="margin:.55rem 0 0;color:var(--text);line-height:1.5;font-size:.92rem">{e(r["citation"])}</p>'
             + (f'<p style="margin:.5rem 0 0;color:var(--muted);font-size:.84rem">{e(r["notes"])}</p>' if r["notes"] else "")

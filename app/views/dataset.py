@@ -106,7 +106,7 @@ rows = []
 for c, n in cls.items():
     pct = min(100, round(100 * n / need)) if need else 0
     rows.append(f'<div class="etp-card" style="padding:.9rem 1rem"><div style="display:flex;justify-content:space-between;'
-                f'align-items:baseline"><span class="etp-mono" style="color:var(--sand)">{e(c)}</span>'
+                f'align-items:baseline;flex-wrap:wrap;gap:.2rem .6rem"><span class="etp-mono" style="color:var(--sand)">{e(c)}</span>'
                 f'<span class="etp-mono" style="color:var(--muted)">{e(n)} / {need}</span></div>'
                 f'<div role="progressbar" aria-label="{e(c)}: {e(n)} of {need} artifacts" aria-valuemin="0" '
                 f'aria-valuemax="{need}" aria-valuenow="{e(n)}" style="margin-top:.6rem;height:6px;border-radius:3px;'
