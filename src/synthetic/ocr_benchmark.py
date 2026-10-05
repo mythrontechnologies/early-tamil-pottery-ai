@@ -189,7 +189,8 @@ def classify(net: GlyphNet, crops: list[np.ndarray]) -> tuple[list[str], list[fl
     if not crops:
         return [], []
     with torch.no_grad():
-        p = torch.softmax(net(torch.from_numpy(np.stack([_normalise(c) for c in crops])[:, None])), dim=1).numpy()
+        x = torch.from_numpy(np.stack([_normalise(c) for c in crops])[:, None]).to(next(net.parameters()).device)
+        p = torch.softmax(net(x), dim=1).cpu().numpy()
     return [GLYPH_CODES[i] for i in p.argmax(1)], [float(v) for v in p.max(1)]
 
 
@@ -284,9 +285,10 @@ def detect_rows(rgb: np.ndarray) -> list[RowCandidate]:
 
 
 class RowNet(nn.Module):
-    """A small fully-convolutional heat-map network: P(pixel belongs to a glyph row), stride 4."""
+    """A small fully-convolutional heat-map network, stride 4. One output channel: P(pixel belongs to a
+    glyph row). Milestone 10's region detector uses two (glyph row, any synthetic inscription region)."""
 
-    def __init__(self) -> None:
+    def __init__(self, out_channels: int = 1) -> None:
         super().__init__()
 
         def block(i: int, o: int, d: int = 1) -> nn.Sequential:
@@ -297,7 +299,7 @@ class RowNet(nn.Module):
         self.s2 = nn.Sequential(block(16, 32), block(32, 32), nn.MaxPool2d(2))         # 1/4
         self.s3 = nn.Sequential(block(32, 64), block(64, 64), nn.MaxPool2d(2))         # 1/8
         self.ctx = nn.Sequential(block(64, 64, 2), block(64, 64, 4))
-        self.fuse = nn.Sequential(block(64 + 32, 32), nn.Conv2d(32, 1, 1))
+        self.fuse = nn.Sequential(block(64 + 32, 32), nn.Conv2d(32, out_channels, 1))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         f2 = self.s2(self.s1(x))
@@ -453,8 +455,17 @@ class SyntheticRowDetector:
 # --------------------------------------------------------------------------- #
 
 
-def read_row(net: GlyphNet, gray: np.ndarray) -> tuple[list[list[str]], list[float]]:
-    """Words of glyph codes in a (grayscale, enhanced) region crop, left to right."""
+@dataclass
+class Deskewed:
+    """A region crop rotated so its row runs horizontally (``rot`` maps crop -> deskewed pixels)."""
+
+    gray: np.ndarray
+    ink: np.ndarray
+    rot: np.ndarray
+    height: float          # ink height of the row (5th-95th percentile)
+
+
+def deskew(gray: np.ndarray) -> Deskewed | None:
     ink = ink_map(gray, local=True)
     n, labels, stats, _ = cv2.connectedComponentsWithStats(ink, connectivity=8)
     for i in range(1, n):
@@ -462,7 +473,7 @@ def read_row(net: GlyphNet, gray: np.ndarray) -> tuple[list[list[str]], list[flo
             ink[labels == i] = 0
     ys, xs = np.nonzero(ink)
     if len(xs) < 10:
-        return [], []
+        return None
     pts = np.stack([xs, ys], axis=1).astype(np.float32)
     vx, vy, _, _ = cv2.fitLine(pts, cv2.DIST_L2, 0, 0.01, 0.01).ravel()
     angle = (math.degrees(math.atan2(vy, vx)) + 90) % 180 - 90
@@ -477,8 +488,14 @@ def read_row(net: GlyphNet, gray: np.ndarray) -> tuple[list[list[str]], list[flo
     i2 = cv2.warpAffine(ink, rot, (nw, nh), flags=cv2.INTER_NEAREST)
     rows_with_ink = np.nonzero(i2.sum(axis=1))[0]
     if len(rows_with_ink) == 0:
-        return [], []
+        return None
     height = float(np.percentile(rows_with_ink, 95) - np.percentile(rows_with_ink, 5) + 1)
+    return Deskewed(g2, i2, rot, height)
+
+
+def projection_boxes(d: Deskewed) -> list[tuple[int, int, int, int, int]]:
+    """Glyph boxes (x0, y0, x1, y1, word) in the deskewed frame, by vertical projection of the ink."""
+    i2, height = d.ink, d.height
     cols = i2.sum(axis=0) > 0
     runs, start = [], None
     for x, on in enumerate(np.append(cols, False)):
@@ -494,23 +511,32 @@ def read_row(net: GlyphNet, gray: np.ndarray) -> tuple[list[list[str]], list[flo
         else:
             merged.append(r)
     merged = [r for r in merged if r[1] - r[0] >= 0.12 * height or i2[:, r[0]:r[1]].sum() > 8]
-    if not merged:
-        return [], []
     gaps = [b[0] - a[1] for a, b in itertools.pairwise(merged)]
     split = max(0.7 * height, 2.0 * float(np.median(gaps))) if gaps else math.inf
-    crops, word_of, word = [], [], 0
+    out, word = [], 0
     for k, (x0, x1) in enumerate(merged):
         if k and gaps[k - 1] > split:
             word += 1
         yy = np.nonzero(i2[:, x0:x1].sum(axis=1))[0]
-        y0, y1 = (yy.min(), yy.max() + 1) if len(yy) else (0, nh)
-        side = max(x1 - x0, y1 - y0) * 1.5
-        crops.append(square_crop(g2, ((x0 + x1) / 2, (y0 + y1) / 2), np.array([1.0, 0]), np.array([0, 1.0]), side))
-        word_of.append(word)
+        y0, y1 = (int(yy.min()), int(yy.max()) + 1) if len(yy) else (0, i2.shape[0])
+        out.append((int(x0), y0, int(x1), y1, word))
+    return out
+
+
+def read_row(net: GlyphNet, gray: np.ndarray) -> tuple[list[list[str]], list[float]]:
+    """Words of glyph codes in a (grayscale, enhanced) region crop, left to right (projection segmentation)."""
+    d = deskew(gray)
+    if d is None:
+        return [], []
+    boxes = projection_boxes(d)
+    if not boxes:
+        return [], []
+    crops = [square_crop(d.gray, ((x0 + x1) / 2, (y0 + y1) / 2), np.array([1.0, 0]), np.array([0, 1.0]),
+                         max(x1 - x0, y1 - y0) * 1.5) for x0, y0, x1, y1, _ in boxes]
     codes, conf = classify(net, crops)
-    words: list[list[str]] = [[] for _ in range(word + 1)]
-    for c, w in zip(codes, word_of):
-        words[w].append(c)
+    words: list[list[str]] = [[] for _ in range(boxes[-1][4] + 1)]
+    for c, b in zip(codes, boxes):
+        words[b[4]].append(c)
     return [w for w in words if w], conf
 
 

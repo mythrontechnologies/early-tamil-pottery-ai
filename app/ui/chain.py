@@ -111,21 +111,24 @@ def evidence_chain(r: dict[str, Any]) -> list[dict[str, Any]]:
     return nodes
 
 
-def render_chain(nodes: list[dict[str, Any]]) -> str:
-    """Interactive, keyboard-native chain: every node is a <details> element."""
+def render_chain(nodes: list[dict[str, Any]], *, label: str = "Evidence chain, from observation to reference",
+                 note: str = "AI observations are not part of the evidence chain; they are shown separately and never "
+                             "count as evidence.") -> str:
+    """Interactive, keyboard-native chain: every node is a <details> element. Synthetic nodes (Milestone 10)
+    carry ``synthetic: True`` and get an extra SYNTHETIC badge."""
     items = []
     for i, n in enumerate(nodes, 1):
-        kind, label = n["status"]
+        kind, status_label = n["status"]
+        extra = badge("synthetic", "Synthetic") if n.get("synthetic") and kind != "synthetic" else ""
         items.append(
             f'<li class="etp-node"><details><summary><span class="num">{i:02d}</span>'
-            f'<span class="t">{e(n["title"])}</span>{badge(kind, label)}'
+            f'<span class="t">{e(n["title"])}</span>{badge(kind, status_label)}{extra}'
             f'<span class="v">{e(n["value"])}</span></summary>'
             f'<dl class="etp-kv"><dt>Confidence</dt><dd>{e(n["confidence"])}</dd><dt>Source</dt><dd>{e(n["source"])}</dd>'
             f'<dt>Provenance</dt><dd>{e(n["provenance"])}</dd><dt>Uncertainty</dt><dd>{e(n["uncertainty"] or "—")}</dd></dl>'
             "</details></li>")
-    return ('<ol class="etp-chain" aria-label="Evidence chain, from observation to reference">' + "".join(items)
-            + '</ol><p class="etp-chain-note">AI observations are not part of the evidence chain; '
-              "they are shown separately and never count as evidence.</p>")
+    return (f'<ol class="etp-chain" aria-label="{e(label)}">' + "".join(items)
+            + f'</ol><p class="etp-chain-note">{e(note)}</p>')
 
 
 __all__ = ["INSUFFICIENT", "PROVENANCE_BADGE", "evidence_chain", "render_chain"]

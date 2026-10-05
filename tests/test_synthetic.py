@@ -434,13 +434,16 @@ class TestUI:
 
     @pytest.mark.skipif(not LIVE_SYNTHETIC, reason="no generated synthetic dataset under data/synthetic")
     def test_analysis_page_synthetic_mode(self, apptest):
+        """Milestone 10: synthetic images are analysed ONLY in the explicit Synthetic Demonstration data mode.
+        Real Research mode no longer offers them (the modes never merge); the full synthetic flow is tested in
+        tests/test_synthetic_pipeline.py."""
         at = apptest("analyze.py").run()
-        at.radio(key="mode").set_value("A synthetic demonstration image").run()
+        assert "A synthetic demonstration image" not in at.radio(key="mode").options
+        at.segmented_control(key="data_mode").set_value("Synthetic Demonstration").run()
         assert not at.exception, [e.value for e in at.exception]
         html = self._html(at)
-        assert 'class="etp-synthetic"' in html and UI_BANNER in html and "b-synthetic" in html
-        assert MARKER in html and "task label, not evidence" in html
-        assert "b-real" not in html and "b-verified" not in html.split('class="etp-synthetic"')[1].split("</section>")[0]
+        assert 'class="etp-synthetic etp-mode-banner"' in html and "b-synthetic" in html
+        assert "Synthetic demonstration — not archaeological evidence" in html and "b-real" not in html
         assert not at.success
 
     def test_analysis_page_research_mode_shows_real_indicator(self, apptest, live_research):

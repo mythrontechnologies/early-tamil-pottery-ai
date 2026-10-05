@@ -23,6 +23,24 @@ PERFORMANCE**. Every such checkpoint carries `dataset_type: synthetic` and the S
 marker; the research classifier, research evaluation and resume refuse it, and the inference
 pipeline applies it to synthetic images only.
 
+### Synthetic demonstration models (Milestone 10) are not this model either
+
+| Model | Task (SYNTHETIC) | Synthetic test result |
+|---|---|---|
+| ResNet-18 + temperature `T = 2.967` (fitted on synthetic val) | 4 synthetic task classes | artifact accuracy 0.885, balanced 0.885, macro F1 0.882; ECE 0.108 → 0.060 |
+| RegionNet (2-channel heat map, stride 4) | synthetic inscription regions; glyph rows | regions F1 0.619 (IoU ≥ 0.5); rows F1 0.785 |
+| GlyphCenterNet (CenterNet-lite, stride 2) | glyph centres in a row crop | segmentation F1 0.969 |
+| GlyphNet (16-way) | synthetic glyph classes SG00–SG15 | glyph accuracy 0.989; end-to-end CER 0.080, WER 0.223 |
+
+These are **accuracy on the synthetic engineering benchmark**, *glyph recognition accuracy on the
+synthetic glyph benchmark* and a *synthetic chronology reasoning test* — never archaeological
+performance. The glyphs are invented shapes; the interpretation categories and the chronology
+categories are invented rules. The vision bundle (`models/synthetic/vision/<run>/`) has a
+manifest with SHA-256 and `model_fingerprint` per file, the dataset fingerprint and split digest
+(the pipeline refuses a classifier and bundle trained on different data), git commit and
+environment; files load with `weights_only=True`. Calibration files are bound to the checkpoint's
+`model_fingerprint`. See [`SYNTHETIC_END_TO_END.md`](SYNTHETIC_END_TO_END.md).
+
 ## Intended model (when data exists)
 
 | | |

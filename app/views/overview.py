@@ -33,7 +33,9 @@ with left:
         nav_link("analyze.py", "Inspect a photograph")
         nav_link("views/dataset.py", "Open the collection")
         nav_link("views/workflow.py", "Project workflow")
-    st.caption("Press Ctrl + K (⌘ K) for commands.")
+        nav_link("analyze.py", "Run synthetic demonstration", query_params={"data": "synthetic"})
+    st.caption("Press Ctrl + K (⌘ K) for commands. The synthetic demonstration runs the complete AI pipeline on "
+               "generated images only: synthetic model output, not archaeological evidence.")
 with right:
     render_scene(540)
 

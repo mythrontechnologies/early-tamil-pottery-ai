@@ -28,13 +28,19 @@ src/
   classification/ script classifier interface (NoModelClassifier default; CheckpointClassifier)
   inference/      analyze(image) -> InferenceResult; CLI; stdlib HTTP API
   training/       config, data loaders, model zoo, trainer (AMP, early stopping, resume), checkpoints
-  evaluation/     metrics, calibration, OCR CER/WER, reproducibility report; gated CLI
+  evaluation/     metrics, calibration, OCR CER/WER, reproducibility report; gated CLI (+ `synthetic` benchmark)
+  synthetic/      SYNTHETIC engineering data and the synthetic AI demonstration (Milestones 9-10), kept apart:
+                  generator, dataset/split/fingerprint, verify, training/evaluation/robustness, calibration
+                  (temperature scaling), vision (RegionNet detector, GlyphCenterNet segmentation, GlyphNet),
+                  interpretation (invented rule table), reasoning (synthetic chronology + evidence chain),
+                  pipeline (8 timed stages), demo, benchmark; guards used by E6 / N17 / P0
   integrity.py    hash-chained ledgers for every append-only file
   workflow.py     the 11-stage data workflow, checked in order
   console.py      UTF-8 console set-up for every CLI
 app/
   main.py         Streamlit entry: top navigation over seven pages
-  analyze.py      Analysis workstation: 2D / 2.5D stage, findings panel, evidence chain; layers drawn apart
+  analyze.py      Analysis workstation with a DATA MODE switch: Real Research (2D / 2.5D stage, findings
+                  panel, evidence chain; layers drawn apart) or Synthetic Demonstration (ui/synthetic_demo.py)
   annotate.py     Annotation lab (stage + form + provenance/revision history); widgets, keys, save logic unchanged
   views/          Overview (hero + WebGL illustrative sherd), Dataset (plinths + Artifact Inspector),
                   Evidence (claim trails), Workflow (journey), About
@@ -42,8 +48,9 @@ app/
                   building blocks, status badges), data.py (cached read-only loaders),
                   viewer.py (zoom / pan / fullscreen / graticule / overlays / compare),
                   scene3d.py (three.js hero scene, lazy, 2D fallback), inspect3d.py (2.5D derived view),
-                  sherd3d.py (the shared sherd outline; its older CSS-3D renderer is no longer used by any
-                  page), chain.py (evidence chain: pure mapping of an
+                  sherd3d.py (the shared sherd outline and CSS-3D layers), synthetic3d.py (synthetic pipeline
+                  replay on the illustrative sherd: stage ring, Play/Pause/Skip/Replay/2D, aria-live),
+                  synthetic_demo.py (the Synthetic Demonstration mode), chain.py (evidence chain: pure mapping of an
                   analysis result), inspector.py (artifact facts from records/store/eligibility),
                   palette.py (Ctrl+K palette + skip link), boot.py (Research/Presentation mode), theme_v3.css
   static/vendor/three/   three.js r170 + OrbitControls (MIT), served locally at /app/static
@@ -62,6 +69,13 @@ photograph ──> annotate.py ──(N1-N16, ledger)──> annotations.jsonl �
 knowledge/*.yaml + verification registry (V1-V10, ledger) ──> effective reference status ──> reasoning
 photograph ──> inference.analyze ──> quality │ regions │ classifier* │ OCR* │ reasoning(human evidence only) ──> result
                                               (* AI observation, reported, never evidence)
+
+SYNTHETIC (separate roots: data/synthetic/, models/synthetic/; never read by the gate, store or promotion)
+generator ──> data/synthetic (1,000 objects, 2,202 images, lock + split) ──> ResNet18 (+ temperature on VAL)
+                                                                       └──> train-vision: RegionNet, GlyphCenterNet, GlyphNet
+synthetic image ──(SHA-256 in the synthetic index)──> SyntheticPipeline: load → preprocess → classify → detect → segment
+                 → OCR → interpret → reason ──> synthetic_analysis (dataset_type synthetic, warning synthetic_not_archaeological)
+real / unregistered image ──X── synthetic pipeline (never applied)
 ```
 
 ## Invariants (each enforced in code and tested)
@@ -76,6 +90,8 @@ photograph ──> inference.analyze ──> quality │ regions │ classifier*
 8. **Unverified references cap confidence**; placeholders (R3, R5) cannot be verified until identified (K8, V9).
 9. **Training is gated** (G1-G11) and the gate takes no data paths or bypass flags.
 10. **Safe deserialisation.** Checkpoints load with `weights_only=True`; weights are fingerprinted; YAML uses `safe_load`.
+11. **Synthetic data stays synthetic.** It lives only under `data/synthetic/` and `models/synthetic/`; research validation (E6), annotation (N17) and promotion (P0) refuse it; every checkpoint, experiment and result carries `dataset_type`; a synthetic checkpoint is refused wherever a research model is expected.
+12. **Modes never merge.** The synthetic pipeline runs only on images whose SHA-256 is in the synthetic dataset, only in Synthetic Demonstration mode (or the explicit synthetic API/CLI); a real or unregistered photograph never reaches a synthetic model, and Real Research mode never runs one.
 
 ## Extension points
 

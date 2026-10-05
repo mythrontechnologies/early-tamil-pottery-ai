@@ -143,6 +143,39 @@ def synthetic_classifier(path: str | None) -> Any:
     return SyntheticCheckpointClassifier(path)
 
 
+@st.cache_resource(show_spinner="Loading the synthetic models (classifier, detector, OCR)…")
+def synthetic_pipeline() -> tuple[Any, str | None]:
+    """(SyntheticPipeline, None) or (None, why). Shared by every session; used ONLY in synthetic mode."""
+    from src.synthetic.pipeline import SyntheticPipeline, SyntheticPipelineError
+    from src.training.checkpoint import CheckpointError
+
+    try:
+        pipe = SyntheticPipeline()
+    except (SyntheticPipelineError, CheckpointError, OSError, ValueError) as exc:
+        return None, str(exc)
+    from src.synthetic.dataset import SyntheticDatasetError
+    from src.synthetic.demo import default_demo_image
+
+    try:            # warm-up once (CUDA kernels, cudnn autotune) so the user's first run shows true latency
+        warm = default_demo_image()
+        pipe.run(warm.image_path, record=dict(warm.record))
+    except (SyntheticDatasetError, OSError, ValueError, RuntimeError, IndexError):
+        pass        # a failed warm-up must not hide the models; the user's own run reports any error
+    return pipe, None
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def synthetic_demo_default() -> str | None:
+    """The reproducible default demo image (first Tamil-Brahmi-like image of the test split)."""
+    from src.synthetic.dataset import SyntheticDatasetError
+    from src.synthetic.demo import default_demo_image
+
+    try:
+        return default_demo_image().image_id
+    except (SyntheticDatasetError, StopIteration, IndexError):
+        return None
+
+
 def short_attribution(rights_notes: str | None) -> str:
     """'Attribution required: "X" by Y, CC-BY-SA-4.0 (url), via ...' -> '"X" by Y, CC-BY-SA-4.0'."""
     text = (rights_notes or "").removeprefix("Attribution required:").strip()
@@ -165,4 +198,5 @@ def thumbnail_b64(image_path: str, size: int = 520) -> str | None:
 
 
 __all__ = ["artifacts", "knowledge", "overview", "records", "short_attribution", "store", "synthetic_checkpoint",
-           "synthetic_classifier", "synthetic_images", "thumbnail_b64", "workflow"]
+           "synthetic_classifier", "synthetic_demo_default", "synthetic_images", "synthetic_pipeline", "thumbnail_b64",
+           "workflow"]

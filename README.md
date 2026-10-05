@@ -50,7 +50,7 @@ An LLM-generated explanation is not evidence and is never presented as such.
 | Expert-labelled images | **0** — every record has `script_type = unknown` pending annotation |
 | Supporting images | 15 in `data/external/` (out-of-region pottery, Tamil-Brahmi rock inscriptions) |
 | Verified references | **0** — verification registry built (Milestone 8); R1, S01, S03 not yet checked against the publications (`python -m src.knowledge status`) |
-| Models | **no archaeological model.** Training pipeline complete (AMP, resume, fingerprints). Milestone 9 validated it end to end on a separate SYNTHETIC engineering dataset; the resulting models live in `models/synthetic/`, are marked SYNTHETIC ONLY, and are refused wherever an archaeological model is expected ([`docs/SYNTHETIC_TRAINING.md`](docs/SYNTHETIC_TRAINING.md)) |
+| Models | **no archaeological model.** Training pipeline complete (AMP, resume, fingerprints). Milestone 9 validated it end to end on a separate SYNTHETIC engineering dataset; the resulting models live in `models/synthetic/`, are marked SYNTHETIC ONLY, and are refused wherever an archaeological model is expected ([`docs/SYNTHETIC_TRAINING.md`](docs/SYNTHETIC_TRAINING.md)). Milestone 10 added a complete SYNTHETIC demonstration pipeline (detector, glyph OCR, synthetic reasoning) that runs on synthetic images only ([`docs/SYNTHETIC_END_TO_END.md`](docs/SYNTHETIC_END_TO_END.md)) |
 | Synthetic engineering data | 1,000 generated objects / 2,202 images in `data/synthetic/` — **SYNTHETIC — NOT ARCHAEOLOGICAL EVIDENCE**; never counted, never gated, never annotated or promoted ([`docs/SYNTHETIC_DATASET.md`](docs/SYNTHETIC_DATASET.md)) |
 | Training ready | **false** — blocked by `src/dataset/readiness.py` (gates G1–G11) |
 | Annotations | **0** — annotation tool, evidence-based reasoning, expert pilot (six Keezhadi close-ups) ready ([`docs/ANNOTATION_GUIDE.md`](docs/ANNOTATION_GUIDE.md)). Pilot opened 2026-09-24: no human or expert input yet; 107/109 flagged "REVIEW REQUIRED — possible reproduction / duplicate inscription" (unconfirmed); per-sherd questions in [`docs/PILOT_ANNOTATION_CHECKLIST.md`](docs/PILOT_ANNOTATION_CHECKLIST.md) ([`docs/MILESTONE_8_PILOT_RESULTS.md`](docs/MILESTONE_8_PILOT_RESULTS.md)) |
@@ -163,6 +163,19 @@ python -m src.synthetic robustness --checkpoint <best.pt>   # blur, exposure, no
 python -m src.synthetic ocr-benchmark             # "Synthetic glyph recognition benchmark" (not transcription)
 python -m src.inference serve --synthetic-checkpoint latest # applied to synthetic images only
 ```
+
+### Synthetic end-to-end demonstration (Milestone 10 — SYNTHETIC, NOT ARCHAEOLOGICAL EVIDENCE)
+
+```bash
+python -m src.synthetic calibrate                 # temperature scaling on the synthetic VAL split
+python -m src.synthetic train-vision              # region detector, glyph-centre segmenter, glyph classifier
+python -m src.synthetic demo                      # load → preprocess → classify → detect → segment → OCR → interpret → reason
+python -m src.inference synthetic --image data/synthetic/images/SYNTH-A0007-V1.jpg [--json]  # exit 3 for a real photo
+python -m src.inference serve --synthetic         # POST /synthetic/analyze (synthetic images only; 422 otherwise)
+python -m src.evaluation synthetic                # "SYNTHETIC ENGINEERING BENCHMARK": classification, detection, OCR, calibration, robustness
+```
+In the app: Analysis → *Data mode* → **Synthetic Demonstration** (Real Research is the default).
+See [`docs/SYNTHETIC_END_TO_END.md`](docs/SYNTHETIC_END_TO_END.md).
 
 ### Preprocessing commands
 
@@ -327,6 +340,7 @@ checks them against the physical publications.
 | 7 | Annotation + archaeological reasoning layer | ✅ **complete** — annotation UI, multi-annotator store, evidence-based reasoning; 0 annotations |
 | 8 | Expert annotation pilot + verification + reversible promotion | ✅ **complete** — workflow built; awaiting an expert; 0 expert labels, 0 verified references |
 | 9 | Synthetic dataset + full ML pipeline validation | ✅ **complete** — isolated synthetic data; pipeline validated end to end; real training still blocked ([`docs/MILESTONE_9_REPORT.md`](docs/MILESTONE_9_REPORT.md)) |
+| 10 | Synthetic end-to-end AI demonstration | ✅ **complete** — calibrated classifier, region detector, glyph segmentation + OCR, synthetic interpretation and chronology reasoning, CLI/API/UI with live pipeline replay; SYNTHETIC only; real training still blocked ([`docs/MILESTONE_10_REPORT.md`](docs/MILESTONE_10_REPORT.md)) |
 | — | Classifier training *(originally M4)* | blocked on authorised data |
 | — | Evaluation and error analysis *(originally M5)* | infrastructure built; blocked on data |
 | — | Inscription-region detection *(originally M6)* | blocked |

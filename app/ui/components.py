@@ -68,12 +68,12 @@ def reference_badge(effective_status: str, resolution: str | None = None) -> str
             "bibliographic_only": badge("bibliographic")}.get(effective_status, badge("unverified"))
 
 
-def nav_link(page: str, label: str, icon: str | None = None) -> None:
+def nav_link(page: str, label: str, icon: str | None = None, query_params: dict[str, str] | None = None) -> None:
     """A link to another page of the app; plain text when the page runs on its own (no navigation)."""
     from streamlit.errors import StreamlitAPIException
 
     try:
-        st.page_link(page, label=label, icon=icon)
+        st.page_link(page, label=label, icon=icon, query_params=query_params)
     except StreamlitAPIException:
         st.caption(label)
 

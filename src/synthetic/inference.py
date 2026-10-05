@@ -31,6 +31,9 @@ from . import (
 NO_SYNTHETIC_MODEL = ("No synthetic demonstration model is loaded (train one with `python -m src.training train "
                       "--dataset synthetic`). Classification unavailable.")
 
+REAL_INFERENCE_UNAVAILABLE = ("Real archaeological inference is unavailable until expert-labelled training data is "
+                              "available.")
+
 INDICATORS = {
     "research": ("REAL RESEARCH DATA", "A registered research photograph: its SHA-256 matches data/metadata/records.jsonl."),
     "synthetic": ("SYNTHETIC DEMONSTRATION", UI_BANNER),
@@ -56,6 +59,13 @@ def synthetic_index(path: Path = RECORDS_PATH) -> dict[str, dict[str, Any]]:
 def dataset_block(kind: str, record: dict[str, Any] | None = None) -> dict[str, Any]:
     indicator, statement = INDICATORS[kind]
     block: dict[str, Any] = {"dataset_type": kind, "indicator": indicator, "statement": statement}
+    if kind == "research":
+        block |= {"notice": "REAL RESEARCH PHOTO DETECTED", "ml_inference": REAL_INFERENCE_UNAVAILABLE,
+                  "synthetic_models_applied": False}
+    if kind == "unregistered":
+        block |= {"ml_inference": "No model is applied to an image without provenance.", "synthetic_models_applied": False}
+    if kind == DATASET_TYPE:
+        block |= {"warning_code": "synthetic_not_archaeological"}
     if kind == DATASET_TYPE and record is not None:
         block |= {
             "marker": MARKER, "purpose": PURPOSE, "label_warning": LABEL_WARNING,
@@ -80,13 +90,16 @@ class NoSyntheticModel:
 class SyntheticCheckpointClassifier:
     """Runs a SYNTHETIC checkpoint (refuses a research one) on a synthetic image. AI output, never evidence."""
 
-    def __init__(self, checkpoint: Path | str, *, device: str = "cpu") -> None:
+    def __init__(self, checkpoint: Path | str, *, device: str = "cpu", calibrated: bool = True,
+                 calibration_dir: Path | None = None) -> None:
         import torch
 
         from src.training.augmentation import ImageGeometry, build_eval_transform
         from src.training.checkpoint import load_checkpoint
         from src.training.config import ModelConfig
         from src.training.model import build_model
+
+        from .calibration import STATUS, calibration_for
 
         ckpt = load_checkpoint(checkpoint, class_names=SYNTHETIC_LABELS, map_location=device,
                                expected_dataset_type=DATASET_TYPE)
@@ -99,21 +112,35 @@ class SyntheticCheckpointClassifier:
         self.transform = build_eval_transform(ImageGeometry.from_project())
         self.name = f"synthetic_checkpoint:{ckpt['model_name']}"
         meta = ckpt.get("synthetic") or {}
+        # the temperature fitted for exactly these weights (matched by model fingerprint), if any
+        self.calibration = (calibration_for(ckpt, calibration_dir) if calibration_dir else calibration_for(ckpt)) if calibrated else None
+        self.calibration_status = (STATUS if self.calibration is not None
+                                   else "UNCALIBRATED: raw softmax of the synthetic model (run `python -m src.synthetic calibrate`)")
+        self.ckpt_meta = {"dataset_fingerprint": ckpt["dataset_fingerprint"], "split_digest": ckpt["split_digest"],
+                          "model_fingerprint": ckpt.get("model_fingerprint")}
         self.info = {"name": ckpt["model_name"], "fingerprint": ckpt.get("model_fingerprint"),
                      "dataset_type": DATASET_TYPE, "marker": MARKER, "dataset_fingerprint": ckpt["dataset_fingerprint"],
                      "synthetic_fingerprint": meta.get("synthetic_fingerprint"), "experiment_id": meta.get("experiment_id"),
-                     "epoch": ckpt["epoch"], "checkpoint": Path(checkpoint).name}
+                     "epoch": ckpt["epoch"], "checkpoint": Path(checkpoint).name,
+                     "calibration": ({"method": self.calibration.method, "temperature": self.calibration.temperature,
+                                      "fitted_on": self.calibration.fitted_on} if self.calibration else None)}
 
-    def classify(self, image: Image.Image) -> ClassificationResult:
+    def probabilities(self, image: Image.Image):
+        """Unrounded class probabilities, temperature-scaled when a calibration exists for these weights."""
         torch = self._torch
         with torch.no_grad():
             x = self.transform(image.convert("RGB")).unsqueeze(0).to(self.device)
-            probs = torch.softmax(self.model(x).float(), dim=1)[0].cpu().tolist()
+            probs = torch.softmax(self.model(x).float(), dim=1).cpu().numpy()
+        return (self.calibration.apply(probs) if self.calibration is not None else probs)[0]
+
+    def classify(self, image: Image.Image) -> ClassificationResult:
+        probs = self.probabilities(image)
         p = {c: round(float(v), 6) for c, v in zip(self.class_names, probs)}
         best = max(p, key=lambda c: (p[c], -self.class_names.index(c)))
+        kind = "calibrated model probability" if self.calibration is not None else "uncalibrated model probability"
         return ClassificationResult(
             "predicted",
-            f"SYNTHETIC MODEL ON A SYNTHETIC IMAGE (demonstration only): highest probability '{best}' ({p[best]:.2f}). "
+            f"SYNTHETIC MODEL ON A SYNTHETIC IMAGE (demonstration only): highest {kind} '{best}' ({p[best]:.2f}). "
             f"{LABEL_WARNING} A model probability is not an archaeological confidence.",
             label=best, probabilities=p, model=self.info)
 
@@ -124,5 +151,5 @@ def latest_synthetic_checkpoint(root: Path = SYNTHETIC_MODELS_ROOT / "checkpoint
     return found[-1] if found else None
 
 
-__all__ = ["INDICATORS", "NO_SYNTHETIC_MODEL", "NoSyntheticModel", "SyntheticCheckpointClassifier", "dataset_block",
+__all__ = ["INDICATORS", "NO_SYNTHETIC_MODEL", "REAL_INFERENCE_UNAVAILABLE", "NoSyntheticModel", "SyntheticCheckpointClassifier", "dataset_block",
            "latest_synthetic_checkpoint", "synthetic_index"]

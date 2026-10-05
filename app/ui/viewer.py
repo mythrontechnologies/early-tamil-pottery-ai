@@ -30,6 +30,7 @@ SOURCE_STYLE = {
     "human_annotation": {"color": "#cfae6b", "dash": "", "label": "human-marked"},
     "user_supplied": {"color": "#d9c6a5", "dash": "6 4", "label": "your region"},
     "ai_prediction": {"color": "#7fb3c8", "dash": "1.5 3.5", "label": "AI observation — not evidence"},
+    "synthetic_prediction": {"color": "#b9a3e3", "dash": "2 4", "label": "Synthetic detector — not evidence"},
 }
 DERIVED = "Derived display — original source preserved."
 

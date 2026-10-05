@@ -30,3 +30,23 @@ deterministic mode; the environment block records what was used.
 2. Obtain the same images; `python -m src.dataset validate data/metadata/records.jsonl --strict --verify-hashes`.
 3. Check the dataset fingerprint and split digest match the experiment record in `models/experiments/`.
 4. `python -m src.training train --config <recorded config>`.
+
+## Synthetic demonstration (Milestone 10)
+
+All of it is regenerated from the repository; nothing generated is committed (`data/synthetic/`
+and `models/` are git-ignored).
+
+```powershell
+python -m src.synthetic generate                    # deterministic: fingerprint d61e25c6…14240
+python -m src.training train --dataset synthetic    # ResNet-18 (seed in configs/synthetic_training.yaml)
+python -m src.synthetic calibrate                   # temperature on the synthetic val split
+python -m src.synthetic train-vision                # RegionNet, GlyphCenterNet, GlyphNet (seed 20261003)
+python -m src.synthetic demo                        # writes models/synthetic/runs/demo_*.json
+python -m src.evaluation synthetic                  # writes models/synthetic/reports/benchmark/*.json
+```
+
+Every record written (calibration, vision manifest, demo run, benchmark report) holds the dataset
+fingerprint, split digest, model fingerprints, git commit and dirty flag, and the environment
+block. Post-processing choices (region threshold 0.7 and erosion 1, the OCR crop policy, the
+segmentation strategy) were selected on the **validation** split and recorded; the test split
+was only scored. GPU timings vary with hardware and are reported, not reproduced.

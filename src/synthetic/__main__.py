@@ -6,6 +6,9 @@
     python -m src.synthetic verify [--regenerate N] [--json]
     python -m src.synthetic robustness --checkpoint PATH [--json]
     python -m src.synthetic ocr-benchmark [--json]
+    python -m src.synthetic calibrate [--checkpoint PATH]          # temperature scaling on the VAL split
+    python -m src.synthetic train-vision                           # region detector + OCR models (bundle)
+    python -m src.synthetic demo [--image-id ID] [--json]          # the complete synthetic pipeline, once
 
 Training and evaluation use the project's existing commands with an explicit dataset switch:
 
@@ -98,6 +101,41 @@ def cmd_ocr(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_calibrate(args: argparse.Namespace) -> int:
+    from .calibration import calibrate_checkpoint
+    from .inference import latest_synthetic_checkpoint
+
+    ckpt = args.checkpoint or latest_synthetic_checkpoint()
+    if ckpt is None:
+        print("error: no synthetic checkpoint; run `python -m src.training train --dataset synthetic`", file=sys.stderr)
+        return 2
+    cal = calibrate_checkpoint(ckpt, root=args.root, device=args.device)
+    print(f"{MARKER}\ntemperature {cal.temperature} fitted on the VALIDATION split of {ckpt}")
+    for part in ("val", "test"):
+        b, a = cal.metrics[part]["before"], cal.metrics[part]["after"]
+        print(f"  {part:<4} ECE {b['ece']:.4f} -> {a['ece']:.4f}   Brier {b['brier']:.4f} -> {a['brier']:.4f}   "
+              f"mean confidence {b['mean_confidence']:.3f} -> {a['mean_confidence']:.3f} (accuracy {a['accuracy']:.3f})")
+    print(f"calibration: {cal.metrics.get('path')}")
+    return 0
+
+
+def cmd_train_vision(args: argparse.Namespace) -> int:
+    from .vision import train_vision
+
+    out = train_vision(root=args.root, epochs_detector=args.epochs_detector, epochs_glyphs=args.epochs_glyphs,
+                       epochs_centers=args.epochs_centers, seed=args.seed, device=args.device)
+    print(f"{MARKER}\nsynthetic vision bundle: {out}")
+    return 0
+
+
+def cmd_demo(args: argparse.Namespace) -> int:
+    from .demo import render_demo, run_demo
+
+    rep = run_demo(image_id=args.image_id, root=args.root, device=args.device, record=not args.no_record)
+    print(json.dumps(rep, indent=2, ensure_ascii=False) if args.json else render_demo(rep))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="python -m src.synthetic",
                                 description=f"Synthetic engineering dataset ({MARKER}).")
@@ -131,19 +169,41 @@ def build_parser() -> argparse.ArgumentParser:
     o.add_argument("--device", default="auto")
     o.add_argument("--json", action="store_true")
     o.set_defaults(func=cmd_ocr)
+    c = sub.add_parser("calibrate", parents=[common], help="temperature-scale a synthetic checkpoint on the VAL split")
+    c.add_argument("--checkpoint", type=Path, default=None, help="default: the newest synthetic best.pt")
+    c.add_argument("--device", default="auto")
+    c.set_defaults(func=cmd_calibrate)
+    tv = sub.add_parser("train-vision", parents=[common], help="train the region detector and OCR models (bundle)")
+    tv.add_argument("--epochs-detector", type=int, default=24)
+    tv.add_argument("--epochs-glyphs", type=int, default=20)
+    tv.add_argument("--epochs-centers", type=int, default=40)
+    tv.add_argument("--seed", type=int, default=20261003)
+    tv.add_argument("--device", default="auto")
+    tv.set_defaults(func=cmd_train_vision)
+    dm = sub.add_parser("demo", parents=[common], help="run the complete synthetic pipeline on one held-out image")
+    dm.add_argument("--image-id", default=None, help="a synthetic test-split image id (default: a fixed demo image)")
+    dm.add_argument("--device", default="auto")
+    dm.add_argument("--no-record", action="store_true", help="do not write a run record")
+    dm.add_argument("--json", action="store_true")
+    dm.set_defaults(func=cmd_demo)
     return p
 
 
 def main(argv: list[str] | None = None) -> int:
     utf8_console()
     args = build_parser().parse_args(argv)
+    from src.training.checkpoint import CheckpointError
+
     from . import SyntheticSeparationError
+    from .calibration import CalibrationError
     from .config import SyntheticConfigError
     from .dataset import SyntheticDatasetError
+    from .vision import VisionModelError
 
     try:
         return args.func(args)
-    except (SyntheticConfigError, SyntheticDatasetError, SyntheticSeparationError) as exc:
+    except (SyntheticConfigError, SyntheticDatasetError, SyntheticSeparationError, CheckpointError, CalibrationError,
+            VisionModelError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 

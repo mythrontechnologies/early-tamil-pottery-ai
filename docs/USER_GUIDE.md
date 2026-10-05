@@ -71,6 +71,36 @@ That is correct: the project knows nothing about it.
 
 "Your regions" (`x,y,w,h`, fractions of width/height) help you look; they are not evidence.
 
+## 1b. Data mode: Real Research or Synthetic Demonstration
+
+The Analysis page opens in **Real Research** mode. That is the default and nothing synthetic runs
+in it: an upload or a registered photograph is analysed exactly as above. A real photograph shows
+**REAL RESEARCH PHOTO DETECTED — Real archaeological inference is unavailable until
+expert-labelled training data is available.** Synthetic models are never applied to it.
+
+**Synthetic Demonstration** must be chosen explicitly (the *Data mode* switch at the top of the
+page, or *Run synthetic demonstration* on Overview, which opens `?data=synthetic`). It runs the
+complete AI pipeline on images from the **synthetic engineering dataset only**:
+
+| Stage | What it does (all SYNTHETIC) |
+|---|---|
+| 01 LOAD · 02 PREPROCESS | reads the image, confirms its SHA-256 is in the synthetic dataset, letterboxes |
+| 03 CLASSIFY | ResNet-18 → a *Synthetic Tamil-Brahmi-like / graffiti-like / none / uncertain class*, temperature-calibrated |
+| 04 DETECT | RegionNet → synthetic inscription regions and glyph rows (purple dotted, "Synthetic detector — not evidence") |
+| 05 SEGMENT · 06 OCR | learned glyph centres → GlyphNet → a **Synthetic glyph transcription** (`SG03 SG11 …`) — not Tamil-Brahmi transcription |
+| 07 INTERPRET | an invented rule table → `synthetic_personal_name_like`, `synthetic_numeral_like`, … (never a real person) |
+| 08 REASON | synthetic chronology categories (`SYNTH_CAT_01`–`04`, never BCE/CE) and an 8-node synthetic evidence chain: **"Synthetic demonstration — not archaeological dating."** |
+
+Each stage appears as it finishes (real timings, no artificial delay). The **pipeline replay**
+re-plays the measured stages on an illustrative sherd — *not a scan of the input image* — with
+Play/Pause, Skip, Replay and a 2D view; reduced motion shows every stage at once, and the 2D
+view is used automatically without 3D support. The ground-truth card compares the result with
+the generator's own record. Every block carries **SYNTHETIC — NOT ARCHAEOLOGICAL EVIDENCE**.
+
+The two modes never merge: a real photograph cannot be chosen in Synthetic mode, a synthetic
+image uploaded in Real mode is refused, and no synthetic result is written to the research store.
+See [`SYNTHETIC_END_TO_END.md`](SYNTHETIC_END_TO_END.md).
+
 ## 2. Annotate
 
 See [`ANNOTATION_GUIDE.md`](ANNOTATION_GUIDE.md) and the one-page
@@ -86,3 +116,13 @@ python -m src.workflow status                          # where the project is, a
 python -m src.annotation integrity                     # are the append-only stores intact?
 python -m src.knowledge entries                        # every sourced claim and its status
 ```
+
+Synthetic demonstration (SYNTHETIC engineering data only):
+
+```powershell
+python -m src.synthetic demo [--image-id SYNTH-A0007-V1]           # full pipeline on one synthetic image
+python -m src.inference synthetic --image data/synthetic/images/SYNTH-A0007-V1.jpg [--json]
+python -m src.inference serve --synthetic                          # adds POST /synthetic/analyze
+python -m src.evaluation synthetic [--skip-robustness] [--json]    # SYNTHETIC ENGINEERING BENCHMARK
+```
+A real or unregistered photograph given to `synthetic` exits with code 3 and is not analysed.

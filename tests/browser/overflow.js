@@ -35,7 +35,7 @@ async page => {
     return { ...m, frame };
   };
   const settle = async p => {     // walk the page so lazily rendered parts exist, then let layout settle
-    for (let i = 0; i < 30; i++) { await p.mouse.wheel(0, 800); await p.waitForTimeout(60); }
+    for (let i = 0; i < 40; i++) { await p.mouse.wheel(0, 800); await p.waitForTimeout(60); }
     await p.waitForTimeout(1500);
   };
   const out = {};
@@ -47,29 +47,31 @@ async page => {
     const ctx = await browser.newContext({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true, deviceScaleFactor: 3 });
     const p = await ctx.newPage();
     const vp = `${w}x${h}`;
-    await p.goto(BASE + '/analysis');
-    await p.getByText('A synthetic demonstration image', { exact: true }).click({ timeout: 120000 });
-    await p.locator('.etp-synthetic').first().waitFor({ timeout: 180000 });
+    // synthetic demonstration: run the pipeline, then measure the whole results page
+    await p.goto(BASE + '/analysis?data=synthetic');
+    await p.getByRole('button', { name: 'Run analysis' }).click({ timeout: 180000 });
+    await p.locator('.etp-chain').first().waitFor({ timeout: 180000 });
     await p.locator('.etp-foot').last().waitFor({ timeout: 180000 });
     await settle(p);
-    await record(p, `${vp} synthetic 2D`, [100, 125, 150, 200]);
-    await p.getByText('Options: expected artifact, your regions').click();
-    await p.waitForTimeout(1200);
-    await record(p, `${vp} synthetic options open`, [100, 200]);
-    await p.getByText('2.5D inspection', { exact: true }).click();
-    await p.waitForTimeout(5000);
-    await settle(p);
-    await record(p, `${vp} synthetic 2.5D`, [100, 200]);
+    await record(p, `${vp} synthetic results`, [100, 125, 150, 200]);
     await p.getByText('Presentation', { exact: true }).first().click();
     await p.waitForTimeout(4000);
     await settle(p);
     await record(p, `${vp} synthetic presentation`, [100, 200]);
+    // real research mode
     await p.goto(BASE + '/analysis');
     await p.getByText('A registered research photograph', { exact: true }).click({ timeout: 120000 });
     await p.locator('.etp-title-bar').first().waitFor({ timeout: 180000 });
     await p.locator('.etp-foot').last().waitFor({ timeout: 180000 });
     await settle(p);
-    await record(p, `${vp} research photograph`, [100, 200]);
+    await record(p, `${vp} research photograph`, [100, 125, 150, 200]);
+    await p.getByText('Options: expected artifact, your regions').click();
+    await p.waitForTimeout(1200);
+    await record(p, `${vp} research options open`, [100, 200]);
+    await p.getByText('2.5D inspection', { exact: true }).click();
+    await p.waitForTimeout(5000);
+    await settle(p);
+    await record(p, `${vp} research 2.5D`, [100, 200]);
     await ctx.close();
   }
   return JSON.stringify(out);

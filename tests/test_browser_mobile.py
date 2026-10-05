@@ -7,7 +7,9 @@ dataset (``python -m src.synthetic generate``). Nothing here writes data: the ap
 
 * ``tests/browser/overflow.js``      no horizontal overflow at 390x844 and 360x800, with text at
                                      100-200 % (phones enlarge text), in every analysis state;
-* ``tests/browser/accessibility.js`` keyboard operation, the 2D / 2.5D fallbacks and reduced motion.
+* ``tests/browser/accessibility.js`` keyboard operation (real and synthetic modes), the 2D / 2.5D and
+                                     WebGL-failure fallbacks, reduced motion, and click-to-result time and
+                                     frame rates of the synthetic demonstration and the 3D scene.
 
 Regression: before the fix, enlarged text (125 %) pushed the synthetic analysis page 41-71 px wider
 than the screen (no-wrap badges, non-wrapping flex headings, the 2D/2.5D control, long tokens).
@@ -97,20 +99,32 @@ def test_no_horizontal_overflow_at_phone_width(app_url, tmp_path):
     cases = run_probe("overflow.js", app_url, tmp_path)
     for vp in ("390x844", "360x800"):
         for scale in ("100%", "125%", "150%", "200%"):
-            assert f"{vp} synthetic 2D @{scale}" in cases            # every required case was measured
+            assert f"{vp} synthetic results @{scale}" in cases        # every required case was measured
+            assert f"{vp} research photograph @{scale}" in cases
     overflowing = {case: m for case, m in cases.items() if max(m["main"], m["doc"], m["frame"]) > 1}
     assert not overflowing, f"horizontal overflow (px) at phone width: {overflowing}"
 
 
-def test_keyboard_fallbacks_and_reduced_motion(app_url, tmp_path):
+def test_keyboard_fallbacks_motion_and_performance(app_url, tmp_path):
     r = run_probe("accessibility.js", app_url, tmp_path)
     k = r["keyboard"]
     assert k["skip_hidden_until_focus"] and k["first_tab_is_skip_link"]
-    assert k["radio_reachable_by_tab"] and k["synthetic_mode_chosen_with_arrow_keys"] and k["banner_shown"]
+    assert k["radio_reachable_by_tab"] and k["research_photo_chosen_with_arrow_keys"] and k["result_shown"]
     assert k["stage_view_reachable_by_tab"] and k["stage_view_switches_to_25d_by_keyboard"]
     assert k["focused_elements_past_right_edge"] == [] and k["page_never_scrolled_sideways"]
-    assert r["fallbacks"]["viewer_2d"] == {"focusable": True, "named": True, "image_alt": True, "toolbar": True}
-    assert r["fallbacks"]["inspection_25d"] == {"focusable": True, "named": True, "flat_2d_fallback": True,
-                                                "toggle_2d": True}
-    assert r["motion"]["reduce"] == {"entrance_animation": "none", "inspection_sees_reduce": True}
-    assert r["motion"]["no-preference"]["entrance_animation"] == "etp-rise"   # the check can fail
+    sk = r["synthetic_keyboard"]
+    assert sk["mode_switch_reachable_by_tab"] and sk["default_mode_is_real"] and sk["mode_switched_by_keyboard"]
+    assert sk["run_reachable_by_tab"] and sk["run_with_enter"] and sk["replay_controls"] == [True] * 4
+    assert sk["replay_announces"] == "polite" and sk["skip_with_keyboard_shows_all"] == 8
+    f = r["fallbacks"]
+    assert f["viewer_2d"] == {"focusable": True, "named": True, "image_alt": True, "toolbar": True}
+    assert f["inspection_25d"] == {"focusable": True, "named": True, "flat_2d_fallback": True, "toggle_2d": True}
+    w = f["webgl_failure"]                                     # WebGL unavailable -> accessible 2D fallback
+    assert w["webgl"] is False and w["mode"] == "2d" and w["fallback"] and w["msg"].startswith("3D unavailable")
+    m = r["motion"]
+    assert m["reduce"]["entrance_animation"] == "none" and m["reduce"]["inspection_sees_reduce"] is True
+    assert m["reduce"]["replay"] == {"on": 8, "play": "Play"}   # whole replay shown at once, nothing animating
+    assert m["no-preference"]["entrance_animation"] == "etp-rise"   # the check can fail
+    perf = r["performance"]
+    assert perf["click_to_result_ms"] < 15000                   # responsive: well under the run-once budget
+    assert perf["replay_fps"] >= 30 and perf["scene_3d"]["mode"] == "3d" and perf["scene_3d"]["fps"] >= 30

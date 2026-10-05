@@ -93,6 +93,7 @@ class InferenceResult:
     summary: str
     dataset_type: str = "unregistered"            # research | synthetic | unregistered
     dataset: dict[str, Any] = field(default_factory=dict)
+    synthetic_analysis: dict[str, Any] | None = None   # Milestone 10: synthetic images only (SyntheticPipeline)
     disclaimer: str = DISCLAIMER
     schema_version: str = RESULT_SCHEMA_VERSION
     analysis_digest: str = ""
@@ -184,6 +185,7 @@ def analyze(
     config: dict[str, Any] | None = None,
     synthetic_classifier: ScriptClassifier | None = None,
     synthetic_records: dict[str, dict[str, Any]] | None = None,
+    synthetic_pipeline: Any | None = None,
 ) -> InferenceResult:
     """Analyse one photograph. Raises InferenceError only when the image itself is unusable;
     otherwise always returns a result, which may well be "Insufficient evidence"."""
@@ -225,7 +227,8 @@ def analyze(
                      synthetic_artifact_id=syn["artifact_id"], synthetic_image_id=syn["image_id"])
         warnings.append(f"{SYNTHETIC_MARKER}. {SYNTHETIC_BANNER}: this image was drawn by the project's synthetic "
                         f"generator ({syn['image_id']}). {SYNTHETIC_PURPOSE}")
-        classifier = synthetic_classifier or NoSyntheticModel()
+        classifier = (synthetic_pipeline.classifier if synthetic_pipeline is not None
+                      else synthetic_classifier or NoSyntheticModel())
     else:
         dataset_type = "unregistered"
         facts.update(registered=False, artifact_id=None, image_id=None)
@@ -248,6 +251,13 @@ def analyze(
     human_regions = regions_from_annotations(current, rec["image_id"]) if rec else []
     user_regions = [r for r in regions if r.source == "user_supplied"]
     ai_regions = detector.detect(rgb)
+    synthetic_analysis = None
+    if syn is not None and synthetic_pipeline is not None:     # synthetic images only, never a real photograph
+        synthetic_analysis = synthetic_pipeline.run(rgb, record=syn)
+        ai_regions = [*ai_regions, *(Region(r["x"], r["y"], min(r["width"], 1 - r["x"]), min(r["height"], 1 - r["y"]),
+                                            "ai_prediction", label="synthetic_inscription_region",
+                                            note=f"{SYNTHETIC_MARKER} · score {r['confidence']:.2f}")
+                                     for r in synthetic_analysis["inscription"]["regions"])]
     all_regions = [*human_regions, *user_regions, *ai_regions]
 
     # -- AI stages ---------------------------------------------------------------------
@@ -347,6 +357,7 @@ def analyze(
         summary=summary,
         dataset_type=dataset_type,
         dataset=dataset_block(dataset_type, syn),
+        synthetic_analysis=synthetic_analysis,
     )
     result.analysis_digest = _digest({k: v for k, v in result.to_dict().items() if k != "analysis_digest"})
     return result

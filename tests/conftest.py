@@ -280,3 +280,17 @@ def tiny_synthetic_model(tiny_synthetic) -> dict[str, Any]:
     assert outcome.status == "completed", outcome.message
     return {"outcome": outcome, "config_path": config_path, "checkpoint": Path(outcome.best_checkpoint),
             "experiment": Path(outcome.experiment)}
+
+
+@pytest.fixture(scope="session")
+def tiny_synthetic_pipeline(tiny_synthetic, tiny_synthetic_model) -> dict[str, Any]:
+    """A tiny vision bundle (1 epoch each, CPU) + the tiny classifier = a complete synthetic pipeline in tmp."""
+    from src.synthetic.pipeline import SyntheticPipeline
+    from src.synthetic.vision import train_vision
+
+    bundle_dir = train_vision(root=tiny_synthetic["root"], epochs_detector=1, epochs_glyphs=1, epochs_centers=1,
+                              device="cpu", log=lambda _m: None, out_dir=tiny_synthetic["base"] / "models" / "vision")
+    pipe = SyntheticPipeline(tiny_synthetic_model["checkpoint"], bundle_dir, device="cpu",
+                             calibration_dir=tiny_synthetic["base"] / "models" / "calibration")
+    return {"pipeline": pipe, "bundle_dir": bundle_dir,
+            "index": {r["image_sha256"]: r for r in tiny_synthetic["records"]}}
