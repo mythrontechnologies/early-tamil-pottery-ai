@@ -24,6 +24,7 @@ from .pipeline import (
     DEFAULT_OUTPUT_ROOT,
     PreprocessConfig,
     RawImmutabilityError,
+    _strategy,
     preprocess_image,
     save_result,
 )
@@ -41,7 +42,7 @@ def _config_from_args(args: argparse.Namespace) -> PreprocessConfig:
     if getattr(args, "size", None):
         cfg.target_size = args.size
     if getattr(args, "strategy", None):
-        cfg.resize_strategy = args.strategy
+        cfg.resize_strategy = _strategy(args.strategy)
     return cfg
 
 

@@ -12,6 +12,7 @@ general-purpose image model, not archaeological data. Tests always use
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import cast
 
 from torch import nn
 from torchvision import models
@@ -42,15 +43,20 @@ assert set(_ARCHS) == set(SUPPORTED_MODELS)
 
 def _get(module: nn.Module, path: tuple[str, ...]) -> nn.Module:
     for part in path:
-        module = module[int(part)] if part.isdigit() else getattr(module, part)  # type: ignore[index]
+        module = cast(nn.Sequential, module)[int(part)] if part.isdigit() else getattr(module, part)
     return module
+
+
+def _head_path(model: nn.Module) -> tuple[str, ...]:
+    """The head path build_model stored on the model (nn.Module types attributes as Tensor | Module)."""
+    return tuple(model.__dict__["head_path"])
 
 
 def _set(module: nn.Module, path: tuple[str, ...], value: nn.Module) -> None:
     parent = _get(module, path[:-1]) if len(path) > 1 else module
     last = path[-1]
     if last.isdigit():
-        parent[int(last)] = value  # type: ignore[index]
+        cast(nn.Sequential, parent)[int(last)] = value
     else:
         setattr(parent, last, value)
 
@@ -69,13 +75,13 @@ def build_model(cfg: ModelConfig) -> nn.Module:
         raise ModelError(f"{cfg.name}: expected a Linear head at {'.'.join(arch.head_path)}")
     head = nn.Sequential(nn.Dropout(p=cfg.dropout), nn.Linear(old.in_features, cfg.num_classes))
     _set(model, arch.head_path, head)
-    model.head_path = arch.head_path  # type: ignore[attr-defined]
+    model.__dict__["head_path"] = arch.head_path      # a plain attribute, not a parameter or submodule
     set_backbone_trainable(model, not cfg.freeze_backbone)
     return model
 
 
 def head_parameters(model: nn.Module) -> list[nn.Parameter]:
-    return list(_get(model, model.head_path).parameters())  # type: ignore[attr-defined]
+    return list(_get(model, _head_path(model)).parameters())
 
 
 def backbone_parameters(model: nn.Module) -> list[nn.Parameter]:
@@ -99,8 +105,8 @@ def count_parameters(model: nn.Module) -> dict[str, int]:
 
 
 def num_outputs(model: nn.Module) -> int:
-    head = _get(model, model.head_path)  # type: ignore[attr-defined]
-    return int(head[-1].out_features)  # type: ignore[index]
+    head = cast(nn.Sequential, _get(model, _head_path(model)))
+    return int(cast(nn.Linear, head[-1]).out_features)
 
 
 __all__ = [

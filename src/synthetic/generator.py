@@ -267,7 +267,7 @@ def _glyph_row(rng: np.random.Generator, S: int, cfg_marks: Any, n: int | None =
     gap = h * rng.uniform(0.25, 0.5)
     brk = int(rng.integers(2, n - 1)) if n >= 4 and rng.random() < cfg_marks.word_break_probability else None
     big_gap = gap * rng.uniform(2.6, 3.6)
-    total = widths.sum() + gap * (n - 1) + ((big_gap - gap) if brk else 0)
+    total = float(widths.sum() + gap * (n - 1) + ((big_gap - gap) if brk else 0))
     limit = 0.62 * S
     if total > limit:
         f = limit / total
@@ -465,8 +465,8 @@ def _marks(rng: np.random.Generator, label: str, S: int, mask: np.ndarray, cfg: 
     if _visible_box(groove, mask) is None:          # the chosen degradation left nothing visible: one fragment
         h = rng.uniform(0.07, 0.1) * S
         center = _centers(rng, mask, h, 1)[0]
-        stroke = BY_CODE[GLYPH_CODES[int(rng.integers(len(GLYPH_CODES)))]].strokes[0]
-        _draw_poly(groove, _transform(list(stroke), center, (h, h), 0.0), 3.0, max(depth, 0.3))
+        fragment = BY_CODE[GLYPH_CODES[int(rng.integers(len(GLYPH_CODES)))]].strokes[0]
+        _draw_poly(groove, _transform(list(fragment), center, (h, h), 0.0), 3.0, max(depth, 0.3))
     box = _visible_box(groove, mask)
     if box is not None:
         info["regions"] = [{"kind": "mark", "token": f"uncertain_{mode}", "quad": box}]
@@ -577,7 +577,7 @@ def sample_view(cfg: Any, state: ArtifactState, view: int) -> dict[str, Any]:
 
 def _background(bg: dict[str, Any], W: int, H: int) -> np.ndarray:
     rng = np.random.default_rng(bg["seed"])
-    hsv = np.uint8([[[int(bg["hue"] * 179), int(bg["saturation"] * 255), int(bg["value"] * 255)]]])
+    hsv = np.asarray([[[int(bg["hue"] * 179), int(bg["saturation"] * 255), int(bg["value"] * 255)]]], np.uint8)
     base = cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)[0, 0].astype(np.float32) / 255.0
     yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
     kind = bg["kind"]
@@ -610,9 +610,9 @@ def _homography(state: ArtifactState, vp: dict[str, Any]) -> np.ndarray:
     A[0, 2] = tx - (A[0, 0] * cx + A[0, 1] * cy)
     A[1, 2] = ty - (A[1, 0] * cx + A[1, 1] * cy)
     S = state.S
-    src = np.float32([[0, 0], [S, 0], [S, S], [0, S]])
+    src = np.asarray([[0, 0], [S, 0], [S, S], [0, S]], np.float32)
     dst = cv2.perspectiveTransform(src[None], A)[0]
-    dst = dst + np.float32(vp["perspective_jitter"]) * vp["perspective"] * state.diameter * s
+    dst = dst + np.asarray(vp["perspective_jitter"], np.float32) * vp["perspective"] * state.diameter * s
     return cv2.getPerspectiveTransform(src, dst.astype(np.float32))
 
 
@@ -647,7 +647,7 @@ def render_view(state: ArtifactState, vp: dict[str, Any]) -> tuple[np.ndarray, d
     sh = vp["shadow"]
     shadow = cv2.GaussianBlur(alpha, (0, 0), sh["blur"])
     dx, dy = -math.cos(az) * sh["distance"], -math.sin(az) * sh["distance"]
-    shadow = cv2.warpAffine(shadow, np.float32([[1, 0, dx], [0, 1, dy]]), (W, H))
+    shadow = cv2.warpAffine(shadow, np.asarray([[1, 0, dx], [0, 1, dy]], np.float32), (W, H))
     bg = bg * (1 - sh["darkness"] * shadow[..., None])
     img = bg * (1 - alpha[..., None]) + warped * alpha[..., None]
 
@@ -669,7 +669,7 @@ def render_view(state: ArtifactState, vp: dict[str, Any]) -> tuple[np.ndarray, d
 
     mean = img.mean()
     img = (img - mean) * vp["contrast"] + mean
-    img = img * vp["exposure"] * np.float32(vp["white_balance"])[None, None, :]
+    img = img * vp["exposure"] * np.asarray(vp["white_balance"], np.float32)[None, None, :]
     yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
     r2 = ((xx / W - 0.5) ** 2 + (yy / H - 0.5) ** 2) * 2
     img = img * (1 - vp["vignette"] * r2)[..., None]
@@ -682,7 +682,7 @@ def render_view(state: ArtifactState, vp: dict[str, Any]) -> tuple[np.ndarray, d
         kernel[k // 2, :] = 1
         rot = cv2.getRotationMatrix2D((k / 2 - 0.5, k / 2 - 0.5), blur["angle_degrees"], 1.0)
         kernel = cv2.warpAffine(kernel, rot, (k, k))
-        img = cv2.filter2D(img, -1, kernel / max(kernel.sum(), 1e-6))
+        img = cv2.filter2D(img, -1, (kernel / max(kernel.sum(), 1e-6)).astype(np.float32))
     if vp["noise_sigma"] > 0:
         img = img + np.random.default_rng(vp["noise_seed"]).normal(0, vp["noise_sigma"] / 255, img.shape).astype(np.float32)
     out = np.clip(np.round(img * 255), 0, 255).astype(np.uint8)

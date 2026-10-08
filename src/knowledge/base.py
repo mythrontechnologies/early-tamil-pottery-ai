@@ -58,7 +58,7 @@ class KnowledgeBase:
         ref = self.references.get(ref_id)
         required = load_config().get("integrity", {}).get("min_verification_for_evidence",
                                                           "verified_against_source")
-        return bool(ref) and ref.get("verification_status") == required
+        return ref is not None and ref.get("verification_status") == required
 
     def of_kind(self, kind: str) -> list[dict[str, Any]]:
         return [e for i, e in self.entries.items() if self.kinds[i] == kind]

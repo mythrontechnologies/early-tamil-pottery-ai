@@ -99,8 +99,8 @@ def square_crop(gray: np.ndarray, center: tuple[float, float], u: np.ndarray, v:
     u, v = u / (np.linalg.norm(u) + 1e-9), v / (np.linalg.norm(v) + 1e-9)
     c = np.asarray(center, np.float32)
     h = side / 2
-    src = np.float32([c - h * u - h * v, c + h * u - h * v, c + h * u + h * v, c - h * u + h * v])
-    dst = np.float32([[0, 0], [out, 0], [out, out], [0, out]])
+    src = np.asarray([c - h * u - h * v, c + h * u - h * v, c + h * u + h * v, c - h * u + h * v], np.float32)
+    dst = np.asarray([[0, 0], [out, 0], [out, out], [0, out]], np.float32)
     return cv2.warpPerspective(gray, cv2.getPerspectiveTransform(src, dst), (out, out), flags=cv2.INTER_LINEAR,
                                borderMode=cv2.BORDER_REPLICATE)
 
@@ -108,7 +108,7 @@ def square_crop(gray: np.ndarray, center: tuple[float, float], u: np.ndarray, v:
 def quad_crop(gray: np.ndarray, quad_norm: list[list[float]], margin: float = 0.12) -> np.ndarray:
     """Aspect-preserving, rotation-corrected crop of a ground-truth glyph quad (TL, TR, BR, BL)."""
     H, W = gray.shape
-    q = np.asarray(quad_norm, np.float32) * np.float32([W, H])
+    q = np.asarray(quad_norm, np.float32) * np.asarray([W, H], np.float32)
     u, v = q[1] - q[0], q[3] - q[0]
     side = max(np.linalg.norm(u), np.linalg.norm(v)) * (1 + 2 * margin)
     return square_crop(gray, tuple(q.mean(axis=0)), u, v, side)
@@ -141,9 +141,9 @@ class GlyphNet(nn.Module):
 
 def _augment(crop: np.ndarray, rng: np.random.Generator) -> np.ndarray:
     c = GLYPH_PX / 2
-    m = cv2.getRotationMatrix2D((c, c), rng.uniform(-7, 7), rng.uniform(0.82, 1.2))
+    m = np.asarray(cv2.getRotationMatrix2D((c, c), rng.uniform(-7, 7), rng.uniform(0.82, 1.2)), np.float64)
     m[:, 2] += rng.uniform(-2.5, 2.5, 2)
-    out = cv2.warpAffine(crop, m, (GLYPH_PX, GLYPH_PX), borderMode=cv2.BORDER_REPLICATE).astype(np.float32)
+    out: np.ndarray = cv2.warpAffine(crop, m, (GLYPH_PX, GLYPH_PX), borderMode=cv2.BORDER_REPLICATE).astype(np.float32)
     out = (out - out.mean()) * rng.uniform(0.7, 1.3) + out.mean() + rng.uniform(-20, 20)
     if rng.random() < 0.3:
         out = cv2.GaussianBlur(out, (0, 0), rng.uniform(0.4, 1.0))
@@ -323,7 +323,8 @@ def _row_target(record: dict[str, Any], W: int, H: int, k: float, ox: int, oy: i
     mask = np.zeros((out, out), np.float32)
     quads = [g["quad"] for g in record["synthetic_regions"] if g["kind"] == "glyph"]
     if quads:
-        pts = np.asarray(quads, np.float32).reshape(-1, 2) * np.float32([W, H]) * k + np.float32([ox, oy])
+        pts = (np.asarray(quads, np.float32).reshape(-1, 2) * np.asarray([W, H], np.float32) * k
+               + np.asarray([ox, oy], np.float32))
         hull = cv2.convexHull((pts / 4).astype(np.float32))
         cv2.fillPoly(mask, [np.round(hull * 4).astype(np.int32)], 1.0, shift=2)
     return mask
@@ -659,7 +660,7 @@ def run_benchmark(*, root: Path | str | None = None, epochs: int = 20, seed: int
                 fn += 1
                 fp += 1 if det else 0
             if name == "learned":
-                hyp: list[list[str]] = []
+                hyp = []
                 if det:
                     x, y, w, h = (round(v) for v in det.box)
                     hyp, _ = read_row(net, enhanced_gray(rgb[y:y + h, x:x + w]))

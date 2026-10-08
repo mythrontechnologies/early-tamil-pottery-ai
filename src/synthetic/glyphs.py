@@ -114,8 +114,8 @@ def motif_strokes(name: str, rng: np.random.Generator) -> list[list[Point]]:
         pts = rng.uniform(0.1, 0.9, size=(int(rng.integers(6, 12)), 2))
         fine = []
         for i in range(len(pts) - 1):
-            for t in np.linspace(0, 1, 6, endpoint=False):
-                fine.append((float(pts[i, 0] * (1 - t) + pts[i + 1, 0] * t), float(pts[i, 1] * (1 - t) + pts[i + 1, 1] * t)))
+            for f in np.linspace(0, 1, 6, endpoint=False):
+                fine.append((float(pts[i, 0] * (1 - f) + pts[i + 1, 0] * f), float(pts[i, 1] * (1 - f) + pts[i + 1, 1] * f)))
         fine.append((float(pts[-1, 0]), float(pts[-1, 1])))
         return [fine]
     raise ValueError(f"unknown motif {name!r}")

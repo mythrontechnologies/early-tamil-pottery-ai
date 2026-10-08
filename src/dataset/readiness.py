@@ -215,7 +215,7 @@ def evaluate(
         (f"{_relative(records_path)} is not data/metadata/records.jsonl"
          + (" (permitted for testing only)" if permit_noncanonical_source else "")),
     )]
-    base = dict(
+    base: dict[str, Any] = dict(
         records_path=_relative(records_path),
         data_root=_relative(data_root),
         source_is_canonical=canonical,
@@ -319,7 +319,7 @@ def evaluate(
         "k-fold and report it, or acquire more artifacts)" if below
         else f"all classes have >= {required} artifacts"))
     gates.append(Gate.make("G11", not manifest_problem,
-                           manifest_problem or f"{_relative(manifest_file)} verified"))
+                           manifest_problem or f"{_relative(manifest_file) if manifest_file else '-'} verified"))
 
     return finish(dict(
         research_data_present=canonical and bool(raw) and images > 0,

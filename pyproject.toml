@@ -32,3 +32,12 @@ ignore = [
 "tests/*" = ["S", "B011", "B017"]
 "app/*" = ["E402"]        # the app puts the repository root on sys.path before importing src
 "scripts/*" = ["E402"]
+
+[tool.mypy]
+# Milestone 11: static type checking, clean across src/, app/ and scripts/ (python -m mypy).
+python_version = "3.13"
+files = ["src", "app", "scripts"]
+ignore_missing_imports = true      # torchvision / cv2 / streamlit ship partial or no stubs
+explicit_package_bases = true
+warn_redundant_casts = true
+warn_unused_ignores = true

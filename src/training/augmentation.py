@@ -63,10 +63,10 @@ class ImageGeometry:
         norm = pre.get("normalization", {})
         return cls(
             size=int(size or pre.get("target_size", 224)),
-            pad_color=tuple(pre.get("pad_color", (0, 0, 0))),  # type: ignore[arg-type]
+            pad_color=tuple(pre.get("pad_color", (0, 0, 0))),
             resample=str(pre.get("resample", "lanczos")),
-            mean=tuple(norm.get("mean", (0.485, 0.456, 0.406))),  # type: ignore[arg-type]
-            std=tuple(norm.get("std", (0.229, 0.224, 0.225))),  # type: ignore[arg-type]
+            mean=tuple(norm.get("mean", (0.485, 0.456, 0.406))),
+            std=tuple(norm.get("std", (0.229, 0.224, 0.225))),
         )
 
 
@@ -99,7 +99,7 @@ class SmallRotation:
         if self.max_degrees <= 0:
             return image
         angle = _uniform(-self.max_degrees, self.max_degrees)
-        return image.rotate(angle, resample=Image.BILINEAR, expand=True, fillcolor=self.fill)
+        return image.rotate(angle, resample=Image.Resampling.BILINEAR, expand=True, fillcolor=self.fill)
 
 
 class SafeScaleShift:
@@ -118,7 +118,7 @@ class SafeScaleShift:
         new = max(1, min(size, round(size * scale)))
         if new == size:
             return image
-        shrunk = image.resize((new, new), Image.BILINEAR)
+        shrunk = image.resize((new, new), Image.Resampling.BILINEAR)
         margin = size - new
         if self.translate:
             ox, oy = round(_uniform(0, margin)), round(_uniform(0, margin))

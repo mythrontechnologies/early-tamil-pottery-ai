@@ -49,6 +49,8 @@ class InscriptionInput:
     interpretation_type: Attributed = Attributed("not_applicable")
     translation: Attributed = Attributed("not_available")
     meaning: str = "not_available"
+    #: Annotation schema 1.2.0: complete | partial | fragmentary | illegible | unknown | not_applicable
+    reading_completeness: str = "unknown"
 
 
 @dataclass(frozen=True)

@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://early-tamil-pottery-ai/schema/source_precheck.schema.json",
+  "title": "Early Tamil Pottery AI - Software source pre-check registry",
+  "description": "Where a SOFTWARE AGENT found (or did not find) each claim in a copy of the cited publication that the project may consult (Milestone 11). A pre-check is NOT verification and never changes a reference's verification status: only a named human, through the verification registry (knowledge/verification/reference_verifications.jsonl, rules V1-V10), can verify. The pre-check exists so that the human verifier knows exactly which copy, page and passage to open. Rules PC1-PC8: src/knowledge/precheck.py.",
+  "precheck_schema_version": "1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["precheck_schema_version", "checked_by", "agent", "effect", "statement", "sources", "bibliographic_checks", "claim_checks"],
+  "$defs": {
+    "text": { "type": "string", "minLength": 1 },
+    "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+    "ref_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$" },
+    "source": {
+      "type": "object", "additionalProperties": false,
+      "required": ["source_id", "ref_id", "description", "access", "url", "holder", "accessed"],
+      "properties": {
+        "source_id": { "type": "string", "pattern": "^SRC-[A-Z0-9-]{2,40}$" },
+        "ref_id": { "$ref": "#/$defs/ref_id" },
+        "description": { "$ref": "#/$defs/text" },
+        "access": {
+          "description": "catalogue_record and publisher_table_of_contents support bibliographic details only; claims need the publication itself.",
+          "enum": ["open_access_publication", "authorised_digital_copy", "catalogue_record", "publisher_table_of_contents"]
+        },
+        "url": { "type": "string", "pattern": "^https://" },
+        "record_url": { "type": "string", "pattern": "^https://" },
+        "holder": { "$ref": "#/$defs/text" },
+        "accessed": { "$ref": "#/$defs/date" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "size_bytes": { "type": "integer", "minimum": 1 },
+        "pages": { "type": "integer", "minimum": 1 },
+        "page_mapping": { "$ref": "#/$defs/text" },
+        "rights": { "$ref": "#/$defs/text" },
+        "notes": { "$ref": "#/$defs/text" }
+      }
+    },
+    "bibliographic_check": {
+      "type": "object", "additionalProperties": false,
+      "required": ["check_id", "ref_id", "source_ids", "check_date", "finding", "confirmed", "notes"],
+      "properties": {
+        "check_id": { "type": "string", "pattern": "^BC-[A-Z0-9-]{2,40}$" },
+        "ref_id": { "$ref": "#/$defs/ref_id" },
+        "work": { "description": "For a candidate work of an unresolved placeholder: the work checked.", "$ref": "#/$defs/text" },
+        "source_ids": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "check_date": { "$ref": "#/$defs/date" },
+        "finding": { "enum": ["matches_knowledge_base", "differs_from_knowledge_base", "candidate_work_exists", "not_found"] },
+        "confirmed": { "description": "Bibliographic fields found as the knowledge base records them.", "type": "array", "items": { "type": "string" } },
+        "differences": { "$ref": "#/$defs/text" },
+        "notes": { "$ref": "#/$defs/text" }
+      }
+    },
+    "claim_check": {
+      "type": "object", "additionalProperties": false,
+      "required": ["precheck_id", "ref_id", "claim_id", "source_id", "check_date", "finding", "notes"],
+      "properties": {
+        "precheck_id": { "type": "string", "pattern": "^PC-[A-Z0-9-]{2,40}$" },
+        "ref_id": { "$ref": "#/$defs/ref_id" },
+        "claim_id": { "$ref": "#/$defs/text" },
+        "source_id": { "type": "string" },
+        "check_date": { "$ref": "#/$defs/date" },
+        "finding": {
+          "description": "found_as_stated: the passage says what the claim says. found_with_differences: the passage exists but differs (see differences). partially_found: the claim cites several works; the part attributable to this one was found. not_found: the copy was searched and the claim was not found. source_not_accessible: no copy the project may consult was available.",
+          "enum": ["found_as_stated", "found_with_differences", "partially_found", "not_found", "source_not_accessible"]
+        },
+        "locator_found": { "$ref": "#/$defs/text" },
+        "excerpt": { "description": "Short quotation (at most 400 characters) so the human verifier can find the passage.", "type": "string", "minLength": 1, "maxLength": 400 },
+        "differences": { "$ref": "#/$defs/text" },
+        "notes": { "$ref": "#/$defs/text" }
+      }
+    }
+  },
+  "properties": {
+    "precheck_schema_version": { "type": "string", "pattern": "^1\\.[0-9]+\\.[0-9]+$" },
+    "checked_by": { "description": "Deliberately only one value: a pre-check is always software output.", "const": "software_agent" },
+    "agent": { "$ref": "#/$defs/text" },
+    "effect": { "description": "A pre-check changes nothing.", "const": "none" },
+    "statement": { "$ref": "#/$defs/text" },
+    "sources": { "type": "array", "items": { "$ref": "#/$defs/source" } },
+    "bibliographic_checks": { "type": "array", "items": { "$ref": "#/$defs/bibliographic_check" } },
+    "claim_checks": { "type": "array", "items": { "$ref": "#/$defs/claim_check" } }
+  }
+}

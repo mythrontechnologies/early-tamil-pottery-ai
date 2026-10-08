@@ -1,6 +1,11 @@
 # Knowledge base: published readings of pottery inscriptions, transcribed VERBATIM as
 # printed in sources the project read. These are reference points for future annotation
 # and benchmarking. They are NOT linked to any image in this project, and NOT labels.
+#
+# Locators were re-read on 2026-10-08 against the publisher's open-access copy of S03 and the
+# Tamil Digital Library copy of S01 (software pre-checks PC-S03-*, PC-S01-*;
+# knowledge/verification/source_prechecks.json). That is a TRANSCRIPTION check, not a
+# verification: every entry stays transcribed_unverified until a named human checks it.
 
 kind: inscriptions
 entries:
@@ -10,6 +15,7 @@ entries:
     context_as_printed: "Layer 4, depth 2.16 m (ASI Keeladi, Locality II)"
     interpretation_as_printed: "personal name (the article describes the inscriptions as names of individuals)"
     reference_ids: [S03]
+    locator: "p. 40 (Locality II, Layer 4); p. 63"
     verification_status: transcribed_unverified
   - id: s03_keeladi_eravathan
     site: keezhadi
@@ -17,16 +23,18 @@ entries:
     context_as_printed: "Layer 5, depth 2.36 m; red ware lid (ASI Keeladi, Locality II)"
     interpretation_as_printed: "personal name"
     reference_ids: [S03]
-    locator: "Fig. 16"
+    locator: "p. 40 (Locality II, Layer 5); p. 63, Fig. 16"
     verification_status: transcribed_unverified
   - id: s03_keeladi_fig17
     site: keezhadi
     reading_as_printed: "ce n ta n a va (ta) thi"
-    context_as_printed: "black-and-red ware dish (ASI Keeladi)"
-    interpretation_as_printed: "not stated"
+    alternative_readings_as_printed: ["centan avathi (p. 54)", "santhan avathi (p. 63)"]
+    context_as_printed: "intact black and red ware dish, in situ inside the tank-like structure at about 1.00 m (ASI Keeladi)"
+    interpretation_as_printed: "the name of an individual, probably its owner (p. 54); listed among names of individuals (p. 63)"
     reference_ids: [S03]
-    locator: "Fig. 17"
+    locator: "p. 62, Fig. 17 (caption); p. 54; p. 63"
     verification_status: transcribed_unverified
+    project_notes: "Corrected 2026-10-08 (pre-check PC-S03-05): the interpretation was previously transcribed as 'not stated'; the article states it on p. 54 and p. 63. The reading is printed three ways in the article; all three are kept, none is chosen."
   - id: s01_kodumanal_visaki
     site: kodumanal
     reading_as_printed: "visāki"
@@ -34,5 +42,5 @@ entries:
     context_as_printed: "from a transepted cist"
     interpretation_as_printed: "not stated"
     reference_ids: [S01]
-    locator: "Vol. I, ch. 2"
+    locator: "Vol. I, ch. 2, p. 80"
     verification_status: transcribed_unverified

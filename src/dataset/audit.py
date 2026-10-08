@@ -164,7 +164,7 @@ def audit(
 
     artifacts: dict[str, set[str]] = {}
     hashes: set[str] = set()
-    per_artifact = Counter()
+    per_artifact: Counter[str] = Counter()
 
     def tally(field: str) -> dict[str, int]:
         c = Counter(
@@ -214,7 +214,7 @@ def audit(
 
     # An artifact counts once per class. Mixed-class artifacts count under each,
     # which is visible rather than hidden.
-    artifact_classes = Counter()
+    artifact_classes: Counter[str] = Counter()
     for classes in artifacts.values():
         for cls in classes or {"<absent>"}:
             artifact_classes[cls] += 1

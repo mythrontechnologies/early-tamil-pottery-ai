@@ -20,6 +20,12 @@ stays independent), the form grouped as OBJECT / INSCRIPTION / MEANING / DATING 
 OPTIONAL read-only AI-draft layer (off by default, always shown under its warning; it is
 never saved, and rule N15 refuses it under a human provenance tier).
 
+Milestone 11: a "Queue" tab (every research artifact, its state and the next human step), glyph
+(character) regions with their sign index and reading, reading completeness, expert ADJUDICATION
+of disagreeing annotations (the resolved annotations stay; rule N18), a field-level disagreement
+table, and a legend that keeps the five kinds of statement apart: source metadata, project
+annotation, expert annotation, AI draft, promoted ground truth.
+
 The annotation store path can be overridden with ETPAI_ANNOTATIONS_PATH (used by tests).
 """
 
@@ -28,6 +34,7 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
+from typing import cast
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ui.boot import boot
@@ -44,10 +51,11 @@ from src.annotation.agreement import compute_agreement, render_agreement
 from src.annotation.ai_draft import AI_DRAFT_BANNER, AI_DRAFT_WARNING, load_ai_draft
 from src.annotation.form import build_annotation, crop_view
 from src.annotation.model import ANNOTATIONS_PATH, load_annotation_schema
-from src.annotation.pilot import load_pilot, load_review_flags, pilot_status, render_pilot
+from src.annotation.pilot import Pilot, load_pilot, load_review_flags, pilot_status, render_pilot
 from src.annotation.quality import quality_report
 from src.annotation.resolve import resolve_artifact
 from src.annotation.store import AnnotationRejected, AnnotationStore
+from src.annotation.worksheet import annotation_queue, disagreement_report
 from src.dataset.convert import read_jsonl
 from src.dataset.schema import RESEARCH_DATA_ROOT, RESEARCH_RECORDS_PATH
 from src.knowledge.verification import effective_statuses, key_references
@@ -102,8 +110,13 @@ with st.sidebar:
                    "expert_annotation": "Expert (qualified archaeologist / epigraphist)"}
     provenance_type = st.radio("I am recording", list(prov_labels), format_func=prov_labels.get)
     qualification = ""
+    adjudicating = False
     if provenance_type == "expert_annotation":
         qualification = st.text_input("Qualification and affiliation (required for experts)")
+        adjudicating = st.checkbox("I am ADJUDICATING disagreeing annotations", value=False,
+                                   help="Read the other annotations of this artifact, then record your own "
+                                        "decision. The annotations you resolve are kept and stay visible.")
+    pilot: Pilot | None
     try:
         pilot = load_pilot()
     except ValueError:
@@ -123,7 +136,7 @@ image_ids = [r["image_id"] for r in recs]
 st.session_state.setdefault("regions", {})
 regions: list[dict] = st.session_state["regions"].setdefault(artifact_id, [])
 
-tab_annotate, tab_review, tab_pilot = st.tabs(["Annotate", "Review", "Pilot & agreement"])
+tab_annotate, tab_review, tab_pilot, tab_queue = st.tabs(["Annotate", "Review", "Pilot & agreement", "Queue"])
 
 review_flags = load_review_flags().get(artifact_id, [])
 
@@ -175,7 +188,7 @@ with tab_annotate:
         if not loaded.ok:
             st.error("Image could not be loaded: " + "; ".join(str(i) for i in loaded.errors))
             st.stop()
-        image = to_rgb(apply_exif_orientation(loaded.image))
+        image = to_rgb(apply_exif_orientation(cast(Image.Image, loaded.image)))   # st.stop() above if absent
         display = image.copy()
         display.thumbnail((1600, 1600))
         pending = [{**r, "source": "user_supplied"} for r in regions if r["image_id"] == image_id]
@@ -195,7 +208,12 @@ with tab_annotate:
             with z1:
                 zx = st.slider("x range", 0.0, 1.0, (0.0, 1.0), 0.01, key="zx")
                 zy = st.slider("y range", 0.0, 1.0, (0.0, 1.0), 0.01, key="zy")
-                rlabel = st.selectbox("Region label", D["region"]["properties"]["label"]["enum"])
+                rlabel = st.selectbox("Region label", D["region"]["properties"]["label"]["enum"],
+                                      help="'character' marks ONE sign inside an inscription.")
+                sign_index, sign_reading = None, ""
+                if rlabel == "character":
+                    sign_index = st.number_input("Sign position in the reading (1 = first)", 1, 200, 1)
+                    sign_reading = st.text_input("Sign as read ('?' if it cannot be read; never guess)")
                 rnote = st.text_input("Region note (optional)")
             with z2:
                 st.image(crop_view(image, zx[0], zx[1], zy[0], zy[1]), caption="zoom window (full resolution)")
@@ -205,6 +223,10 @@ with tab_annotate:
                           "height": round(max(zy[1] - zy[0], 0.0001), 4), "label": rlabel}
                 if rnote.strip():
                     region["note"] = rnote.strip()
+                if rlabel == "character":
+                    region["sign_index"] = int(sign_index or 1)
+                    if sign_reading.strip():
+                        region["sign_reading"] = sign_reading.strip()
                 regions.append(region)
             if regions:
                 st.dataframe([{"region": f"R{i}", **r} for i, r in enumerate(regions, 1)], hide_index=True)
@@ -259,6 +281,11 @@ with tab_annotate:
                                                   index=enum("inscription", "transliteration_scheme").index("not_available"))
             reading_confidence = r2.selectbox("Reading confidence", CONF, index=CONF.index("not_applicable"))
             reading_source = r3.text_input("Reading source (ref_id or 'this_annotator')", placeholder="not_available")
+            RC = enum("inscription", "reading_completeness")
+            reading_completeness = st.radio(
+                "Reading completeness", RC, index=RC.index("unknown"), horizontal=True,
+                help="partial = some signs read, others lost or doubtful (mark them in the reading); illegible = "
+                     "marks present but nothing can be read (give no reading). Unreadable signs are never invented.")
             st.caption("Alternative readings: one row each, with who proposed it (ref_id or 'this_annotator'). "
                        "For a published reading, cite its ref_id as the source.")
             alt = st.data_editor([{"reading": "", "source": "", "note": ""}], num_rows="dynamic", key="alt")
@@ -321,12 +348,35 @@ with tab_annotate:
                 st.markdown(f"`{iid}`")
                 cols = st.columns(3)
                 u = {"image_id": iid}
-                for col, f in zip(cols * 2, ("sherd_visible", "inscription_visible", "characters_readable",
-                                             "morphology_visible", "usable_for_annotation")):
-                    u[f] = col.selectbox(f.replace("_", " "), YNU, index=YNU.index("unknown"), key=f"{iid}-{f}")
+                for col, fname in zip(cols * 2, ("sherd_visible", "inscription_visible", "characters_readable",
+                                                 "morphology_visible", "usable_for_annotation")):
+                    u[fname] = col.selectbox(fname.replace("_", " "), YNU, index=YNU.index("unknown"),
+                                             key=f"{iid}-{fname}")
                 usability.append(u)
 
             lab_section(6, "Review", "uncertainty, notes, review state")
+            adjudication = None
+            if adjudicating:
+                others = [a for a in store.current(artifact_id)
+                          if a["provenance_type"] != "ai_prediction" and a["annotator"]["annotator_id"] != annotator_id.strip()]
+                st.warning("ADJUDICATION: you are resolving the annotations selected below. They are kept; your "
+                           "record states your decision and why. AI predictions can never be selected.")
+                picked = st.multiselect(
+                    "Annotations you have read and are resolving (at least two)",
+                    [a["annotation_id"] for a in others],
+                    default=[a["annotation_id"] for a in others],
+                    format_func=lambda i: next(f"{i} · {a['annotator']['annotator_id']} · {a['provenance_type']} · "
+                                               f"script {a['inscription']['script_type']}" for a in others
+                                               if a["annotation_id"] == i))
+                AO = P["adjudication"]["properties"]["outcome"]["enum"]
+                outcome = st.radio("Outcome", AO, horizontal=True,
+                                   help="insufficient_evidence: the photographs cannot settle it; the script is then "
+                                        "'uncertain' (or 'unknown'), never a guess.")
+                FD = P["adjudication"]["properties"]["fields_decided"]["items"]["enum"]
+                fields_decided = st.multiselect("Fields you decided", FD, default=["script_type"])
+                basis = st.text_area("Basis: what you examined and why you prefer one view (required)")
+                adjudication = {"resolves": picked, "outcome": outcome, "basis": basis,
+                                "fields_decided": fields_decided}
             uncertainty_notes = st.text_area("Uncertainty notes")
             notes = st.text_area("Other notes")
             review_state = st.selectbox("Review state", P["review_state"]["enum"],
@@ -349,6 +399,7 @@ with tab_annotate:
                     reading=reading, transliteration=transliteration,
                     transliteration_scheme=transliteration_scheme, reading_confidence=reading_confidence,
                     reading_source=reading_source, alternative_readings=[r for r in alt if r.get("reading")],
+                    reading_completeness=reading_completeness, adjudication=adjudication,
                     interpretation_type=interpretation_type, translation=translation, meaning=meaning,
                     translation_confidence=translation_confidence, translation_source=translation_source,
                     linguistic_features=[r for r in ling if r.get("observation")],
@@ -401,6 +452,17 @@ with tab_annotate, st.expander("Reference verification status (read-only)"):
                        "verified_claims": len(s.verified_claims), "citation": s.citation}
                       for rid, s in effective_statuses().items()])
 
+with tab_queue:
+    st.caption("Every research artifact, its annotation state and the next HUMAN step. Nothing here is a label. "
+               "Worksheets for offline work: python -m src.annotation handoff --all; import with "
+               "python -m src.annotation import-worksheet FILE --role project|expert (dry run first).")
+    q = annotation_queue(records, store.current(), pilot.artifacts if pilot else (),
+                         pilot.required_tiers if pilot else ("project_annotation", "expert_annotation"),
+                         load_review_flags())
+    st.dataframe([{"artifact": r.artifact_id, "pilot": r.in_pilot, "photos": len(r.image_ids), "status": r.status,
+                   "annotations": ", ".join(f"{k}={v}" for k, v in sorted(r.tiers.items())) or "none",
+                   "review flags": len(r.review_flags), "next step": r.next_step} for r in q], hide_index=True)
+
 with tab_pilot:
     if pilot is None:
         st.info("No annotation pilot is configured (configs/project.yaml annotation_pilot).")
@@ -414,15 +476,35 @@ with tab_pilot:
 with tab_review:
     current = store.current(artifact_id)
     res = resolve_artifact(artifact_id, current)
+    promoted = any(r.get("label_source") == "expert_annotation" for r in recs)
+    st.html('<div class="etp-title-bar">'
+            + badge("neutral", "Source metadata: what the uploader / publisher said")
+            + badge("project", "Project annotation: provisional")
+            + badge("expert", "Expert annotation")
+            + badge("ai", "AI draft: never evidence")
+            + badge("expert" if promoted else "waiting",
+                    "Promoted ground truth" if promoted else "Not promoted: no ground truth yet")
+            + "</div>")
     st.metric("Status", res.status)
-    st.write(f"Ground-truth eligible: **{res.ground_truth_eligible}**")
+    st.write(f"Ground-truth eligible: **{res.ground_truth_eligible}**"
+             + (f" · adjudication {res.adjudication_id}" if res.adjudication_id else ""))
+    for n in res.notes:
+        st.info(n)
     if res.disagreements:
-        st.warning("Annotators disagree:")
-        st.json(res.disagreements)
+        st.warning("Annotators disagree (kept, never averaged; an expert may adjudicate):")
+        rep = disagreement_report([artifact_id], current)
+        if rep:
+            st.dataframe([{"field": k, "state": f["state"], **{who: str(v) for who, v in f["values"].items()}}
+                          for k, f in rep[0]["fields"].items() if f["state"] in ("agree", "disagree")],
+                         hide_index=True)
+    TIER_TEXT = {"project_annotation": "PROJECT ANNOTATION (provisional)", "expert_annotation": "EXPERT ANNOTATION",
+                 "source_information": "SOURCE INFORMATION (transcribed, unverified)",
+                 "ai_prediction": "AI PREDICTION — NOT EVIDENCE"}
     for a in store.for_artifact(artifact_id):
         superseded = a["annotation_id"] not in {c["annotation_id"] for c in current}
-        with st.expander(f"{a['annotation_id']} - {a['annotator']['annotator_id']} "
-                         f"({a['provenance_type']}, {a['review_state']})" + (" [superseded]" if superseded else "")):
+        kind = "ADJUDICATION · " if a.get("adjudication") else ""
+        with st.expander(f"{kind}{TIER_TEXT.get(a['provenance_type'], a['provenance_type'])} · {a['annotation_id']} - "
+                         f"{a['annotator']['annotator_id']} ({a['review_state']})" + (" [superseded]" if superseded else "")):
             st.json(a)
     st.subheader("Reasoning output")
     st.text(render_text(analyze_artifact(build_inputs(artifact_id, store=store, records=records))))

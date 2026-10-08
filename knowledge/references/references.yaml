@@ -15,7 +15,7 @@ entries:
   - id: R1
     citation: "Mahadevan, Iravatham. Early Tamil Epigraphy: From the Earliest Times to the Sixth Century A.D. Harvard Oriental Series 62. Chennai: Cre-A / Cambridge MA: Dept. of Sanskrit and Indian Studies, Harvard University, 2003."
     verification_status: bibliographic_only
-    project_notes: "Contains a pottery-inscription section (§1.13). 2nd revised ed.: CICT 2014 (ISBN 978-93-81744-14-7). Only an unauthorised online copy was found; not to be used (DATA_SOURCE_AUDIT S06)."
+    project_notes: "Contains a pottery-inscription section (§1.13). 2nd revised ed.: CICT 2014 (ISBN 978-93-81744-14-7). Only an unauthorised online copy was found; not to be used (DATA_SOURCE_AUDIT S06). Bibliographic details match the BnF catalogue record (software pre-check BC-R1, 2026-10-08; ISBN 0-674-01227-5, xxxix + 719 pp.). Content not consulted: needs a library copy."
     audit_ref: "docs/DATA_SOURCE_AUDIT.md#S06"
   - id: R2
     citation: "Salomon, Richard. Indian Epigraphy. Oxford University Press, 1998."
@@ -33,11 +33,14 @@ entries:
   - id: S01
     citation: "Rajan, K. and Sivanantham, R. Inscribed Potsherds of Tamil Nadu: Graffiti and Tamiḻi. 2 vols. Chennai: Department of Archaeology, Government of Tamil Nadu, 2026. Publication No. 366. ISBN 978-81-977842-3-1."
     verification_status: transcribed_unverified
-    project_notes: "Read in Milestone 4 via Tamil Digital Library. © TNSDA; no reuse licence for its images."
+    project_notes: "Read in Milestone 4 via Tamil Digital Library. © TNSDA; no reuse licence for its images. Imprint (Vol. I p. ii) confirms First Edition 2026, Publication No. 366, ISBN 978-81-977842-3-1 (software pre-check BC-S01, 2026-10-08)."
+    consulted_copy: "https://tamildigitallibrary.in/Marc-Articles/062969_Inscribed_Potsherds_of_Tamil_Nadu_Vol_1 ; https://tamildigitallibrary.in/Marc-Articles/062968_Inscribed_Potsherds_of_Tamil_Nadu_Vol_2 (authorised digital copy, Tamil Virtual Academy)"
     audit_ref: "docs/DATA_SOURCE_AUDIT.md#S01"
   - id: S03
     citation: "Ramakrishna, K. Amarnath, Swain, N.K., Rajesh, M. and Veeraraghavan, N. 'Excavations at Keeladi, Sivaganga District, Tamil Nadu (2014-15 and 2015-16).' Heritage: Journal of Multidisciplinary Studies in Archaeology 6 (2018): 30-72."
     verification_status: transcribed_unverified
+    project_notes: "Bibliographic details match the publisher's own table of contents and the article's running heads (software pre-check BC-S03, 2026-10-08). The publisher's Archive page lists vol. 6 under 2019; the article and the volume record say 2018. ISSN 2347-5463."
+    consulted_copy: "https://heritageuniversityofkerala.com/JournalPDF/Volume6/2.pdf (open-access PDF published by the journal, Department of Archaeology, University of Kerala)"
     audit_ref: "docs/DATA_SOURCE_AUDIT.md#S03"
   - id: R7
     citation: "Wheeler, R.E.M., Ghosh, A. and Krishna Deva. 'Arikamedu: An Indo-Roman Trading Station on the East Coast of India.' Ancient India 2 (1946)."
@@ -77,6 +80,6 @@ entries:
     verification_status: unverified
     resolution: unresolved
     candidate_works:
-      - "Falk, H. 2014. 'Owners' graffiti on pottery from Tissamaharama.' Zeitschrift für Archäologie Außereuropäischer Kulturen 6: 45-94 - identified from a SECONDARY source only (Wikipedia 'Tamil-Brahmi', note 26, consulted 2026-09-24); not read"
+      - "Falk, H. 2014. 'Owners' graffiti on pottery from Tissamaharama.' Zeitschrift für Archäologie Außereuropäischer Kulturen 6: 45-94 - identified from a SECONDARY source (Wikipedia 'Tamil-Brahmi', note 26, consulted 2026-09-24); existence, author, title, volume, year and first page (45) confirmed in the publisher's (DAI) issue contents on 2026-10-08 (pre-check BC-R5-CANDIDATE); not read"
     project_notes: "Whether R5 means this work, and whether it states the 'association not secure' objection as position D puts it, is not established."
     audit_ref: "docs/CHRONOLOGICAL_SCOPE.md#6"

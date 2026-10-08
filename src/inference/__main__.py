@@ -126,6 +126,9 @@ def cmd_synthetic(args: argparse.Namespace) -> int:
               "The synthetic pipeline runs only on images of the synthetic engineering dataset.", file=sys.stderr)
         return 3
     a = result.synthetic_analysis
+    if a is None:
+        print("error: the synthetic pipeline returned no analysis", file=sys.stderr)
+        return 1
     print(json.dumps(a, indent=2, ensure_ascii=False) if args.json else render_demo(a))
     return 0
 

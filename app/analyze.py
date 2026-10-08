@@ -68,7 +68,7 @@ def _analyse(blob: bytes, artifact_id: str | None, regions: tuple[str, ...]) -> 
 
 @st.cache_data(show_spinner=False, max_entries=8)
 def _images(blob: bytes) -> tuple[Image.Image, Image.Image]:
-    img = Image.open(io.BytesIO(blob))
+    img: Image.Image = Image.open(io.BytesIO(blob))
     img.load()
     img = img.convert("RGB")
     small = img.copy()

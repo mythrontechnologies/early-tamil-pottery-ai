@@ -32,7 +32,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from functools import partial
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import cv2
 import numpy as np
@@ -89,7 +89,7 @@ def _region_targets(record: Any, W: int, H: int, k: float, ox: int, oy: int) -> 
     for r in inscription_regions(record):
         if r["kind"] == "glyph_row":
             continue
-        q = np.asarray(r["quad"], np.float32) * np.float32([W, H]) * k + np.float32([ox, oy])
+        q = np.asarray(r["quad"], np.float32) * np.asarray([W, H], np.float32) * k + np.asarray([ox, oy], np.float32)
         cv2.fillPoly(target[1], [np.round(q / 4 * 4).astype(np.int32)], 1.0, shift=2)
     target[1] = np.maximum(target[1], target[0])
     return target
@@ -188,7 +188,7 @@ ROW_THRESHOLD = 0.5
 
 def _components(prob: np.ndarray, threshold: float, erode: int, k: float, ox: int, oy: int, W: int, H: int,
                 kind: str) -> list[DetectedRegion]:
-    mask = (prob > threshold).astype(np.uint8)
+    mask: np.ndarray = (prob > threshold).astype(np.uint8)
     if erode:
         mask = cv2.erode(mask, np.ones((3, 3), np.uint8), iterations=erode)
     n, labels, stats, _ = cv2.connectedComponentsWithStats(mask, connectivity=8)
@@ -261,9 +261,9 @@ def segment_projection(gray: np.ndarray) -> list[Glyph]:
     for x0, y0, x1, y1, word in projection_boxes(d):
         cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
         side = max(x1 - x0, y1 - y0) * 1.5
-        g = Glyph(*_inverse(d.rot, cx, cy), side=side / 1.24, word=word)
-        g.crop = square_crop(d.gray, (cx, cy), np.array([1.0, 0]), np.array([0, 1.0]), side)
-        out.append(g)
+        glyph = Glyph(*_inverse(d.rot, cx, cy), side=side / 1.24, word=word)
+        glyph.crop = square_crop(d.gray, (cx, cy), np.array([1.0, 0]), np.array([0, 1.0]), side)
+        out.append(glyph)
     return out
 
 
@@ -288,15 +288,16 @@ def segment_components(gray: np.ndarray) -> list[Glyph]:
     groups = [g for g in groups if (g[2] - g[0]) >= 0.12 * h or (g[3] - g[1]) >= 0.3 * h]
     gaps = [b[0] - a[2] for a, b in itertools.pairwise(groups)]
     split = max(0.7 * h, 2.0 * float(np.median(gaps))) if gaps else math.inf
-    out, word = [], 0
+    out: list[Glyph] = []
+    word = 0
     for i, (x0, y0, x1, y1) in enumerate(groups):
         if i and gaps[i - 1] > split:
             word += 1
         cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
         side = max(x1 - x0, y1 - y0) * 1.5
-        g = Glyph(*_inverse(d.rot, cx, cy), side=side / 1.24, word=word)
-        g.crop = square_crop(d.gray, (cx, cy), np.array([1.0, 0]), np.array([0, 1.0]), side)
-        out.append(g)
+        glyph = Glyph(*_inverse(d.rot, cx, cy), side=side / 1.24, word=word)
+        glyph.crop = square_crop(d.gray, (cx, cy), np.array([1.0, 0]), np.array([0, 1.0]), side)
+        out.append(glyph)
     return out
 
 
@@ -316,7 +317,7 @@ class GlyphCenterNet(nn.Module):
         self.fuse = block(96 + 32, 64)
         self.heat = nn.Conv2d(64, 1, 1)
         self.size = nn.Conv2d(64, 2, 1)
-        nn.init.constant_(self.heat.bias, -2.2)
+        nn.init.constant_(cast(torch.Tensor, self.heat.bias), -2.2)
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         f1 = self.f1(x)
@@ -340,7 +341,7 @@ def glyph_targets(record: Any, W: int, H: int, box: tuple[int, int, int, int]) -
     """Ground-truth glyphs of a row in the coordinates of the crop ``box`` (x0, y0, x1, y1 in pixels)."""
     out = []
     for g in sorted((r for r in record["synthetic_regions"] if r["kind"] == "glyph"), key=lambda r: r["glyph_index"]):
-        q = np.asarray(g["quad"], np.float32) * np.float32([W, H]) - np.float32([box[0], box[1]])
+        q = np.asarray(g["quad"], np.float32) * np.asarray([W, H], np.float32) - np.asarray([box[0], box[1]], np.float32)
         u, v = q[1] - q[0], q[3] - q[0]
         out.append({"cx": float(q.mean(axis=0)[0]), "cy": float(q.mean(axis=0)[1]), "w": float(np.linalg.norm(u)),
                     "h": float(np.linalg.norm(v)), "token": g["token"], "word": g["word_index"],
@@ -410,7 +411,8 @@ def train_glyph_centers(train: list[Any], val: list[Any], *, epochs: int = 40, s
         net.train()
         order = rng.permutation(len(train_g))
         for start in range(0, len(order), 16):
-            batch = [s for i in order[start:start + 16] if (s := _center_sample(*train_g[i], rng)) is not None]
+            batch = [s for i in order[start:start + 16]
+                     if (s := _center_sample(train_g[i][0], train_g[i][1], rng)) is not None]
             if not batch:
                 continue
             x = torch.from_numpy(np.stack([_normalise(_augment_row(b[0], rng)) for b in batch])[:, None]).to(dev)
@@ -424,7 +426,10 @@ def train_glyph_centers(train: list[Any], val: list[Any], *, epochs: int = 40, s
             opt.step()
         sched.step()
         net.eval()
-        f1 = segmentation_scores(lambda g, n=net: segment_learned(n, g), val_g)["f1"]
+        def seg(g: np.ndarray, n: GlyphCenterNet = net) -> list[Glyph]:
+            return segment_learned(n, g)
+
+        f1 = segmentation_scores(seg, val_g)["f1"]
         history.append({"epoch": epoch, "val_segmentation_f1": f1})
         if log:
             log(f"  glyph-centre net epoch {epoch:>2}  val segmentation F1 {f1:.3f}")
@@ -439,7 +444,7 @@ def train_glyph_centers(train: list[Any], val: list[Any], *, epochs: int = 40, s
 
 
 def _augment_row(gray: np.ndarray, rng: np.random.Generator) -> np.ndarray:
-    out = gray.astype(np.float32)
+    out: np.ndarray = gray.astype(np.float32)
     out = (out - out.mean()) * rng.uniform(0.75, 1.3) + out.mean() + rng.uniform(-20, 20)
     if rng.random() < 0.3:
         out = cv2.GaussianBlur(out, (0, 0), rng.uniform(0.4, 1.1))
@@ -469,7 +474,7 @@ def segment_learned(net: GlyphCenterNet, gray: np.ndarray, threshold: float = 0.
         cands.append((cx, cy, w, h, float(heat_np[y, x])))
     pts = np.array([[c[0], c[1]] for c in cands], np.float32)
     if len(cands) >= 2:
-        vx, vy, _, _ = cv2.fitLine(pts, cv2.DIST_L2, 0, 0.01, 0.01).ravel()
+        vx, vy, _, _ = (float(t) for t in cv2.fitLine(pts, cv2.DIST_L2, 0, 0.01, 0.01).ravel())
         if vx < 0:
             vx, vy = -vx, -vy
         if abs(math.degrees(math.atan2(vy, vx))) > 40:      # not a plausible row direction: fall back to horizontal
@@ -511,7 +516,7 @@ def read_glyphs(glyph_net: GlyphNet, glyphs: list[Glyph]) -> tuple[list[list[str
     """Recognise segmented glyphs; returns words of codes and one model score per glyph."""
     if not glyphs:
         return [], []
-    codes, conf = classify(glyph_net, [g.crop for g in glyphs])
+    codes, conf = classify(glyph_net, [cast(np.ndarray, g.crop) for g in glyphs])
     words: list[list[str]] = [[] for _ in range(max(g.word for g in glyphs) + 1)]
     for c, g in zip(codes, glyphs):
         words[g.word].append(c)
@@ -545,9 +550,10 @@ def segmentation_scores(segment_fn: Callable[[np.ndarray], list[Glyph]], rows: l
                 tp += 1
                 used.add(bj)
         fn += len(truth) - len(used)
-    p = tp / (tp + fp) if tp + fp else 0.0
-    r = tp / (tp + fn) if tp + fn else 0.0
-    return {"precision": round(p, 4), "recall": round(r, 4), "f1": round(2 * p * r / (p + r), 4) if p + r else 0.0,
+    prec = tp / (tp + fp) if tp + fp else 0.0
+    rec = tp / (tp + fn) if tp + fn else 0.0
+    return {"precision": round(prec, 4), "recall": round(rec, 4),
+            "f1": round(2 * prec * rec / (prec + rec), 4) if prec + rec else 0.0,
             "glyph_count_accuracy": round(exact_count / max(len(rows), 1), 4), "rows": len(rows)}
 
 
@@ -646,7 +652,8 @@ def load_bundle(directory: Path | str | None = None) -> VisionBundle:
     if manifest.get("dataset_type") != DATASET_TYPE or manifest.get("marker") != MARKER:
         raise VisionModelError(f"{d} is not a synthetic vision bundle")
     models = {k: load_model(d / manifest["models"][k]["file"], k, manifest["models"][k]) for k in KINDS}
-    return VisionBundle(d, manifest, models["region_detector"], models["glyph_classifier"], models["glyph_centers"])
+    return VisionBundle(d, manifest, cast(RowNet, models["region_detector"]), cast(GlyphNet, models["glyph_classifier"]),
+                        cast(GlyphCenterNet, models["glyph_centers"]))
 
 
 # --------------------------------------------------------------------------- #

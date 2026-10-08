@@ -10,11 +10,17 @@
     python -m src.annotation promote    --execute --approve <plan_digest> --approver <id>
     python -m src.annotation promote    --revert <promotion_id> [--execute --approve <digest> --approver <id>]
     python -m src.annotation promote    --log
-    python -m src.annotation handoff    [--out DIR]                   # blank worksheets for the expert pack
+    python -m src.annotation handoff    [--out DIR] [--all]           # blank worksheets (+ every artifact with --all)
     python -m src.annotation integrity  [--seal PATH]                 # append-only ledgers intact?
+    python -m src.annotation queue      [--json]                      # every artifact: state + next HUMAN step
+    python -m src.annotation disagreements [--all] [--json]           # field by field, who said what
+    python -m src.annotation export     [--out DIR]                   # current annotations, tier-labelled
+    python -m src.annotation import-worksheet FILE.csv --role project|expert [--revise] [--commit]
 
 ``promote`` is a DRY RUN unless ``--execute`` is given together with the digest printed by
-the dry run and the approving human's id. Nothing else in this CLI writes anything.
+the dry run and the approving human's id. ``import-worksheet`` is a DRY RUN unless ``--commit``
+and is all-or-nothing. ``export`` and ``handoff`` write only under ``outputs/`` (git-ignored).
+Nothing else in this CLI writes anything.
 
 Exit codes: 0 valid / ok, 1 validation failure / refused.
 """
@@ -54,8 +60,8 @@ def cmd_validate(args: argparse.Namespace) -> int:
     for p in kb.problems:
         print(f"  {p}")
     print(f"Annotation status : {result.status}")
-    for p in result.problems:
-        print(f"  {p}")
+    for problem in result.problems:
+        print(f"  {problem}")
     return 0 if result.ok and kb.ok else 1
 
 
@@ -198,12 +204,111 @@ def cmd_integrity(args: argparse.Namespace) -> int:
 
 def cmd_handoff(args: argparse.Namespace) -> int:
     from .handoff import DEFAULT_OUT, build_handoff
+    from .worksheet import build_worksheets
 
     pack = build_handoff(_records(), args.out or DEFAULT_OUT)
     print(f"Handoff pack in {pack.out_dir}: {pack.photos} pilot photograph(s), {pack.claims} claim(s) to verify")
     for f in pack.files:
         print(f"  {f.name}")
+    if args.all:
+        for f in build_worksheets(_records(), pack.out_dir, prefix="worksheet_all"):
+            print(f"  {f.name}  (every research photograph)")
     print("Judgement and verification columns are blank by design. Brief: docs/PILOT_HANDOFF.md")
+    return 0
+
+
+def cmd_queue(args: argparse.Namespace) -> int:
+    from .pilot import load_pilot, load_review_flags
+    from .worksheet import annotation_queue
+
+    pilot = load_pilot()
+    rows = annotation_queue(_records(), AnnotationStore(args.store).current(), pilot.artifacts,
+                            pilot.required_tiers, load_review_flags())
+    if args.json:
+        print(json.dumps([r.to_dict() for r in rows], indent=2, ensure_ascii=False))
+        return 0
+    print("ANNOTATION QUEUE (every research artifact; nothing here is a label)")
+    for r in rows:
+        tiers = ", ".join(f"{k}={v}" for k, v in sorted(r.tiers.items())) or "none"
+        print(f"  {'P ' if r.in_pilot else '  '}{r.artifact_id:<36} {len(r.image_ids)} photo(s)  "
+              f"status: {r.status:<20} annotations: {tiers}")
+        print(f"      next: {r.next_step}")
+        for f in r.review_flags:
+            print(f"      FLAG {f}")
+        for n in r.notes:
+            print(f"      note: {n}")
+    states = Counter(r.status for r in rows)
+    print(f"\n{len(rows)} artifact(s): {dict(sorted(states.items()))}.  P = pilot artifact.")
+    print("Annotate: streamlit run app/main.py (Annotation), or fill a worksheet "
+          "(python -m src.annotation handoff --all) and import it.")
+    return 0
+
+
+def cmd_disagreements(args: argparse.Namespace) -> int:
+    from .pilot import load_pilot
+    from .worksheet import disagreement_report
+
+    ids = sorted({r["artifact_id"] for r in _records()}) if args.all else list(load_pilot().artifacts)
+    rep = disagreement_report(ids, AnnotationStore(args.store).current())
+    if args.json:
+        print(json.dumps(rep, indent=2, ensure_ascii=False))
+        return 0
+    if not rep:
+        print("No human annotation yet: nothing to compare.")
+        return 0
+    for r in rep:
+        print(f"\n{r['artifact_id']}  status: {r['status']}  label: {r['label'] or '-'}  "
+              f"expert reviewed: {'yes' if r['expert_reviewed'] else 'NO'}"
+              + ("  [PROVISIONAL]" if r["provisional"] else ""))
+        for n in r["notes"]:
+            print(f"  note: {n}")
+        for k, f in r["fields"].items():
+            if f["state"] in ("disagree", "agree"):
+                vals = "; ".join(f"{who}: {v}" for who, v in f["values"].items())
+                print(f"  {f['state'].upper():<9} {k:<22} {vals}")
+    print("\nDisagreements are kept, never averaged. An expert resolves them by adjudication "
+          "(docs/ANNOTATION_GUIDE.md).")
+    return 0
+
+
+def cmd_export(args: argparse.Namespace) -> int:
+    from src.dataset.schema import ROOT
+
+    from .worksheet import export_annotations
+
+    out = args.out or ROOT / "outputs" / "annotation_export"
+    for f in export_annotations(AnnotationStore(args.store).current(), out):
+        print(f"wrote {f}")
+    print("Every row states its provenance tier; AI predictions are marked is_ai_output=True.")
+    return 0
+
+
+def cmd_import_worksheet(args: argparse.Namespace) -> int:
+    from .store import AnnotationRejected
+    from .worksheet import commit_worksheet, import_worksheet
+
+    store = AnnotationStore(args.store)
+    imp = import_worksheet(args.path, args.role, store, revise=args.revise)
+    print(f"Annotations parsed: {len(imp.annotations)}; blank rows skipped: {imp.skipped_rows}")
+    for a in imp.annotations:
+        ins = a["inscription"]
+        print(f"  {a['artifact_id']:<36} {a['annotator']['annotator_id']:<20} {a['provenance_type']:<18} "
+              f"present={ins['inscription_present']} script={ins['script_type']} "
+              f"photos={len(a['image_ids'])}" + (f" (revises {a['supersedes']})" if a["supersedes"] else ""))
+    for p in imp.problems:
+        print(f"  {p}")
+    if not imp.ok:
+        print("REJECTED: nothing written. Fix the rows above; the import is all-or-nothing.")
+        return 1
+    if not args.commit:
+        print("DRY RUN: nothing written. Add --commit to append these annotations.")
+        return 0
+    try:
+        n = commit_worksheet(imp, store)
+    except AnnotationRejected as exc:
+        print(str(exc))
+        return 1
+    print(f"Appended {n} annotation(s) to {store.path}")
     return 0
 
 
@@ -234,10 +339,22 @@ def main(argv: list[str] | None = None) -> int:
     pr.add_argument("--log", action="store_true", help="list the promotion audit log")
     ho = sub.add_parser("handoff", help="write blank pilot worksheets + verification checklist")
     ho.add_argument("--out", type=Path, help="output directory (default outputs/pilot_handoff, git-ignored)")
+    ho.add_argument("--all", action="store_true", help="also worksheets for every research photograph")
+    qu = sub.add_parser("queue", help="every research artifact: annotation state and next human step")
+    di = sub.add_parser("disagreements", help="field-level disagreement report (pilot by default)")
+    di.add_argument("--all", action="store_true", help="all research artifacts")
+    ex = sub.add_parser("export", help="export current annotations (JSONL + CSV, tier-labelled)")
+    ex.add_argument("--out", type=Path, help="output directory (default outputs/annotation_export)")
+    iw = sub.add_parser("import-worksheet", help="import a filled worksheet (dry run unless --commit)")
+    iw.add_argument("path", type=Path)
+    iw.add_argument("--role", required=True, choices=["project", "expert"])
+    iw.add_argument("--revise", action="store_true", help="record revisions of existing annotations")
+    iw.add_argument("--commit", action="store_true")
     it = sub.add_parser("integrity", help="verify the append-only ledgers (tamper evidence)")
     it.add_argument("--seal", type=Path, help="adopt a ledger-less file as it stands (human action)")
     for sp, fn in ((pl, cmd_pilot), (ag, cmd_agreement), (pr, cmd_promote), (ho, cmd_handoff),
-                   (it, cmd_integrity)):
+                   (it, cmd_integrity), (qu, cmd_queue), (di, cmd_disagreements), (ex, cmd_export),
+                   (iw, cmd_import_worksheet)):
         sp.add_argument("--store", type=Path, default=ANNOTATIONS_PATH)
         sp.add_argument("--json", action="store_true")
         sp.set_defaults(func=fn)

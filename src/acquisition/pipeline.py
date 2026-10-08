@@ -348,7 +348,8 @@ def build_research_record(prov: dict[str, Any], item: ItemPlan) -> dict[str, Any
         "verification_status": "unverified",
         "annotator": "not_applicable",
         "annotation_date": "not_applicable",
-        "notes": ("Acquired Milestone 6 from a public, openly licensed source. NO project label: "
+        "notes": (f"Acquired {prov['download_date']} ({prov['dataset_id']}) from a public, openly "
+                  "licensed source. NO project label: "
                   "script_type/inscription_present are 'unknown' pending expert annotation. "
                   f"Source label (verbatim): {prov['source_label'][:300]}. "
                   f"Artifact grouping: {prov['grouping_basis']}. "
@@ -384,6 +385,7 @@ def run(
 
     # -- describe + policy, for every dataset, before anything is downloaded --------
     described: list[tuple[DatasetPlan, ItemPlan, Candidate | None, Decision | None]] = []
+    d: Decision | None
     for ds in plan.datasets:
         meta = fetcher.describe([i.title for i in ds.items])
         for item in ds.items:
@@ -500,8 +502,8 @@ def run(
         provs = [p for p in reg_by_id.values() if p["dataset_id"] == ds.dataset_id]
         if not provs:
             continue
-        root = "data/raw" if ds.target == "research" else "data/external"
-        manifest = build_manifest({**asdict(ds), "local_directory": f"{root}/{ds.subdir}"}, provs)
+        rel_root = "data/raw" if ds.target == "research" else "data/external"
+        manifest = build_manifest({**asdict(ds), "local_directory": f"{rel_root}/{ds.subdir}"}, provs)
         out = acquisition_dir / "manifests" / f"{ds.dataset_id}.json"
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

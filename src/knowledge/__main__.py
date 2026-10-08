@@ -9,10 +9,17 @@
         --verifier ID --role expert --date YYYY-MM-DD --locator "p. 12, Fig. 16" \
         --source-location "LIBRARY, shelfmark" --access physical_copy [--notes TEXT] [--commit]
     python -m src.knowledge import-checklist verification_checklist.csv [--commit]
+    python -m src.knowledge prechecks [--ref S03] [--json]   # SOFTWARE pre-checks: where each claim was found
+    python -m src.knowledge verify-from-precheck PC-S03-02 --verifier ID --role project_member \
+        --date YYYY-MM-DD --i-opened-the-source [--status discrepancy_found --notes TEXT] [--commit]
 
-``verify`` and ``import-checklist`` are DRY RUNS unless ``--commit`` is given: they print the
-records and the rule check and write nothing. ``import-checklist`` is all-or-nothing. Only a
-human who has checked the claim in the publication should commit.
+``verify``, ``verify-from-precheck`` and ``import-checklist`` are DRY RUNS unless ``--commit`` is
+given: they print the records and the rule check and write nothing. ``import-checklist`` is
+all-or-nothing. Only a human who has checked the claim in the publication should commit.
+
+A software pre-check (``prechecks``, Milestone 11) records where a software agent found a claim
+in a copy the project may consult. It is NOT verification and changes no status;
+``verify-from-precheck`` only saves the human verifier from retyping the locator and the copy.
 
 Exit codes: 0 ok, 1 validation failure / rejected record.
 """
@@ -22,10 +29,14 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from typing import Any
 
 from src.console import utf8_console
 
 from .base import load
+from .precheck import LABEL as PRECHECK_LABEL
+from .precheck import RULES as PRECHECK_RULES
+from .precheck import load_prechecks, verification_from_precheck
 from .verification import (
     NA,
     RULES,
@@ -49,9 +60,14 @@ def cmd_validate(args: argparse.Namespace) -> int:
     for p in kb.problems:
         print(f"  {p}")
     print(f"Verifications  : {res.count} record(s), {'PASS' if res.ok else 'FAIL'}")
-    for p in res.problems:
+    for vp in res.problems:
+        print(f"  {vp}")
+    pre = load_prechecks(kb=kb)
+    print(f"Pre-checks     : {len(pre.claim_checks)} claim / {len(pre.bibliographic_checks)} bibliographic "
+          f"(software; not verification), {'PASS' if pre.ok else 'FAIL'}")
+    for p in pre.problems:
         print(f"  {p}")
-    return 0 if kb.ok and res.ok else 1
+    return 0 if kb.ok and res.ok and pre.ok else 1
 
 
 def cmd_claims(args: argparse.Namespace) -> int:
@@ -86,7 +102,14 @@ def cmd_entries(args: argparse.Namespace) -> int:
 def cmd_claim_report(args: argparse.Namespace) -> int:
     from .verification import claim_report
 
-    rows = claim_report(args.ref or None)
+    rows: list[dict[str, Any]] = list(claim_report(args.ref or None))
+    pre = load_prechecks()
+    for r in rows:
+        pc = pre.for_claim(r["ref_id"], r["claim_id"])
+        r["precheck"] = ({"precheck_id": pc["precheck_id"], "finding": pc["finding"],
+                          "locator_found": pc.get("locator_found", "-"),
+                          "source_url": pre.sources[pc["source_id"]]["url"],
+                          "label": PRECHECK_LABEL} if pc else None)
     if args.json:
         print(json.dumps(rows, indent=2, ensure_ascii=False))
         return 0
@@ -99,6 +122,11 @@ def cmd_claim_report(args: argparse.Namespace) -> int:
         print(f"  verifier     : {r['verifier']} ({r['verifier_role']}), {r['verification_date']};  "
               f"locator found: {r['locator_found']}")
         print(f"  notes        : {r['notes']}")
+        if r["precheck"]:
+            shown = r["precheck"]
+            print(f"  pre-check    : {shown['precheck_id']} {shown['finding']} at {shown['locator_found']}  "
+                  f"[{PRECHECK_LABEL}]")
+            print(f"                 copy: {shown['source_url']}")
     counts: dict[str, int] = {}
     for r in rows:
         counts[r["verification_status"]] = counts.get(r["verification_status"], 0) + 1
@@ -109,6 +137,7 @@ def cmd_claim_report(args: argparse.Namespace) -> int:
 def cmd_status(args: argparse.Namespace) -> int:
     statuses = effective_statuses()
     keys = key_references()
+    pre = load_prechecks()
     shown = statuses if args.all else {k: statuses[k] for k in keys if k in statuses}
     if args.json:
         print(json.dumps({k: v.to_dict() for k, v in shown.items()}, indent=2, ensure_ascii=False))
@@ -126,6 +155,12 @@ def cmd_status(args: argparse.Namespace) -> int:
                   f"on {v['verification_date']}")
         for v in s.other_records:
             print(f"          {v['status'].upper()} {v['claim_id']}: {v['claim'][:80]}")
+        summary = pre.for_reference(rid)
+        for b in summary["bibliographic"]:
+            print(f"          software pre-check {b['check_id']}: {b['finding']} "
+                  f"({len(b['confirmed'])} field(s))  (NOT verification)")
+        if summary["claims"]:
+            print(f"          software pre-check of claims: {summary['claims']}  (NOT verification)")
     missing = [k for k in keys if k not in statuses]
     if missing:
         print(f"Key references missing from the knowledge base: {', '.join(missing)}")
@@ -187,8 +222,72 @@ def cmd_import_checklist(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_prechecks(args: argparse.Namespace) -> int:
+    pre = load_prechecks()
+    rows = [c for c in pre.claim_checks if not args.ref or c["ref_id"] in args.ref]
+    bibs = [b for b in pre.bibliographic_checks if not args.ref or b["ref_id"] in args.ref]
+    if args.json:
+        print(json.dumps({"label": PRECHECK_LABEL, "statement": pre.data.get("statement"),
+                          "bibliographic_checks": bibs, "claim_checks": rows,
+                          "sources": pre.data.get("sources", []), "problems": pre.problems},
+                         indent=2, ensure_ascii=False))
+        return 0 if pre.ok else 1
+    print(PRECHECK_LABEL)
+    print("A software agent recorded where each claim appears in a copy the project may consult. No status")
+    print("changes: a reference is verified only by a named human (python -m src.knowledge verify-from-precheck).")
+    for b in bibs:
+        print(f"\n{b['check_id']:<16} [{b['ref_id']}] bibliographic: {b['finding']}")
+        print(f"  confirmed : {'; '.join(b['confirmed'])}")
+        if b.get("differences"):
+            print(f"  differs   : {b['differences']}")
+    for c in rows:
+        src = pre.sources.get(c["source_id"], {})
+        print(f"\n{c['precheck_id']:<16} [{c['ref_id']}] {c['claim_id']}  ->  {c['finding']}")
+        print(f"  where     : {c.get('locator_found', '-')}")
+        print(f"  copy      : {src.get('url', '-')} ({src.get('access', '-')})")
+        if c.get("differences"):
+            print(f"  differs   : {c['differences']}")
+    for p in pre.problems:
+        print(f"  {p}")
+    return 0 if pre.ok else 1
+
+
+def cmd_verify_from_precheck(args: argparse.Namespace) -> int:
+    if not args.i_opened_the_source:
+        print("Refused: a verification is a HUMAN check. Open the copy at the pre-checked page, read the "
+              "passage, then re-run with --i-opened-the-source.")
+        return 1
+    try:
+        rec = verification_from_precheck(args.precheck_id, verifier=args.verifier, verifier_role=args.role,
+                                         verification_date=args.date, status=args.status, notes=args.notes)
+    except (KeyError, ValueError) as exc:
+        print(exc.args[0] if exc.args else exc)
+        return 1
+    reg = VerificationRegistry()
+    current = {v["claim_id"]: v["verification_id"] for v in reg.current() if v["ref_id"] == rec["ref_id"]}
+    rec["supersedes"] = current.get(rec["claim_id"])
+    print(json.dumps(rec, indent=2, ensure_ascii=False))
+    if not args.commit:
+        res = reg.validate([rec])
+        mine = [p for p in res.problems if p.verification_id == rec["verification_id"]]
+        print("DRY RUN: nothing written. " + ("Record is valid; add --commit to append it."
+                                              if not mine else "Record would be REJECTED:"))
+        for p in mine:
+            print(f"  {p}")
+        return 1 if mine else 0
+    try:
+        reg.append(rec)
+    except VerificationRejected as exc:
+        print(str(exc))
+        return 1
+    print(f"Appended {rec['verification_id']} to {reg.path}")
+    return 0
+
+
 def cmd_rules(args: argparse.Namespace) -> int:
     for k, v in RULES.items():
+        print(f"  {k:<4} {v}")
+    for k, v in PRECHECK_RULES.items():
         print(f"  {k:<4} {v}")
     return 0
 
@@ -213,6 +312,23 @@ def main(argv: list[str] | None = None) -> int:
     cr.add_argument("--json", action="store_true")
     cr.set_defaults(func=cmd_claim_report)
     sub.add_parser("rules").set_defaults(func=cmd_rules)
+    pc = sub.add_parser("prechecks", help="software pre-checks of the key references (NOT verification)")
+    pc.add_argument("--ref", action="append")
+    pc.add_argument("--json", action="store_true")
+    pc.set_defaults(func=cmd_prechecks)
+    vp = sub.add_parser("verify-from-precheck",
+                        help="record a HUMAN check of a pre-checked claim (dry run unless --commit)")
+    vp.add_argument("precheck_id")
+    vp.add_argument("--verifier", required=True, help="your stable id (a person, never software)")
+    vp.add_argument("--role", required=True, choices=["project_member", "expert"])
+    vp.add_argument("--date", required=True, help="YYYY-MM-DD of your check")
+    vp.add_argument("--status", default="verified_against_source",
+                    choices=["verified_against_source", "discrepancy_found"])
+    vp.add_argument("--notes", help="required for a discrepancy: what the source says instead")
+    vp.add_argument("--i-opened-the-source", action="store_true",
+                    help="you opened the copy at the pre-checked page and read the passage yourself")
+    vp.add_argument("--commit", action="store_true")
+    vp.set_defaults(func=cmd_verify_from_precheck)
     ic = sub.add_parser("import-checklist", help="import a filled verification checklist (dry run unless --commit)")
     ic.add_argument("path", type=Path)
     ic.add_argument("--commit", action="store_true")

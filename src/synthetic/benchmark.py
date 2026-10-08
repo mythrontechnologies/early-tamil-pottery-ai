@@ -61,7 +61,7 @@ def _prf(tp: int, fp: int, fn: int) -> dict[str, float]:
 
 def detection_metrics(pipe: SyntheticPipeline, records: list[Any]) -> dict[str, Any]:
     out: dict[str, Any] = {}
-    per = {"regions": [0, 0, 0, []], "rows": [0, 0, 0, []]}
+    per: dict[str, list[Any]] = {"regions": [0, 0, 0, []], "rows": [0, 0, 0, []]}
     by_class: dict[str, list[int]] = {}
     false_alarm_images = no_mark_images = 0
     for r in records:
@@ -70,8 +70,8 @@ def detection_metrics(pipe: SyntheticPipeline, records: list[Any]) -> dict[str, 
         truth = {"regions": inscription_regions(r.record),
                  "rows": [g for g in r.record["synthetic_regions"] if g["kind"] == "glyph_row"]}
         for key in ("regions", "rows"):
-            pred = [(d.x, d.y, d.width, d.height) for d in found[key]]
-            gt = [(g["x"], g["y"], g["width"], g["height"]) for g in truth[key]]
+            pred: list[tuple[float, ...]] = [(d.x, d.y, d.width, d.height) for d in found[key]]
+            gt: list[tuple[float, ...]] = [(g["x"], g["y"], g["width"], g["height"]) for g in truth[key]]
             m = match_boxes(pred, gt)
             per[key][0] += len(m)
             per[key][1] += len(pred) - len(m)
@@ -102,7 +102,10 @@ def ocr_metrics(pipe: SyntheticPipeline, records: list[Any]) -> dict[str, Any]:
     rows = [(enhanced_gray(_rgb(r.image_path)), r.record) for r in records if r.script_type == "synthetic_tamil_brahmi_like"]
     strategies = {}
     for s in STRATEGIES:
-        strategies[s] = {"segmentation": segmentation_scores(lambda g, _s=s: segment(_s, g, b.glyph_centers), rows),
+        def seg(g: np.ndarray, _s: str = s) -> list[Any]:
+            return segment(_s, g, b.glyph_centers)
+
+        strategies[s] = {"segmentation": segmentation_scores(seg, rows),
                          "reading_true_rows": reading_scores(s, b.glyph_classifier, rows, b.glyph_centers)}
     return {"glyph_accuracy_true_regions": round(glyph_acc, 4) if glyph_acc is not None else None,
             "glyphs": len(labels), "rows": len(rows), "selected_strategy": b.strategy,
@@ -155,6 +158,8 @@ def run_synthetic_benchmark(*, partition: str = "test", root: Path | str | None 
     records = partition_records(find_manifest(ds, paths.root), ds)[partition]
     pipe = pipeline or SyntheticPipeline(device=device)
     ckpt = checkpoint or latest_synthetic_checkpoint()
+    if ckpt is None:
+        raise FileNotFoundError("no synthetic checkpoint: run `python -m src.training train --dataset synthetic`")
     log("A. classification ...")
     ev = evaluate_checkpoint(ckpt, partition, root=root, device=device, save=False)
     cal = pipe.classifier.calibration

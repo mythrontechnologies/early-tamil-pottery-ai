@@ -45,7 +45,7 @@ def reproducibility_report() -> dict[str, Any]:
     from src.training.runtime import environment, git_commit
 
     records = read_jsonl(RESEARCH_RECORDS_PATH) if RESEARCH_RECORDS_PATH.exists() else []
-    versions = {}
+    versions: dict[str, str | None] = {}
     for pkg in PACKAGES:
         try:
             versions[pkg] = metadata.version(pkg)

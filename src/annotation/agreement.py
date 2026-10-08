@@ -40,8 +40,9 @@ from __future__ import annotations
 import unicodedata
 from collections import Counter
 from collections.abc import Iterable
-from dataclasses import asdict, dataclass, field
-from typing import Any
+from dataclasses import asdict, dataclass
+from dataclasses import field as dc_field
+from typing import Any, cast
 
 from src.dataset.schema import load_config
 
@@ -130,10 +131,10 @@ class FieldAgreement:
     interpretable: bool = False
     status: str = ""
     note: str = ""
-    excluded: dict[str, int] = field(default_factory=dict)          # reason -> count
-    confusion: dict[str, dict[str, int]] = field(default_factory=dict)
-    per_artifact: dict[str, Any] = field(default_factory=dict)
-    disagreements: list[dict[str, Any]] = field(default_factory=list)
+    excluded: dict[str, int] = dc_field(default_factory=dict)          # reason -> count
+    confusion: dict[str, dict[str, int]] = dc_field(default_factory=dict)
+    per_artifact: dict[str, Any] = dc_field(default_factory=dict)
+    disagreements: list[dict[str, Any]] = dc_field(default_factory=list)
 
 
 @dataclass
@@ -146,8 +147,8 @@ class AgreementReport:
     fields: dict[str, FieldAgreement]
     min_items_for_kappa: int
     resolves_disagreement: bool = False                             # always False, by design
-    notes: list[str] = field(default_factory=list)
-    items: dict[str, dict[str, list[str]]] = field(default_factory=dict)     # item-level review
+    notes: list[str] = dc_field(default_factory=list)
+    items: dict[str, dict[str, list[str]]] = dc_field(default_factory=dict)     # item-level review
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -365,7 +366,8 @@ def _dating_range(pairs: dict[str, tuple[dict, dict]]) -> FieldAgreement:
         elif None in ra or None in rb:
             relation = "open-ended; not comparable"
         else:
-            relation = "overlapping" if max(ra[0], rb[0]) <= min(ra[1], rb[1]) else "disjoint"
+            a0, a1, b0, b1 = (cast(int, v) for v in (*ra, *rb))      # None excluded just above
+            relation = "overlapping" if max(a0, b0) <= min(a1, b1) else "disjoint"
         fa.per_artifact[art] = {"a": list(ra), "b": list(rb), "relation": relation}
         if relation == "identical":
             fa.items_agreeing += 1

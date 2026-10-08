@@ -31,7 +31,7 @@ import hashlib
 import json
 import random
 from collections import Counter, defaultdict
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from dataclasses import field as dc_field
 from datetime import datetime, timezone
@@ -253,6 +253,15 @@ def check_splittable(
     eligible, _, grouping = _eligible_artifacts(dataset, spec)
     problems.extend(grouping)
 
+    # Milestone 11: a near-copy of one photograph under two artifact ids leaks across partitions
+    # even though the bytes (SHA-256) differ. Refuse until a human merges or clears the pair.
+    from .near_duplicates import dataset_near_duplicates
+
+    pairs, _ = dataset_near_duplicates([r for recs in eligible.values() for r in recs])
+    for p in pairs:
+        problems.append(f"near-duplicate photographs across artifacts: {p}. Merge the two artifacts (same "
+                        "artifact_id) or record them as distinct in split.near_duplicate_exceptions with a reason")
+
     per_class = Counter(recs[0].script_type for recs in eligible.values())
     missing = [c for c in spec.trainable if per_class.get(c, 0) == 0]
     if missing:
@@ -359,7 +368,7 @@ def _summarise(
     for part in partitions:
         aids = [a for a, p in manifest_assignments.items() if p == part]
         by_class_art = Counter(eligible[a][0].script_type for a in aids)
-        by_class_img = Counter()
+        by_class_img: Counter[str] = Counter()
         for a in aids:
             by_class_img[eligible[a][0].script_type] += len(eligible[a])
         entry: dict[str, Any] = {
@@ -493,7 +502,7 @@ def adopt_existing_split(
 
 
 def verify_partitions(
-    partitions: dict[str, Iterable[DatasetRecord]],
+    partitions: Mapping[str, Iterable[DatasetRecord]],
 ) -> list[str]:
     """Check pairwise disjointness of artifacts, image ids and image hashes.
 

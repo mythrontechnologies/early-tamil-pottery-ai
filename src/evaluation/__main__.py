@@ -1,6 +1,8 @@
 """Command-line interface for evaluation.
 
-    python -m src.evaluation evaluate --checkpoint PATH [--partition test|val]
+    python -m src.evaluation evaluate --checkpoint PATH [--partition test|val] [--robustness]
+    python -m src.evaluation detection --predictions PRED.jsonl [--json]   # vs expert-promoted regions
+    python -m src.evaluation ocr --predictions PRED.jsonl [--json]         # vs expert-promoted readings
     python -m src.evaluation evaluate --dataset synthetic --checkpoint PATH [--partition test|val]
     python -m src.evaluation reproducibility [--json]
     python -m src.evaluation synthetic [--partition test|val] [--skip-robustness] [--json]
@@ -12,6 +14,11 @@ code 3. It never produces a score from fixtures or from an empty dataset.
 ``--dataset synthetic`` (Milestone 9) evaluates a SYNTHETIC checkpoint on the synthetic engineering
 dataset instead, under the banner "SYNTHETIC DATA ONLY — NOT ARCHAEOLOGICAL PERFORMANCE". It does not
 consult the research gate, refuses research checkpoints, and writes only under models/synthetic/.
+
+``detection`` and ``ocr`` (Milestone 11) score ANY detector / transcriber whose output is a JSONL
+file (``{"image_id": ..., "regions": [[x, y, w, h], ...]}`` or ``{"image_id": ..., "reading": ...}``)
+against the ground truth that experts promoted into the records. With no promoted regions or
+readings they are BLOCKED (exit 3), never scored against nothing.
 
 Exit codes: 0 success, 2 usage error, 3 evaluation blocked.
 """
@@ -83,7 +90,94 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
     _, a_true, a_prob = aggregate_by_artifact(aids, preds.y_true, preds.probabilities)
     result = evaluate_predictions(a_true, list(a_prob.argmax(axis=1)), spec.trainable,
                                   y_prob=a_prob, unit="artifact")
-    print(json.dumps(result.to_dict(), indent=2) if args.json else result.render())
+    from .tasks import error_analysis, robustness_report
+
+    a_ids = sorted(set(aids))
+    out = result.to_dict() | {"evidence_tier": "real_expert_labelled",
+                              "error_analysis": error_analysis(a_ids, a_true, a_prob, spec.trainable)}
+    if args.robustness:
+        import torch
+
+        from src.training.data import load_rgb
+
+        tf = build_eval_transform(ImageGeometry.from_project())
+
+        def predict(images):
+            model.eval()
+            with torch.no_grad():
+                x = torch.stack([tf(im) for im in images]).to(device.device if hasattr(device, "device") else device)
+                return torch.softmax(model(x), dim=1).cpu().numpy()
+
+        imgs = [load_rgb(r.image_path) for r in records]
+        out["robustness"] = robustness_report(predict, imgs, [spec.trainable.index(r.script_type) for r in records],
+                                              ids=[r.image_id for r in records])
+    if args.json:
+        print(json.dumps(out, indent=2, default=str))
+    else:
+        print(result.render())
+        ea = out["error_analysis"]
+        print(f"Errors: {len(ea['errors'])} artifact(s); high-confidence errors: {ea['high_confidence_errors']}")
+        for row in ea["accuracy_by_confidence"]:
+            print(f"  confidence {row['confidence']}: n={row['n']} accuracy={row['accuracy']}")
+        if "robustness" in out:
+            for name, row in out["robustness"]["perturbations"].items():
+                print(f"  robustness {name:<18} {row['family']:<12} accuracy={row['accuracy']} drop={row['drop_from_clean']}")
+    return EXIT_OK
+
+
+def _promoted_truth(kind: str) -> tuple[dict, list[str]]:
+    """Expert-promoted ground truth from the research records: regions or readings per image."""
+    from src.dataset.convert import read_jsonl
+    from src.dataset.schema import RESEARCH_RECORDS_PATH
+
+    recs = [r for r in (read_jsonl(RESEARCH_RECORDS_PATH) if RESEARCH_RECORDS_PATH.exists() else [])
+            if r.get("label_source") == "expert_annotation"]
+    if kind == "detection":
+        truth = {r["image_id"]: [(g["x"], g["y"], g["w"], g["h"]) for g in r.get("inscription_regions", [])
+                                 if g.get("region_label") in ("inscription", "graffiti", "possible_inscription")]
+                 for r in recs if r.get("inscription_present") in ("yes", "no")}
+        return truth, [r["image_id"] for r in recs]
+    truth = {r["image_id"]: r["transcription"] for r in recs
+             if r.get("transcription") not in (None, "not_available", "not_applicable")
+             and r.get("reading_status") != "disputed"}
+    return truth, [r["image_id"] for r in recs]
+
+
+def _read_predictions(path: Path) -> list[dict]:
+    rows = []
+    for n, line in enumerate(Path(path).read_text(encoding="utf-8").splitlines(), 1):
+        if line.strip():
+            row = json.loads(line)
+            if not isinstance(row, dict) or "image_id" not in row:
+                raise ValueError(f"line {n}: each prediction needs an image_id")
+            rows.append(row)
+    return rows
+
+
+def cmd_task(args: argparse.Namespace) -> int:
+    from .metrics import BLOCKED_MESSAGE
+    from .tasks import detection_report, ocr_report
+
+    truth, promoted = _promoted_truth(args.command)
+    if not truth:
+        what = "regions" if args.command == "detection" else "readings"
+        print(BLOCKED_MESSAGE)
+        model = "region detector" if args.command == "detection" else "transcriber"
+        print(f"No expert-promoted {what} exist ({len(promoted)} promoted record(s)). A {model} is scored only "
+              "against expert ground truth.")
+        return EXIT_BLOCKED
+    try:
+        preds = _read_predictions(args.predictions)
+    except (OSError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    if args.command == "detection":
+        pred = {p["image_id"]: [tuple(b) for b in p.get("regions", [])] for p in preds}
+        rep = detection_report(truth, pred)
+    else:
+        hyp = {p["image_id"]: p.get("reading") for p in preds}
+        rep = ocr_report([(ref, hyp.get(iid)) for iid, ref in sorted(truth.items())])
+    print(json.dumps(rep, indent=2, default=str))
     return EXIT_OK
 
 
@@ -142,7 +236,14 @@ def build_parser() -> argparse.ArgumentParser:
     e.add_argument("--config", type=Path, default=None)
     e.add_argument("--partition", choices=["test", "val"], default="test")
     e.add_argument("--json", action="store_true")
+    e.add_argument("--robustness", action="store_true",
+                   help="also re-score under photographic perturbations (lighting, blur, noise, scale, crop, occlusion)")
     e.set_defaults(func=cmd_evaluate)
+    for name, what in (("detection", "region detection vs expert-promoted regions"),
+                       ("ocr", "transcription vs expert-promoted readings")):
+        t = sub.add_parser(name, help=f"{what} (BLOCKED until experts promote ground truth)")
+        t.add_argument("--predictions", type=Path, required=True, help="JSONL, one prediction per image")
+        t.set_defaults(func=cmd_task)
     y = sub.add_parser("synthetic", help="integrated SYNTHETIC ENGINEERING BENCHMARK (never archaeological performance)")
     y.add_argument("--partition", choices=["test", "val"], default="test")
     y.add_argument("--skip-robustness", action="store_true")

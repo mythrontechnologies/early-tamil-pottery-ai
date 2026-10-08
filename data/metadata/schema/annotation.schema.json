@@ -3,7 +3,7 @@
   "$id": "https://early-tamil-pottery-ai/schema/annotation.schema.json",
   "title": "Early Tamil Pottery AI - Artifact Annotation",
   "description": "One annotation of one ARTIFACT by one annotator at one time (Milestone 7). Annotations are APPEND-ONLY: a revision is a new record that names the one it supersedes; nothing is overwritten. Several annotators may annotate the same artifact; their records coexist so disagreement can be analysed. Source metadata (data/metadata/records.jsonl) and acquisition provenance are NEVER modified by annotation. Missing information uses the sentinels 'unknown' (not determined), 'not_available' (no information to determine it from) and 'not_applicable' (the question does not apply). Enumerated categories marked 'project annotation category' are working vocabulary for annotators, not archaeological classifications established in the literature.",
-  "annotation_schema_version": "1.0.0",
+  "annotation_schema_version": "1.2.0",
   "type": "object",
   "additionalProperties": false,
 
@@ -35,7 +35,12 @@
         "y": { "type": "number", "minimum": 0, "maximum": 1 },
         "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
         "height": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
-        "label": { "enum": ["inscription", "graffiti", "possible_inscription", "decoration_non_script", "damage", "other"] },
+        "label": {
+          "description": "'character' (schema 1.2.0) marks ONE sign / glyph inside an inscription; give sign_index (reading order, 1-based) and, if it can be read, sign_reading.",
+          "enum": ["inscription", "graffiti", "possible_inscription", "decoration_non_script", "damage", "character", "other"]
+        },
+        "sign_index": { "description": "Schema 1.2.0 (character regions only): position of the sign in the reading, 1-based.", "type": "integer", "minimum": 1 },
+        "sign_reading": { "description": "Schema 1.2.0 (character regions only): the sign as read, or '?' if it cannot be read. Never guessed.", "$ref": "#/$defs/text" },
         "note": { "$ref": "#/$defs/text" }
       }
     },
@@ -192,7 +197,11 @@
         "transliteration_scheme": { "enum": ["iso_15919", "mahadevan_2003", "other", "unknown", "not_available", "not_applicable"] },
         "alternative_readings": { "type": "array", "items": { "$ref": "#/$defs/alternative_reading" } },
         "reading_confidence": { "$ref": "#/$defs/confidence" },
-        "reading_source": { "description": "ref_id, 'this_annotator', or a sentinel.", "$ref": "#/$defs/text" }
+        "reading_source": { "description": "ref_id, 'this_annotator', or a sentinel.", "$ref": "#/$defs/text" },
+        "reading_completeness": {
+          "description": "Schema 1.2.0 (optional). complete = every sign read; partial = some signs read, others lost or doubtful (mark them in the reading); fragmentary = only isolated signs; illegible = marks present but nothing can be read (no reading is given); unknown = not assessed.",
+          "enum": ["complete", "partial", "fragmentary", "illegible", "unknown", "not_applicable"]
+        }
       }
     },
 
@@ -235,6 +244,17 @@
     "image_usability": { "type": "array", "items": { "$ref": "#/$defs/image_usability" } },
     "references": { "type": "array", "items": { "$ref": "#/$defs/reference" } },
     "uncertainty_notes": { "$ref": "#/$defs/text" },
-    "notes": { "$ref": "#/$defs/text" }
+    "notes": { "$ref": "#/$defs/text" },
+    "adjudication": {
+      "description": "Schema 1.2.0 (optional). This record is an EXPERT ADJUDICATION: having read the listed annotations of the same artifact (which disagree), the adjudicator records their own decision in this record's fields. The listed annotations are not changed and stay visible. Rule N18.",
+      "type": "object", "additionalProperties": false,
+      "required": ["resolves", "outcome", "basis"],
+      "properties": {
+        "resolves": { "description": "annotation_ids of the current human annotations considered (at least two).", "type": "array", "minItems": 2, "uniqueItems": true, "items": { "type": "string", "pattern": "^ann_[a-f0-9]{16}$" } },
+        "outcome": { "description": "decided = the adjudicator stands by the values in this record; insufficient_evidence = the photograph(s) cannot settle it (script_type must then be 'uncertain' or 'unknown').", "enum": ["decided", "insufficient_evidence"] },
+        "fields_decided": { "type": "array", "items": { "enum": ["object_status", "inscription_present", "script_type", "regions", "reading", "interpretation", "dating"] } },
+        "basis": { "description": "Why: what was examined and why one view was preferred.", "$ref": "#/$defs/text" }
+      }
+    }
   }
 }

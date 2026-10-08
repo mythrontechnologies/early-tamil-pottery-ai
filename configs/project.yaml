@@ -120,6 +120,12 @@ split:
   # because the schema records no period field (docs/DATASET_SPLIT.md §5).
   balance_secondary: [inscription_present, site]
   manifest_dir: data/metadata/splits
+  # Milestone 11. Photographs of DIFFERENT artifacts whose 64-bit dHash differs in at most this
+  # many bits are near-duplicates (resized / re-encoded / cropped copies, or one object filed
+  # twice); the split refuses until a human merges the artifacts or lists the pair below as
+  # distinct objects, with a reason: {artifact_a: ..., artifact_b: ..., reason: ..., by: ...}.
+  near_duplicate_max_distance: 6
+  near_duplicate_exceptions: []
 
 # ---------------------------------------------------------------------------
 # Transliteration / encoding defaults

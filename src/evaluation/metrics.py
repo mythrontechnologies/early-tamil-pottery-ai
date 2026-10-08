@@ -131,8 +131,7 @@ def compute_metrics(
 
     supported = [c for c in class_names if per_class[c].support > 0]
     total = sum(per_class[c].support for c in supported)
-    weighted = [per_class[c].f1 * per_class[c].support for c in supported
-                if per_class[c].f1 is not None]
+    weighted = [f1 * per_class[c].support for c in supported if (f1 := per_class[c].f1) is not None]
 
     topk: dict[int, float] = {}
     if y_prob is not None:
@@ -148,7 +147,7 @@ def compute_metrics(
         balanced_accuracy=macro_recall,
         macro_precision=_mean([per_class[c].precision for c in supported]),  # type: ignore[misc]
         macro_recall=macro_recall,
-        macro_f1=_mean([per_class[c].f1 for c in supported if per_class[c].f1 is not None]),
+        macro_f1=_mean([f for c in supported if (f := per_class[c].f1) is not None]),
         weighted_f1=(sum(weighted) / total) if total else None,
         per_class=per_class,
         confusion_matrix=cm.tolist(),
@@ -220,9 +219,9 @@ class EvaluationReport:
             lines.append(f"  calibration        ECE {c['ece']:.4f}  MCE {c['mce']:.4f}  Brier {c['brier']:.4f}"
                          f"  (model probabilities; n={c['n_samples']})")
         lines.append("  per class (precision / recall / F1 / support):")
-        for name, c in m.per_class.items():
-            lines.append(f"    {name:<28} {_fmt(c.precision)} / {_fmt(c.recall)} / "
-                         f"{_fmt(c.f1)} / {c.support}")
+        for name, cm in m.per_class.items():
+            lines.append(f"    {name:<28} {_fmt(cm.precision)} / {_fmt(cm.recall)} / "
+                         f"{_fmt(cm.f1)} / {cm.support}")
         if m.classes_without_support:
             lines.append(f"  classes with no examples (excluded from macro): "
                          f"{m.classes_without_support}")

@@ -9,7 +9,7 @@ Layers, never merged, each value keeping its provenance:
     D. AI inference         ai_prediction annotations -> reported separately, never evidence
 
 The reasoning basis is ONE human annotation, chosen by strength of provenance:
-expert_reviewed expert > other expert > source_information > project. Other annotators'
+an adjudication in force > expert_reviewed expert > other expert > source_information > project. Other annotators'
 views are not averaged in; disagreement is reported via ``annotation_status``, and every
 human annotator's own dating range is passed through side by side (Milestone 8).
 
@@ -107,7 +107,8 @@ def build_inputs(artifact_id: str, *, store: AnnotationStore | None = None,
 
     current = store.current(artifact_id)
     res = resolve_artifact(artifact_id, current)
-    a = _basis(current)
+    a = (next(x for x in current if x["annotation_id"] == res.adjudication_id)
+         if res.status == "adjudicated" else _basis(current))
     ai = tuple({"annotation_id": x["annotation_id"], "annotator": x["annotator"]["annotator_id"],
                 "script_type": x["inscription"]["script_type"],
                 "reading": x["inscription"]["reading"]}
@@ -143,6 +144,7 @@ def build_inputs(artifact_id: str, *, store: AnnotationStore | None = None,
             interpretation_type=at(it["interpretation_type"], it["translation_confidence"], it["translation_source"]),
             translation=at(it["translation"], it["translation_confidence"], it["translation_source"]),
             meaning=it["meaning"],
+            reading_completeness=ins.get("reading_completeness", "unknown"),
         ),
         linguistic_features=tuple(LinguisticFeature(f["feature_type"], f["observation"], pt,
                                                      f["confidence"], f["source_reference"],

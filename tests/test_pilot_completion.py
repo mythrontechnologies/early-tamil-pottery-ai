@@ -38,8 +38,9 @@ def _flag_config(art: str, kind: str = "possible_reproduction") -> dict:
 class TestObjectStatus:
     def test_schema_version_and_blank_default(self):
         a = blank_annotation("A_X", ["A_X__1"], annotator_id="t")
-        assert ANNOTATION_SCHEMA_VERSION == "1.1.0"
+        assert ANNOTATION_SCHEMA_VERSION == "1.2.0"          # 1.2.0: adjudication, glyph regions, completeness
         assert a["object"]["object_status"] == "unknown"
+        assert a["inscription"]["reading_completeness"] == "unknown"
 
     def test_schema_accepts_all_statuses_and_rejects_others(self):
         for s in ("original", "reproduction", "uncertain", "unknown"):

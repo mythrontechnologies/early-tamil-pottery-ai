@@ -9,6 +9,7 @@
     python -m src.dataset stats     [--json]
     python -m src.dataset split     [--strategy auto|holdout|grouped_kfold] [--seed N]
                                     [--adopt-existing] [--dry-run]
+    python -m src.dataset near-duplicates [--max-distance N]   # near-copies across artifacts (leakage)
 
 Exit codes: 0 success, 1 validation/ingestion failure or refused split, 2 usage or I/O error.
 """
@@ -209,6 +210,26 @@ def cmd_stats(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def cmd_near_duplicates(args: argparse.Namespace) -> int:
+    """Report photographs of different artifacts that are near-copies (resize / re-encode / crop)."""
+    from .near_duplicates import dataset_near_duplicates
+
+    try:
+        dataset = load_dataset(args.records, args.data_root)
+    except DatasetLoadError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    pairs, unreadable = dataset_near_duplicates(dataset.records, max_distance=args.max_distance)
+    print(f"Photographs checked: {len(dataset.records)}; near-duplicate pairs across artifacts: {len(pairs)}")
+    for p in pairs:
+        print(f"  {p}")
+    for u in unreadable:
+        print(f"  not compared: {u}")
+    print("A pair is not a finding about the objects: a human merges the artifacts or records them as distinct "
+          "(split.near_duplicate_exceptions). The split refuses while a pair is unresolved.")
+    return EXIT_FAIL if pairs else 0
+
+
 def cmd_split(args: argparse.Namespace) -> int:
     """Validate, then split by artifact. Refuses rather than fabricate or mislead."""
     try:
@@ -319,6 +340,12 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--out-dir", type=Path, default=None)
     sp.add_argument("--dry-run", action="store_true")
     sp.set_defaults(func=cmd_split)
+
+    nd = sub.add_parser("near-duplicates", help="near-copy photographs filed under different artifacts")
+    nd.add_argument("--records", type=Path, default=None)
+    nd.add_argument("--data-root", type=Path, default=None)
+    nd.add_argument("--max-distance", type=int, default=None, help="dHash bits (default: project.yaml)")
+    nd.set_defaults(func=cmd_near_duplicates)
 
     return p
 

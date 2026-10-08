@@ -18,9 +18,12 @@ from src.dataset.schema import ROOT
 
 ANNOTATION_SCHEMA_PATH = ROOT / "data" / "metadata" / "schema" / "annotation.schema.json"
 ANNOTATIONS_PATH = ROOT / "data" / "metadata" / "annotations" / "annotations.jsonl"
-ANNOTATION_SCHEMA_VERSION = "1.1.0"
+ANNOTATION_SCHEMA_VERSION = "1.2.0"
 #: Schema 1.1.0: is the photographed object original or a reproduction (optional field).
+#: Schema 1.2.0: expert adjudication block, character (glyph) regions, reading completeness (all optional).
 OBJECT_STATUSES = ("original", "reproduction", "uncertain", "unknown")
+READING_COMPLETENESS = ("complete", "partial", "fragmentary", "illegible", "unknown", "not_applicable")
+ADJUDICATION_OUTCOMES = ("decided", "insufficient_evidence")
 
 SENTINELS = frozenset({"unknown", "not_available", "not_applicable"})
 #: Values of source_reference that are not reference ids.
@@ -104,7 +107,7 @@ def blank_annotation(
                         "characters_visible": None, "reading": "not_available",
                         "transliteration": "not_available", "transliteration_scheme": "not_available",
                         "alternative_readings": [], "reading_confidence": "not_applicable",
-                        "reading_source": "not_available"},
+                        "reading_source": "not_available", "reading_completeness": "unknown"},
         "interpretation": {"interpretation_type": "not_applicable", "translation": "not_available",
                            "meaning": "not_available", "translation_confidence": "not_applicable",
                            "translation_source": "not_available"},
@@ -132,9 +135,22 @@ def pixels_to_region(x: int, y: int, w: int, h: int, width: int, height: int) ->
 
 
 __all__ = [
-    "ANNOTATIONS_PATH", "ANNOTATION_SCHEMA_PATH", "ANNOTATION_SCHEMA_VERSION", "EVIDENCE_TYPES",
+    "ADJUDICATION_OUTCOMES",
+    "ANNOTATIONS_PATH",
+    "ANNOTATION_SCHEMA_PATH",
+    "ANNOTATION_SCHEMA_VERSION",
+    "EVIDENCE_TYPES",
     "OBJECT_STATUSES",
-    "PROVENANCE_RANK", "PROVENANCE_ROLE", "SELF_REFERENCES", "SENTINELS", "blank_annotation",
-    "is_real", "load_annotation_schema", "new_annotation_id", "pixels_to_region",
-    "region_to_pixels", "utc_now",
+    "PROVENANCE_RANK",
+    "PROVENANCE_ROLE",
+    "READING_COMPLETENESS",
+    "SELF_REFERENCES",
+    "SENTINELS",
+    "blank_annotation",
+    "is_real",
+    "load_annotation_schema",
+    "new_annotation_id",
+    "pixels_to_region",
+    "region_to_pixels",
+    "utc_now",
 ]

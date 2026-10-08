@@ -11,5 +11,5 @@ entries:
     assertions:
       - statement: "The script is also called Tamiḻi or Damili in the literature; the 2026 TNSDA corpus uses 'Tamiḻi'."
         reference_ids: [S01]
-        locator: "Vol. II, preface"
+        locator: "Vol. II, preface pp. xi-xiii; p. 1075"
         verification_status: transcribed_unverified

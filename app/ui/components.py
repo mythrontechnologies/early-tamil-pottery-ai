@@ -33,6 +33,7 @@ BADGES = {
     "research_data": ("b-real", "■", "Real research data"),
     "synthetic": ("b-synthetic", "◆", "Synthetic demonstration"),
     "unregistered": ("b-unresolved", "?", "Unregistered image"),
+    "precheck": ("b-waiting", "⌕", "Software pre-check · not verification"),
     "neutral": ("b-neutral", "·", ""),
 }
 

@@ -190,7 +190,7 @@ def run_synthetic_training(config_path: Path | str | None = None, manifest_path:
     seed_state = seed_everything(cfg.runtime.seed, deterministic=cfg.runtime.deterministic)
     device = select_device(cfg.runtime.device, mixed_precision=cfg.runtime.mixed_precision)
     geometry = ImageGeometry.from_project(cfg.data.image_size)
-    common = dict(batch_size=cfg.data.batch_size, seed=cfg.runtime.seed, num_workers=cfg.data.num_workers,
+    common: dict[str, Any] = dict(batch_size=cfg.data.batch_size, seed=cfg.runtime.seed, num_workers=cfg.data.num_workers,
                   pin_memory=cfg.data.pin_memory and device.device == "cuda")
     train_loader = make_loader(PotteryImageDataset(train_recs, spec, build_train_transform(cfg.augmentation, geometry)),
                                train=True, imbalance_strategy=cfg.imbalance.strategy, count_unit=cfg.imbalance.count_unit,

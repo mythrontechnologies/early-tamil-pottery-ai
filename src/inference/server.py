@@ -99,7 +99,8 @@ def make_handler(max_bytes: int, synthetic_classifier: Any | None = None,
                            {"error": f"body must be 1..{max_bytes} bytes"})
                 return
             data = self.rfile.read(length)
-            artifact = (parse_qs(url.query).get("artifact_id") or [None])[0]
+            ids = parse_qs(url.query).get("artifact_id")
+            artifact = ids[0] if ids else None
             try:
                 with lock:
                     result = analyze(data, artifact_id=artifact, max_bytes=max_bytes,

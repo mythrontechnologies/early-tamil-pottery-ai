@@ -45,7 +45,7 @@ class EarlyStopping:
         self.best: float | None = None
         self.bad_epochs = 0
 
-    def improved(self, value: float) -> bool:
+    def improved(self, value: float | None) -> bool:
         if value is None or (isinstance(value, float) and math.isnan(value)):
             self.bad_epochs += 1
             return False
@@ -188,7 +188,7 @@ class Trainer:
                                                    gamma=o.gamma)
         if o.scheduler == "plateau":
             return torch.optim.lr_scheduler.ReduceLROnPlateau(
-                self.optimizer, mode=self.cfg.early_stopping.mode, factor=o.gamma,
+                self.optimizer, mode="max" if self.cfg.early_stopping.mode == "max" else "min", factor=o.gamma,
                 patience=o.plateau_patience)
         return None
 

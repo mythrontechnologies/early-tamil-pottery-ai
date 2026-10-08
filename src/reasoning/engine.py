@@ -55,6 +55,9 @@ PROVENANCE_LABEL = {
 INSUFFICIENT = "Insufficient evidence"
 DISPUTED = "Disputed / requires expert resolution"
 ALTERNATIVES = "Alternative reading(s) recorded"
+PARTIAL = "Partial transcription: some signs lost or doubtful"
+FRAGMENTARY = "Fragmentary: only isolated signs read"
+ILLEGIBLE = "Inscription illegible: no transcription"
 
 #: Dating-evidence categories of the Milestone 8 brief. The seventh, "uncertainty", is filled
 #: from conflicts, exclusions and unverified references, not from an evidence type.
@@ -227,11 +230,19 @@ def analyze_artifact(
 
     # -- reading ---------------------------------------------------------------------------
     reading = _attr(ins.reading) | {"transliteration": ins.transliteration,
-                                    "alternative_readings": list(ins.alternative_readings)}
+                                    "alternative_readings": list(ins.alternative_readings),
+                                    "completeness": ins.reading_completeness}
     statements: list[str] = []
+    if ins.reading_completeness == "illegible" and not ins.reading.known:
+        reasoning.append("Reading: marks were examined and are illegible; no sign is supplied by inference.")
+        statements.append(ILLEGIBLE)
     if ins.reading.known:
         reasoning.append(f"Reading: '{ins.reading.value}' ({PROVENANCE_LABEL.get(ins.reading.provenance)}, "
                          f"{ins.reading.confidence} confidence, source: {ins.reading.source_reference}).")
+        if ins.reading_completeness in ("partial", "fragmentary"):
+            reasoning.append(f"The reading is {ins.reading_completeness}: lost or doubtful signs are not supplied, "
+                             "and any meaning is limited to what is read.")
+            statements.append(PARTIAL if ins.reading_completeness == "partial" else FRAGMENTARY)
         if ins.alternative_readings:
             reasoning.append("Alternative readings exist: " + "; ".join(
                 f"'{r.get('reading')}' ({r.get('source')})" for r in ins.alternative_readings) + ".")
@@ -279,7 +290,10 @@ def analyze_artifact(
         limitations.append(f"Annotators disagree ({inputs.annotation_status}): "
                            + json.dumps(inputs.disagreements, ensure_ascii=False, sort_keys=True))
         confidence = min_confidence(confidence, "low")
-    if inputs.annotation_status != "expert_label":
+    if inputs.annotation_status == "adjudicated":
+        limitations.append("The label comes from an expert adjudication of disagreeing annotations; "
+                           "the disagreement is preserved.")
+    elif inputs.annotation_status != "expert_label":
         limitations.append("No expert-reviewed label exists for this artifact.")
 
     unverified = sorted(r.ref_id for r in inputs.references.values()
@@ -347,7 +361,8 @@ def render_text(r: AnalysisResult) -> str:
     rd, it = r.reading, r.interpretation
     L += ["SCRIPT", f"  {r.script.get('statement')}", "",
           "READING (transcription)",
-          f"  {rd['value'] if rd['value'] not in ('not_available', 'unknown') else 'None established'}"]
+          f"  {rd['value'] if rd['value'] not in ('not_available', 'unknown') else 'None established'}"
+          + (f"  [{rd['completeness']}]" if rd.get("completeness") not in (None, "unknown", "not_applicable") else "")]
     if rd.get("transliteration") not in (None, "not_available", "not_applicable", "unknown"):
         L.append(f"  Transliteration: {rd['transliteration']}")
     L += [f"  Alternative reading: {x.get('reading')} ({x.get('source')})"
@@ -367,5 +382,5 @@ def render_text(r: AnalysisResult) -> str:
     return "\n".join(L)
 
 
-__all__ = ["ALTERNATIVES", "CATEGORIES", "DISCLAIMER", "DISPUTED", "EVIDENCE_CATEGORY", "INSUFFICIENT",
-           "AnalysisResult", "analyze_artifact", "render_text"]
+__all__ = ["ALTERNATIVES", "CATEGORIES", "DISCLAIMER", "DISPUTED", "EVIDENCE_CATEGORY", "FRAGMENTARY", "ILLEGIBLE",
+           "INSUFFICIENT", "PARTIAL", "AnalysisResult", "analyze_artifact", "render_text"]

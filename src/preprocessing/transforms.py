@@ -292,7 +292,7 @@ def to_model_array(
     if image.mode != "RGB":
         raise ValueError(f"expected an RGB image, got mode {image.mode!r}")
 
-    array = np.asarray(image, dtype=np.float32) / 255.0
+    array: np.ndarray = np.asarray(image, dtype=np.float32) / 255.0
     array = (array - np.asarray(mean, dtype=np.float32)) / np.asarray(std, dtype=np.float32)
     return np.transpose(array, (2, 0, 1)).copy() if channels_first else array
 

@@ -3,7 +3,9 @@
 Status is the EFFECTIVE status from the verification registry, never a declaration.
 Unresolved placeholders (R3, R5) always show as UNRESOLVED; nothing is styled as verified
 unless a human verification record exists. Every claim expands into its trail:
-claim → source → verification record → uncertainty.
+claim → source → verification record → uncertainty. Milestone 11: where a SOFTWARE pre-check found
+the claim in a copy the project may consult, the trail shows where, under its own badge
+"Software pre-check · not verification"; it never changes the claim's badge.
 """
 
 from __future__ import annotations
@@ -28,6 +30,7 @@ k = data.knowledge()
 refs, claims = k["references"], k["claims"]
 by_ref = {r["ref_id"]: r for r in refs}
 records = {(c["ref_id"], c["claim_id"]): c for c in k["claim_report"]}
+prechecks = k.get("prechecks", {})
 n_ver = sum(r["effective_status"] == "verified_against_source" and r["resolution"] != "unresolved" for r in refs)
 n_unres = sum(r["resolution"] == "unresolved" for r in refs)
 grid([
@@ -38,6 +41,7 @@ grid([
 ], "cols-4")
 st.html('<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin:1rem 0 .2rem" aria-label="Status legend">'
         + badge("verified") + badge("transcribed") + badge("bibliographic") + badge("unresolved") + badge("ai")
+        + badge("precheck")
         + '<span style="color:var(--muted);font-size:.84rem;align-self:center">AI observations never enter the knowledge base; '
           "they appear only on the Analysis page, in their own panel.</span></div>")
 
@@ -47,7 +51,7 @@ tab_objs = st.tabs(tabs)
 with tab_objs[0]:
     q = st.text_input("Search claims", placeholder="e.g. Kodumanal, position B, sathan", key="ev_q")
     rows = [c for c in claims if not q or q.lower() in (c["claim"] + c["id"]).lower()]
-    trails = []
+    trails: list[str] = []
     for c in rows:
         unresolved = "unresolved placeholder" in c["uncertainty"]
         b = badge("unresolved") if unresolved else reference_badge(c["verification_status"])
@@ -59,6 +63,12 @@ with tab_objs[0]:
             f'locator found {e(v["locator_found"])}</li>'
             for s in c["source"] if (v := records.get((s["ref_id"], c["id"])))) or \
             "<li>No verification record: no named person has checked this claim in the publication.</li>"
+        pc_html = "".join(
+            f'<li>{badge("precheck")} {e(s["ref_id"])}: {e(p["finding"].replace("_", " "))} at '
+            f'{e(p.get("locator_found", "-"))} · <span class="etp-mono" style="word-break:break-all">{e(p["source_url"])}</span>'
+            + (f'<div style="color:var(--muted);font-size:.84rem">Differences: {e(p["differences"])}</div>'
+               if p.get("differences") else "") + "</li>"
+            for s in c["source"] if (p := prechecks.get((s["ref_id"], c["id"]))))
         trails.append(
             f'<li class="etp-node"><details><summary><span class="num">{len(trails) + 1:02d}</span>'
             f'<span class="t" style="font-size:.95rem">{e(c["id"])}</span>{b}<span class="v">{e(c["claim"])}</span></summary>'
@@ -66,7 +76,8 @@ with tab_objs[0]:
             f'<dt>Source</dt><dd><ul style="margin:0;padding-left:1rem">{src_html}</ul></dd>'
             f'<dt>Locator (recorded)</dt><dd>{e(c["locator"])}</dd><dt>Provenance</dt><dd>{e(c["provenance"])}</dd>'
             f'<dt>Scope</dt><dd>{e(c["scope"])}</dd><dt>Verification</dt><dd><ul style="margin:0;padding-left:1rem">{ver_html}</ul></dd>'
-            f'<dt>Uncertainty</dt><dd>{e(c["uncertainty"])}</dd></dl></details></li>')
+            + (f'<dt>Where to check</dt><dd><ul style="margin:0;padding-left:1rem">{pc_html}</ul></dd>' if pc_html else "")
+            + f'<dt>Uncertainty</dt><dd>{e(c["uncertainty"])}</dd></dl></details></li>')
     if trails:
         st.html('<ol class="etp-chain" aria-label="Claims and their evidence trails">' + "".join(trails) + "</ol>")
     else:
@@ -100,5 +111,11 @@ if research():
                    "human verifier (python -m src.knowledge import-checklist).")
         st.dataframe([{"ref": r["ref_id"], "claim": r["claim"], "status": r["verification_status"], "verifier": r["verifier"],
                        "date": r["verification_date"], "locator found": r["locator_found"],
+                       "software pre-check (not verification)": (prechecks.get((r["ref_id"], r["claim_id"])) or {}).get(
+                           "finding", "-"),
+                       "where to check": (prechecks.get((r["ref_id"], r["claim_id"])) or {}).get("locator_found", "-"),
                        "publication": r["expected_publication"]} for r in k["claim_report"]], hide_index=True)
+        st.caption("To verify a pre-checked claim: open the copy at the page shown, read the passage, then run "
+                   "python -m src.knowledge verify-from-precheck <PC-id> --verifier <you> --role project_member "
+                   "--date YYYY-MM-DD --i-opened-the-source (dry run; add --commit).")
 footer()

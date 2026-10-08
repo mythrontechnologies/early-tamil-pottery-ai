@@ -9,22 +9,23 @@ entries:
     assertions:
       - statement: "Located in Sivaganga District, Tamil Nadu."
         reference_ids: [S03]
-        locator: "article title"
+        locator: "p. 30 (article title); p. 34"
         verification_status: transcribed_unverified
       - statement: "The ASI excavations of 2014-15 and 2015-16 report about 70 Tamil-Brahmi inscribed potsherds and about 600 graffiti sherds."
         reference_ids: [S03]
-        locator: "pp. 30-72 (Heritage 6)"
+        locator: "p. 58; pp. 62-63"
         verification_status: transcribed_unverified
       - statement: "The TNSDA 2019 report states 56 Tamiḻi inscribed potsherds and 1,001 graffiti sherds from the TNSDA seasons."
         reference_ids: [R6]
         verification_status: transcribed_unverified
       - statement: "The dating of the Keeladi deposits and of their inscribed sherds is disputed: the ASI article places its inscribed sherds c. 2nd century BCE - 1st century CE, the TNSDA report argues for a 6th century BCE beginning."
         reference_ids: [S03, R6]
+        locator: "S03 p. 63 (the ASI range); R6 not re-read"
         verification_status: transcribed_unverified
   - id: kodumanal
     names: ["Kodumanal"]
     assertions:
       - statement: "1,109 Tamiḻi inscribed potsherds are documented from Kodumanal (TU-PU 551 + ASI 375 + TNSDA 183) and 2,622 graffiti-bearing sherds (TU-PU 598 + TNSDA 2,024)."
         reference_ids: [S01]
-        locator: "Vol. I, ch. 2"
+        locator: "Vol. I, ch. 2, p. 80 (repeated p. 95)"
         verification_status: transcribed_unverified

@@ -254,7 +254,7 @@ def validate_registry(records: list[dict[str, Any]], kb: KnowledgeBase | None = 
         elif _claim_key(prev) != _claim_key(v):
             res.problems.append(VProblem("V8", "supersedes a record of a different reference or claim",
                                          v.get("verification_id")))
-        seen[v["supersedes"]].append(v.get("verification_id"))
+        seen[v["supersedes"]].append(v.get("verification_id", "?"))
     for old, new in seen.items():
         if len(new) > 1:
             res.problems.append(VProblem("V8", f"record {old} is superseded more than once: {new}", old))

@@ -262,7 +262,7 @@ def analyze(
 
     # -- AI stages ---------------------------------------------------------------------
     classification: ClassificationResult = classifier.classify(rgb)
-    targets = all_regions or [None]
+    targets: list[Region | None] = list(all_regions) if all_regions else [None]
     ocr_rows, marks_rows = [], []
     for reg in targets:
         view = crop(rgb, reg) if reg is not None else rgb

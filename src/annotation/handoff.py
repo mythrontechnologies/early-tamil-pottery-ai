@@ -13,7 +13,9 @@ Writes, to a git-ignored directory:
   (R1, S01, S03) for. The claim text and the locator the project transcribed are filled; the
   verification columns (status, locator found, verifier, date, copy location, access) are
   BLANK. A filled checklist is imported with ``python -m src.knowledge import-checklist``
-  (a dry run unless ``--commit``), which applies rules V1-V8 to every row.
+  (a dry run unless ``--commit``), which applies rules V1-V8 to every row. Where a SOFTWARE
+  pre-check found the claim (``knowledge/verification/source_prechecks.json``), the row carries
+  the copy to open and the page: a pointer for the human, never a verification.
 
 Deliberately NOT in any worksheet: the uploader's caption (it dates the Keeladi deposit, not
 these sherds), any script, reading, translation or date, any review flag (e.g. a suspected
@@ -40,8 +42,10 @@ ANNOTATION_COLUMNS = (
     "object_status (original/reproduction/uncertain/unknown)", "object_notes (basis: museum label, catalogue, visual)",
     "inscription_present (yes/no/uncertain)",
     "script_type (tamil_brahmi/graffiti/tamil_brahmi_and_graffiti/none/uncertain/other_script/unknown)",
-    "script_confidence", "regions (describe; mark them in the tool)", "characters_visible",
-    "reading (only if supported)", "alternative_readings", "reading_confidence", "published_reading (citation)",
+    "script_confidence", "regions (describe, or x,y,w,h label as image fractions; mark them in the tool)",
+    "characters_visible",
+    "reading (only if supported)", "alternative_readings", "reading_confidence",
+    "reading_completeness (complete/partial/fragmentary/illegible)", "published_reading (citation)",
     "inscription_type", "interpretation_type", "translation (only with a source)", "translation_source",
     "translation_confidence", "meaning",
     "linguistic_observations (with source)", "dating_evidence (type; observation; bounds; source)",
@@ -80,21 +84,39 @@ def _pilot_rows(records: list[dict[str, Any]], pilot: Pilot) -> list[dict[str, s
     return rows
 
 
+def safe_cell(value: object) -> object:
+    """Neutralise spreadsheet formula injection (CWE-1236): a text cell that a spreadsheet would run
+    as a formula ('=', '+', '@', tab/CR, or '-' not followed by a digit) is prefixed with an apostrophe.
+    Signed years such as '-300..-100' are left alone."""
+    if not isinstance(value, str) or not value:
+        return value
+    first = value[0]
+    if first in "=+@\t\r" or (first == "-" and not value[1:2].isdigit()):
+        return "'" + value
+    return value
+
+
 def _write(path: Path, header: list[str], rows: list[dict[str, str]]) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8-sig", newline="") as fh:     # BOM: opens cleanly in Excel
         w = csv.DictWriter(fh, fieldnames=header)
         w.writeheader()
         for row in rows:
-            w.writerow({k: row.get(k, "") for k in header})
+            w.writerow({k: safe_cell(row.get(k, "")) for k in header})
     return path
+
+
+PRECHECK_COLUMNS = ("precheck_finding (SOFTWARE pre-check; NOT verification)",
+                    "precheck_locator (open the copy here)", "precheck_copy_url")
 
 
 def claim_rows(ref_ids: list[str] | None = None) -> list[dict[str, str]]:
     from src.knowledge.base import default_kb
+    from src.knowledge.precheck import load_prechecks
     from src.knowledge.verification import claims, key_references
 
     kb = default_kb()
+    pre = load_prechecks(kb=kb)
     refs = ref_ids or key_references()
     rows = []
     for c in claims(kb):
@@ -102,7 +124,12 @@ def claim_rows(ref_ids: list[str] | None = None) -> list[dict[str, str]]:
             if rid not in refs:
                 continue
             ref = kb.references.get(rid, {})
-            rows.append({"ref_id": rid, "claim_id": c.claim_id,
+            pc = pre.for_claim(rid, c.claim_id) or {}
+            src = pre.sources.get(pc.get("source_id", ""), {})
+            rows.append({PRECHECK_COLUMNS[0]: pc.get("finding", ""),
+                         PRECHECK_COLUMNS[1]: pc.get("locator_found", ""),
+                         PRECHECK_COLUMNS[2]: src.get("url", ""),
+                         "ref_id": rid, "claim_id": c.claim_id,
                          "citation": ref.get("citation", "not in knowledge base"),
                          "knowledge_base_status": ref.get("verification_status", "unknown"),
                          "claim": c.statement,
@@ -124,10 +151,20 @@ def build_handoff(records: list[dict[str, Any]], out_dir: Path | None = None,
     claims = claim_rows()
     files.append(_write(out / "verification_checklist.csv",
                         ["ref_id", "claim_id", "citation", "knowledge_base_status", "claim",
-                         "locator_as_transcribed (UNVERIFIED)", "recorded_in", *VERIFICATION_COLUMNS],
+                         "locator_as_transcribed (UNVERIFIED)", "recorded_in", *PRECHECK_COLUMNS,
+                         *VERIFICATION_COLUMNS],
                         claims))
     return HandoffPack(out, files, len(photos), len(claims))
 
 
-__all__ = ["ANNOTATION_COLUMNS", "DEFAULT_OUT", "EXPERT_COLUMNS", "VERIFICATION_COLUMNS",
-           "HandoffPack", "build_handoff", "claim_rows"]
+__all__ = [
+    "ANNOTATION_COLUMNS",
+    "DEFAULT_OUT",
+    "EXPERT_COLUMNS",
+    "PRECHECK_COLUMNS",
+    "VERIFICATION_COLUMNS",
+    "HandoffPack",
+    "build_handoff",
+    "claim_rows",
+    "safe_cell",
+]

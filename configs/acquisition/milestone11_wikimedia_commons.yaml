@@ -1,0 +1,94 @@
+# Milestone 11 acquisition plan: Wikimedia Commons (second screening pass, 2026-10-08).
+#
+# CURATED BY AN AI ASSISTANT; EVERY SELECTION IS PENDING HUMAN REVIEW.
+# Screening scope (docs/PUBLIC_DATASET_AUDIT.md, "Milestone 11 screening"): every file of
+# Category:Keezhadi archeological site (183), Keezhadi Museum, Keezhadi, Keeladi Museum,
+# Sivakalai archaeological site, Korkai, Adichanallur archaeological site (47),
+# Adichanallur earthenware burial urns, Anthropology Museum (Government Museum, Chennai),
+# Arikamedu, and 31 full-text searches. Screening asked ONE question per file: does the
+# photograph show an individual pottery object from Tamil Nadu that the project may use?
+# It never asked, and this file never records, whether an object is inscribed: that is the
+# annotators' question. Licences are NOT in this file: the pipeline reads each one from the
+# Commons API at run time, and the policy (src/acquisition/policy.py, A1-A9) decides.
+#
+#   python -m src.acquisition plan configs/acquisition/milestone11_wikimedia_commons.yaml            # dry run
+#   python -m src.acquisition plan configs/acquisition/milestone11_wikimedia_commons.yaml --commit
+
+curator: Claude (AI-assisted curation, Milestone 11); every selection pending human review
+max_file_mb: 40
+max_total_mb: 200
+datasets:
+- dataset_id: wmc_tamil_nadu_pottery_m11
+  dataset_name: Tamil Nadu archaeological pottery photographs from Wikimedia Commons (Milestone 11)
+  target: research
+  subdir: tamil_nadu_pottery/wikimedia_commons_m11
+  source: wikimedia_commons
+  source_name: Wikimedia Commons
+  source_url: https://commons.wikimedia.org/wiki/Category:Adichanallur_archaeological_site ; https://commons.wikimedia.org/wiki/Category:Anthropology_Museum,_Government_Museum,_Chennai
+  geographic_scope: tamil_nadu
+  archaeological_period: not_stated_by_source
+  script_scope: not_stated_by_source
+  items:
+  - title: File:Civiltà thamirabani, reperti da adhichanallur, coppa, 1000 ac ca. 01.jpg
+    artifact_group: WMC_GMC_ADICHANALLUR_CUP
+    grouping_basis: one photograph of one vessel; no other acquired photo shows it
+    object_type: complete vessel displayed in a museum (source title 'coppa', i.e. cup)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: a single vessel on a stand, one face visible.'
+    find_site: 'Adichanallur (as stated by source title ''reperti da adhichanallur'' and category ''Adichanallur archaeological
+      site''); the museum label was not read'
+    geographic_scope: tamil_nadu
+    record:
+      collection: Anthropology Museum, Government Museum, Chennai (as stated by source)
+      site: Adichanallur (as stated by source)
+      site_state: Tamil Nadu
+      context_reliability: unknown
+  - title: File:Civiltà thamirabani, reperti da adhichanallur, dolio, 1000 ac ca.jpg
+    artifact_group: WMC_GMC_ADICHANALLUR_STORAGE_JAR
+    grouping_basis: one photograph of one vessel; no other acquired photo shows it
+    object_type: complete vessel displayed in a museum (source title 'dolio', i.e. storage jar)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: a single large jar on a wooden stand, one face visible;
+      applied decoration on the shoulder.'
+    find_site: 'Adichanallur (as stated by source title ''reperti da adhichanallur'' and category ''Adichanallur archaeological
+      site''); the museum label was not read'
+    geographic_scope: tamil_nadu
+    record:
+      collection: Anthropology Museum, Government Museum, Chennai (as stated by source)
+      site: Adichanallur (as stated by source)
+      site_state: Tamil Nadu
+      context_reliability: unknown
+  - title: File:Civiltà thamirabani, reperti da adhichanallur, urna panciuta, 1000 ac ca.jpg
+    artifact_group: WMC_GMC_ADICHANALLUR_LIDDED_URN
+    grouping_basis: one photograph of one vessel with its lid; no other acquired photo shows it
+    object_type: complete vessel with lid displayed in a museum (source title 'urna panciuta', i.e. bellied urn)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: a single lidded vessel on a stand, one face visible.'
+    find_site: 'Adichanallur (as stated by source title ''reperti da adhichanallur'' and category ''Adichanallur archaeological
+      site''); the museum label was not read'
+    geographic_scope: tamil_nadu
+    record:
+      collection: Anthropology Museum, Government Museum, Chennai (as stated by source)
+      site: Adichanallur (as stated by source)
+      site_state: Tamil Nadu
+      context_reliability: unknown
+  - title: File:Civiltà thamirabani, reperti da adhichanallur, vaso, 1000 ac ca.jpg
+    artifact_group: WMC_GMC_ADICHANALLUR_FOOTED_VESSEL
+    grouping_basis: one photograph of one vessel; no other acquired photo shows it
+    object_type: complete vessel displayed in a museum (source title 'vaso', i.e. vessel)
+    curation_note: 'AI-ASSISTED CURATION OBSERVATION, NOT A LABEL: a single footed vessel, one face visible.'
+    find_site: 'Adichanallur (as stated by source title ''reperti da adhichanallur'' and category ''Adichanallur archaeological
+      site''); the museum label was not read'
+    geographic_scope: tamil_nadu
+    record:
+      collection: Anthropology Museum, Government Museum, Chennai (as stated by source)
+      site: Adichanallur (as stated by source)
+      site_state: Tamil Nadu
+      context_reliability: unknown
+  excluded:
+    File:Civiltà thamirabani, reperti da adhichanallur, 01.jpg: gallery overview of several showcases; no object is
+      individually identifiable
+    File:Civiltà thamirabani, reperti da adhichanallur, 02.jpg: gallery overview of one long showcase; no object is
+      individually identifiable
+  notes: >-
+    Photographs by Sailko (own work, per source). The uploader's title gives '1000 ac ca.' (c. 1000 BCE): that is a
+    caption, never an object date, and is not copied into any date field. No project label is assigned: these
+    vessels are queued for annotation like every other research image, and a 'none' judgement needs an annotator
+    who can examine the whole surface (one face is photographed).

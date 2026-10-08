@@ -20,6 +20,7 @@ ANNOTATION_STATE = {
     "project_disagreement": ("unresolved", "Project annotators disagree"),
     "disputed": ("unresolved", "Disputed · requires expert resolution"),
     "expert_label": ("expert", "Expert-labelled"),
+    "adjudicated": ("expert", "Expert-adjudicated · disagreement preserved"),
 }
 
 

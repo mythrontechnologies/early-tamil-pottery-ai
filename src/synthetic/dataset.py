@@ -394,7 +394,7 @@ def validate_synthetic_records(records: list[dict[str, Any]], root: Path | None 
 def load_synthetic_dataset(root: Path | str | None = None, *, verify_hashes: bool = True) -> LoadedDataset:
     """The synthetic records as a LoadedDataset (``is_research_dataset`` is always False)."""
     paths = SyntheticPaths.at(root)
-    base = dict(source=_rel(paths.records), data_root=_rel(paths.root), is_research_dataset=False)
+    base: dict[str, Any] = dict(source=_rel(paths.records), data_root=_rel(paths.root), is_research_dataset=False)
     if not paths.records.exists():
         return LoadedDataset(**base, exists=False, fingerprint=dataset_fingerprint([]),
                              image_fingerprint=image_set_fingerprint([]))
@@ -406,6 +406,9 @@ def load_synthetic_dataset(root: Path | str | None = None, *, verify_hashes: boo
     accepted, rejected = [], []
     for idx, r in enumerate(raw):
         iid = r.get("image_id")
+        if not isinstance(iid, str):
+            rejected.append(Rejection(idx, None, ("S1: record has no image_id",)))
+            continue
         if reasons.get(iid):
             rejected.append(Rejection(idx, iid, tuple(reasons[iid])))
             continue

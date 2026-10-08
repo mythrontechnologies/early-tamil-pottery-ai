@@ -15,7 +15,8 @@ training label is this explicit, audited, reversible process:
 
 Candidate checks (a failure rejects the artifact, with the reason, and never blocks others):
 
-``P1`` resolution status is ``expert_label``. Disputed, provisional (project-only),
+``P1`` resolution status is ``expert_label`` or (schema 1.2.0) ``adjudicated``, in which case the
+       adjudicating expert annotation alone is the source of the label. Disputed, provisional (project-only),
        project-disagreement and unannotated artifacts are rejected; AI predictions never count
 ``P2`` every source annotation is a current, ``expert_reviewed`` ``expert_annotation`` with a
        stated qualification
@@ -219,15 +220,20 @@ def _promoted(rec: dict[str, Any], label: str, experts: list[dict[str, Any]],
     confs = [CONFIDENCE_MAP.get(a["inscription"]["script_confidence"], "unknown") for a in experts]
     new["label_confidence"] = min(confs, key=CONFIDENCE_RANK.index)
 
-    w, h = rec.get("image_width_px"), rec.get("image_height_px")
+    w, h = int(rec["image_width_px"]), int(rec["image_height_px"])     # checked to be ints (P5) by the caller
     regions = []
     for a in experts:
         for r in a["inscription"].get("regions", []):
             if r["image_id"] != rec["image_id"]:
                 continue
             px = region_to_pixels(r, w, h)
-            regions.append({**px, "region_label": r["label"], "annotator": a["annotator"]["annotator_id"],
-                            "notes": f"expert annotation {a['annotation_id']}"
+            sign = ""
+            if r["label"] == "character":   # the record schema has no glyph label: kept as 'other' + note
+                sign = f"; character (glyph) region, sign {r.get('sign_index', '?')}" + (
+                    f" read {r['sign_reading']!r}" if r.get("sign_reading") else "")
+            regions.append({**px, "region_label": "other" if r["label"] == "character" else r["label"],
+                            "annotator": a["annotator"]["annotator_id"],
+                            "notes": f"expert annotation {a['annotation_id']}" + sign
                                      + (f"; {r['note']}" if r.get("note") else "")})
     new["inscription_regions"] = regions
     counts = {a["inscription"].get("characters_visible") for a in experts}
@@ -327,8 +333,11 @@ def _promoted(rec: dict[str, Any], label: str, experts: list[dict[str, Any]],
                       for a in experts)
     new["annotator"] = quals
     new["annotation_date"] = max(a["created_utc"][:10] for a in experts)
-    tag = (f"Milestone 8 label promotion from expert annotation(s) {via}; audit trail: "
-           "data/metadata/promotions/promotion_log.jsonl.")
+    adjudicated = [a for a in experts if isinstance(a.get("adjudication"), dict)]
+    tag = (f"Milestone 8 label promotion from expert annotation(s) {via}"
+           + (f" (expert adjudication resolving {', '.join(adjudicated[0]['adjudication']['resolves'])})"
+              if adjudicated else "")
+           + "; audit trail: data/metadata/promotions/promotion_log.jsonl.")
     base = rec.get("notes", "not_available")
     new["notes"] = tag if not is_real(base) else base if tag in base else f"{base} | {tag}"
     return new, notes
@@ -397,7 +406,7 @@ def plan_promotion(
                                                                 "never an archaeological label"]))
             continue
         res = resolve_artifact(art, current)
-        if res.status != "expert_label" or not res.ground_truth_eligible:
+        if res.status not in ("expert_label", "adjudicated") or not res.ground_truth_eligible or res.label is None:
             reason = REJECTION_BY_STATUS.get(res.status, f"P1 status {res.status}")
             if res.ai_predictions and res.status == "unannotated":
                 reason += f" ({len(res.ai_predictions)} AI prediction(s) ignored)"
@@ -405,7 +414,9 @@ def plan_promotion(
             continue
         experts = sorted((a for a in current if a["artifact_id"] == art
                           and a["provenance_type"] == "expert_annotation"
-                          and a["review_state"] == "expert_reviewed"), key=lambda a: a["annotation_id"])
+                          and a["review_state"] == "expert_reviewed"
+                          and (res.status != "adjudicated" or a["annotation_id"] == res.adjudication_id)),
+                         key=lambda a: a["annotation_id"])
         reasons = []
         if not experts or any(a["provenance_type"] != "expert_annotation" for a in experts):
             reasons.append("P2 no expert-reviewed expert annotation")
@@ -480,10 +491,12 @@ def plan_promotion(
         result = validate_records(after_records, data_root=data_root,
                                   verify_hashes=data_root is not None)
         bad: dict[str, list[str]] = {}
-        for f in result.errors:
-            owner = next((c for c in plan.candidates if any(ch.image_id == f.image_id for ch in c.changes)), None)
+        for finding in result.errors:
+            owner = next((c for c in plan.candidates if any(ch.image_id == finding.image_id for ch in c.changes)),
+                         None)
             if owner is not None:
-                bad.setdefault(owner.artifact_id, []).append(f"P9 {f.rule} {f.image_id}: {f.message}")
+                bad.setdefault(owner.artifact_id, []).append(
+                    f"P9 {finding.rule} {finding.image_id}: {finding.message}")
         if not bad:
             plan.validation_status = "FAIL" if result.errors else "PASS"
             plan.validation_errors = [str(f) for f in result.errors]

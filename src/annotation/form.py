@@ -36,7 +36,7 @@ def _year(value: Any) -> int | None:
 def clean_evidence(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Rows from the evidence table -> dating_evidence items. Blank rows are dropped;
     evidence ids are assigned E1, E2, ... in order."""
-    out = []
+    out: list[dict[str, Any]] = []
     for row in rows:
         if not _text(row.get("observation"), ""):
             continue
@@ -91,7 +91,7 @@ def build_annotation(values: dict[str, Any]) -> dict[str, Any]:
 
     ins = a["inscription"]
     for k in ("inscription_present", "inscription_type", "script_type", "script_confidence",
-              "reading_confidence", "transliteration_scheme"):
+              "reading_confidence", "transliteration_scheme", "reading_completeness"):
         if values.get(k):
             ins[k] = values[k]
     ins["regions"] = list(values.get("regions", []))
@@ -104,6 +104,7 @@ def build_annotation(values: dict[str, Any]) -> dict[str, Any]:
         ins.update({"script_type": "none", "inscription_type": "not_applicable",
                     "reading": "not_applicable", "transliteration": "not_applicable",
                     "reading_source": "not_applicable", "reading_confidence": "not_applicable",
+                    "reading_completeness": "not_applicable",
                     "script_confidence": values.get("script_confidence") or "unknown"})
 
     it = a["interpretation"]
@@ -132,6 +133,12 @@ def build_annotation(values: dict[str, Any]) -> dict[str, Any]:
     for k in ("uncertainty_notes", "notes"):
         if _text(values.get(k), ""):
             a[k] = values[k].strip()
+    adj = values.get("adjudication")
+    if adj and adj.get("resolves"):           # schema 1.2.0; rule N18 decides whether it is acceptable
+        a["adjudication"] = {"resolves": list(adj["resolves"]), "outcome": adj.get("outcome") or "decided",
+                             "basis": _text(adj.get("basis"), "")}    # empty -> rejected (N1): say why
+        if adj.get("fields_decided"):
+            a["adjudication"]["fields_decided"] = list(adj["fields_decided"])
     return a
 
 

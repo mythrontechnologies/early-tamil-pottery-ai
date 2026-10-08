@@ -301,3 +301,58 @@ def test_3d_views_fall_back_when_the_browser_refuses_a_context():
     assert "webglcontextlost" in page and "ETP.stats.mode === '2d'" in page
     html = _capture_iframe(inspect3d, lambda: inspect3d.render_inspection(Image.new("RGB", (8, 8)), [], alt="x"))
     assert "try { renderer = new THREE.WebGLRenderer" in html and "webglcontextlost" in html
+
+
+# --------------------------------------------------------------------------- #
+# Milestone 11: pre-checks on the Evidence page, the queue, glyph regions, adjudication
+# --------------------------------------------------------------------------- #
+
+
+def test_evidence_page_shows_where_to_check_but_never_verified(apptest):
+    html = _html(apptest("views/evidence.py").run())
+    assert "Software pre-check · not verification" in html and "Where to check" in html
+    assert "heritageuniversityofkerala.com/JournalPDF/Volume6/2.pdf" in html
+    trail = html.split('<span class="t" style="font-size:.95rem">s03_keeladi_sathan</span>')[1].split("</summary>")[0]
+    assert "b-verified" not in trail                        # a pre-check never styles a claim as verified
+
+
+def test_annotation_queue_lists_every_artifact(apptest, live_research):
+    if not live_research["records"]:
+        pytest.skip("no research records")
+    at = apptest("annotate.py").run()
+    assert not at.exception
+    queue = next(df for df in at.dataframe if "next step" in df.value.columns)
+    assert len(queue.value) == len({r["artifact_id"] for r in live_research["records"]})
+    assert set(queue.value["status"]) <= {"unannotated", "provisional", "project_disagreement", "disputed",
+                                          "expert_label", "adjudicated"}
+
+
+def test_character_region_records_its_sign(apptest, tmp_path, live_research):
+    import json
+
+    if not live_research["records"]:
+        pytest.skip("no research records")
+    at = apptest("annotate.py").run()
+    at.slider(key="zx").set_value((0.2, 0.3)).run()
+    next(s for s in at.selectbox if s.label == "Region label").set_value("character").run()
+    next(n for n in at.number_input if n.label.startswith("Sign position")).set_value(2).run()
+    next(t for t in at.text_input if t.label.startswith("Sign as read")).set_value("?").run()
+    next(b for b in at.button if b.label == "Add region from zoom window").click().run()
+    at.sidebar.text_input(key="annotator_id").set_value("SYNTHETIC_lab").run()
+    next(r for r in at.radio if r.label == "Inscription / graffiti present").set_value("uncertain").run()
+    next(r for r in at.radio if r.label == "Script type").set_value("uncertain").run()
+    next(s for s in at.selectbox if s.label == "Script confidence").set_value("low").run()
+    next(b for b in at.button if "Save" in b.label).click().run()
+    assert not at.exception and at.success, [x.value for x in at.error]
+    [saved] = [json.loads(x) for x in (tmp_path / "annotations.jsonl").read_text(encoding="utf-8").splitlines()]
+    region = saved["inscription"]["regions"][0]
+    assert (region["label"], region["sign_index"], region["sign_reading"]) == ("character", 2, "?")
+
+
+def test_adjudication_is_only_offered_to_experts(apptest, live_research):
+    if not live_research["records"]:
+        pytest.skip("no research records")
+    at = apptest("annotate.py").run()
+    assert not any("ADJUDICATING" in c.label for c in at.sidebar.checkbox)
+    at.sidebar.radio[0].set_value("expert_annotation").run()
+    assert any("ADJUDICATING" in c.label for c in at.sidebar.checkbox)

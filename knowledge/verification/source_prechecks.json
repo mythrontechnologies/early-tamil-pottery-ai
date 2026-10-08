@@ -1,0 +1,235 @@
+{
+  "precheck_schema_version": "1.0.0",
+  "checked_by": "software_agent",
+  "agent": "Claude (AI coding agent), automated session of 2026-10-08; text extracted with pypdf from the copies listed under 'sources' and read; nothing was paraphrased into the knowledge base without a page reference",
+  "effect": "none",
+  "statement": "SOFTWARE PRE-CHECK - NOT VERIFICATION. These records say where a software agent found each claim in a copy the project may consult. They do not change any reference's verification status and cannot: a reference is verified only when a named human opens the publication and records the check in knowledge/verification/reference_verifications.jsonl (python -m src.knowledge verify / verify-from-precheck). The pre-check exists to make that human check a matter of minutes.",
+  "sources": [
+    {
+      "source_id": "SRC-R1-BNF",
+      "ref_id": "R1",
+      "description": "Bibliothèque nationale de France, catalogue général: bibliographic record of Mahadevan, Early Tamil Epigraphy (2003)",
+      "access": "catalogue_record",
+      "url": "https://catalogue.bnf.fr/ark:/12148/cb39156184d",
+      "holder": "Bibliothèque nationale de France",
+      "accessed": "2026-10-08",
+      "notes": "A national-library catalogue record establishes the bibliographic details only. The book's content was not consulted: no authorised digital copy was found online (an unauthorised copy exists and is not used; docs/DATA_SOURCE_AUDIT.md S06)."
+    },
+    {
+      "source_id": "SRC-S01-TDL-V1",
+      "ref_id": "S01",
+      "description": "Inscribed Potsherds of Tamil Nadu: Graffiti and Tamiḻi, Vol. I, full digital copy in the Tamil Digital Library",
+      "access": "authorised_digital_copy",
+      "url": "https://tamildigitallibrary.in/assets/docs/uploads/catalogue_article_file/BOK/upload/2026/03/TVA_TVA_BOK_062969/upload_primary_20260302113351638_20260302111421.pdf",
+      "record_url": "https://tamildigitallibrary.in/Marc-Articles/062969_Inscribed_Potsherds_of_Tamil_Nadu_Vol_1",
+      "holder": "Tamil Virtual Academy (Government of Tamil Nadu), Tamil Digital Library; holding institution recorded as the Department of Archaeology, Government of Tamil Nadu",
+      "accessed": "2026-10-08",
+      "sha256": "d1dbfefeccd41dc05fca9da9ec8bbaacaf250322201b9d3b0b15b84fe48a78a6",
+      "size_bytes": 35390765,
+      "pages": 740,
+      "page_mapping": "printed page = PDF page - 39 in the body (p. 80 = PDF p. 119; p. 95 = PDF p. 134); imprint p. ii = PDF p. 3",
+      "rights": "© Department of Archaeology, Government of Tamil Nadu; consulted for reading only. No image from it is used (acquisition policy A2 blocks the host)."
+    },
+    {
+      "source_id": "SRC-S01-TDL-V2",
+      "ref_id": "S01",
+      "description": "Inscribed Potsherds of Tamil Nadu: Graffiti and Tamiḻi, Vol. II, full digital copy in the Tamil Digital Library",
+      "access": "authorised_digital_copy",
+      "url": "https://tamildigitallibrary.in/assets/docs/uploads/catalogue_article_file/BOK/upload/2026/03/TVA_TVA_BOK_062968/upload_primary_20260302120759232_20260302110011.pdf",
+      "record_url": "https://tamildigitallibrary.in/Marc-Articles/062968_Inscribed_Potsherds_of_Tamil_Nadu_Vol_2",
+      "holder": "Tamil Virtual Academy (Government of Tamil Nadu), Tamil Digital Library",
+      "accessed": "2026-10-08",
+      "sha256": "4e845dd57bd1ef2433f30b74afd7cb6427e5acae2d6fe631a6510dd6b97d28dc",
+      "size_bytes": 20735805,
+      "pages": 712,
+      "page_mapping": "preface p. xi = PDF p. 12, p. xiii = PDF p. 14; p. 1075 = PDF p. 400 (Vol. II continues the pagination of Vol. I)",
+      "rights": "© Department of Archaeology, Government of Tamil Nadu; consulted for reading only."
+    },
+    {
+      "source_id": "SRC-S03-TOC",
+      "ref_id": "S03",
+      "description": "Heritage: Journal of Multidisciplinary Studies in Archaeology, publisher's table of contents and volume record for Volume 6 (data files behind VolumeDetails.aspx?VID=6)",
+      "access": "publisher_table_of_contents",
+      "url": "https://heritageuniversityofkerala.com/jsonData/SixthVolume.txt",
+      "record_url": "https://heritageuniversityofkerala.com/VolumeDetails.aspx?VID=6",
+      "holder": "Department of Archaeology, University of Kerala (publisher)",
+      "accessed": "2026-10-08",
+      "notes": "Volume record (jsonData/SixthVolumeDetails.txt): Year 2018, editors Rajesh S. V., Ajit Kumar, Abhayan G. S. and Preeta Nayar. The publisher's Archive page lists Volume 6 under 2019."
+    },
+    {
+      "source_id": "SRC-S03-OA",
+      "ref_id": "S03",
+      "description": "Ramakrishna et al., 'Excavations at Keeladi ...', Heritage 6, pp. 30-72: the article PDF published openly by the journal",
+      "access": "open_access_publication",
+      "url": "https://heritageuniversityofkerala.com/JournalPDF/Volume6/2.pdf",
+      "holder": "Department of Archaeology, University of Kerala (publisher)",
+      "accessed": "2026-10-08",
+      "sha256": "e3a66079947f21d6699c9ccb9be4dfc74b300c6798f66a3ac8a363f9bc0918ed",
+      "size_bytes": 2382540,
+      "pages": 43,
+      "page_mapping": "journal page = PDF page + 29 (running heads checked: PDF p. 25 = p. 54, PDF p. 33 = p. 62)",
+      "rights": "published openly by the journal for reading; no figure is reproduced by the project"
+    },
+    {
+      "source_id": "SRC-R5C-DAI",
+      "ref_id": "R5",
+      "description": "Zeitschrift für Archäologie Außereuropäischer Kulturen 6 (2014): issue front matter and contents, publisher's digital edition",
+      "access": "publisher_table_of_contents",
+      "url": "https://publications.dainst.org/journals/zaak/issue/view/534/90",
+      "holder": "Deutsches Archäologisches Institut (iDAI.publications); issue DOI https://doi.org/10.34780/3gde-4w30",
+      "accessed": "2026-10-08",
+      "notes": "Front matter and table of contents only; the article was not read."
+    }
+  ],
+  "bibliographic_checks": [
+    {
+      "check_id": "BC-R1",
+      "ref_id": "R1",
+      "source_ids": ["SRC-R1-BNF"],
+      "check_date": "2026-10-08",
+      "finding": "matches_knowledge_base",
+      "confirmed": ["author Iravatham Mahadevan", "title Early Tamil Epigraphy from the Earliest Times to the Sixth Century A.D.", "Harvard Oriental Series vol. 62", "publishers Cre-A (Chennai) and the Department of Sanskrit and Indian Studies, Harvard University (Cambridge, Mass.)", "year 2003"],
+      "notes": "The catalogue adds: xxxix + 719 pages, ISBN 0-674-01227-5 (cloth). It does not support or test the chronology claim the project attributes to R1 (position A)."
+    },
+    {
+      "check_id": "BC-S01",
+      "ref_id": "S01",
+      "source_ids": ["SRC-S01-TDL-V1", "SRC-S01-TDL-V2"],
+      "check_date": "2026-10-08",
+      "finding": "matches_knowledge_base",
+      "confirmed": ["authors K. Rajan and R. Sivanantham", "title Inscribed Potsherds of Tamil Nadu: Graffiti and Tamiḻi", "2 volumes", "Chennai: Department of Archaeology, Government of Tamil Nadu", "First Edition 2026", "Publication No. 366", "ISBN 978-81-977842-3-1"],
+      "notes": "Imprint page, Vol. I p. ii (PDF p. 3); the same imprint is in Vol. II. Vol. I: xxxviii + 699 pp. per the library record; 740 pages in the digital copy."
+    },
+    {
+      "check_id": "BC-S03",
+      "ref_id": "S03",
+      "source_ids": ["SRC-S03-TOC", "SRC-S03-OA"],
+      "check_date": "2026-10-08",
+      "finding": "matches_knowledge_base",
+      "confirmed": ["authors K. Amarnath Ramakrishna, Nanda Kishor Swain, M. Rajesh and N. Veeraraghavan", "title Excavations at Keeladi, Sivaganga District, Tamil Nadu (2014-2015 and 2015-16)", "Heritage: Journal of Multidisciplinary Studies in Archaeology", "volume 6", "pages 30-72", "year 2018"],
+      "differences": "The publisher's Archive page lists Volume 6 under 2019, while its own volume record, the article's running heads ('Heritage: Journal of Multidisciplinary Studies in Archaeology 6: 2018'; 'Ramakrishna et al. 2018 30-72') and the ISSN line give 2018. The knowledge base keeps 2018, as printed in the article.",
+      "notes": "ISSN 2347-5463 (running head)."
+    },
+    {
+      "check_id": "BC-R5-CANDIDATE",
+      "ref_id": "R5",
+      "work": "Falk, Harry. 'Owners' graffiti on pottery from Tissamaharama.' Zeitschrift für Archäologie Außereuropäischer Kulturen 6 (2014): 45-94",
+      "source_ids": ["SRC-R5C-DAI"],
+      "check_date": "2026-10-08",
+      "finding": "candidate_work_exists",
+      "confirmed": ["author Harry Falk", "title Owners' graffiti on pottery from Tissamaharama", "Zeitschrift für Archäologie Außereuropäischer Kulturen, Band 6", "year 2014", "first page 45"],
+      "notes": "The contents list gives the first page only, so the end page 94 (from the secondary source) is not confirmed. The work exists; whether R5 (position D) means THIS work, and whether it states the objection position D attributes to it, is a scholar's question and stays UNRESOLVED (rules K8, V9)."
+    }
+  ],
+  "claim_checks": [
+    {
+      "precheck_id": "PC-R1-01",
+      "ref_id": "R1",
+      "claim_id": "config:chronology.position_A",
+      "source_id": "SRC-R1-BNF",
+      "check_date": "2026-10-08",
+      "finding": "source_not_accessible",
+      "notes": "Only the catalogue record was consulted. Checking the -300 to -100 palaeographic position needs a physical or authorised copy of the book (e.g. a university library); it stays unverified."
+    },
+    {
+      "precheck_id": "PC-S01-01",
+      "ref_id": "S01",
+      "claim_id": "kodumanal.assertions[0]",
+      "source_id": "SRC-S01-TDL-V1",
+      "check_date": "2026-10-08",
+      "finding": "found_as_stated",
+      "locator_found": "Vol. I, ch. 2 (Site descriptions: Kodumanal), p. 80; repeated p. 95",
+      "excerpt": "In total, 1109 Tamiḻi (Tamil-Brahmi) inscribed potsherds (TU-PU 551+ASI 375+TNSDA 183= 1109) and 2622 (TU-PU 598 and TNSDA 2024= 2622; Data on ASI graffiti sherds are not available) graffiti bearing potsherds collected from the habitation cuttings",
+      "notes": "p. 95: '1109 Tamiḻi inscribed potsherds came from Kodumanal, constituting 68.6% of the total inscribed potsherds coming from Tamil Nadu'."
+    },
+    {
+      "precheck_id": "PC-S01-02",
+      "ref_id": "S01",
+      "claim_id": "s01_kodumanal_visaki",
+      "source_id": "SRC-S01-TDL-V1",
+      "check_date": "2026-10-08",
+      "finding": "found_as_stated",
+      "locator_found": "Vol. I, ch. 2 (Kodumanal), p. 80",
+      "excerpt": "an inscribed potsherd reading visāki (re-read as visākanan) was collected from a transepted cist",
+      "notes": "No interpretation is given at p. 80. p. 95 lists 'visā kanan' among 'personal names' found on Kodumanal sherds without saying whether it is this sherd; the knowledge base keeps 'not stated' for this object."
+    },
+    {
+      "precheck_id": "PC-S01-03",
+      "ref_id": "S01",
+      "claim_id": "tamil_brahmi.assertions[0]",
+      "source_id": "SRC-S01-TDL-V2",
+      "check_date": "2026-10-08",
+      "finding": "found_as_stated",
+      "locator_found": "Vol. II, preface pp. xi-xiii; ch. 7 'Tamiḻi inscribed potsherds: an introduction', p. 1075",
+      "excerpt": "p. xi: 'Tamiḻi (Tamiḻ-Brāhmī/Damiḻi)'; p. xii: 'the Tamiḻi script, popularly called Tamiḷ-Brāhmī'; p. 1075: 'should be called as Tamiḻi. The term Damili is the Prakrit/corrupt form of Tamil.'",
+      "notes": "The corpus uses 'Tamiḻi' throughout, as the claim says."
+    },
+    {
+      "precheck_id": "PC-S03-01",
+      "ref_id": "S03",
+      "claim_id": "keezhadi.assertions[0]",
+      "source_id": "SRC-S03-OA",
+      "check_date": "2026-10-08",
+      "finding": "found_as_stated",
+      "locator_found": "p. 30 (article title); p. 34",
+      "excerpt": "p. 30: 'Excavations at Keeladi, Sivaganga District, Tamil Nadu'; p. 34: '(Tirupuvanam Taluk, Sivaganga District) was selected for systematic excavation'",
+      "notes": "-"
+    },
+    {
+      "precheck_id": "PC-S03-02",
+      "ref_id": "S03",
+      "claim_id": "keezhadi.assertions[1]",
+      "source_id": "SRC-S03-OA",
+      "check_date": "2026-10-08",
+      "finding": "found_as_stated",
+      "locator_found": "p. 58; pp. 62-63",
+      "excerpt": "p. 58: 'the site has yielded more than seventy Tamil-Brahmi inscribed potsherds and nearly six hundred graffiti sherds'; p. 63: 'About 70 Tamil-Brahmi inscribed pot sherds were collected from two field seasons.'",
+      "notes": "p. 62: 'The post firing ligatured graffiti accounts for about six hundred sherds from both Locality I and II'."
+    },
+    {
+      "precheck_id": "PC-S03-03",
+      "ref_id": "S03",
+      "claim_id": "keezhadi.assertions[3]",
+      "source_id": "SRC-S03-OA",
+      "check_date": "2026-10-08",
+      "finding": "partially_found",
+      "locator_found": "p. 63",
+      "excerpt": "On the basis of stratigraphy and palaeographical grounds, these inscribed sherds may be dated to c. 2nd cent BCE - c. 1st cent CE.",
+      "notes": "The S03 half of the claim (the ASI dating of its inscribed sherds) is found as stated. The TNSDA half (a 6th century BCE beginning) is attributed to R6 and was not checked here. The article also reports (p. 38) calibrated AMS dates 'ranging between 200 BC - 195 BC' for samples from 2.50 m and 1.95 m, and calls its period dates 'purely tentative'."
+    },
+    {
+      "precheck_id": "PC-S03-04",
+      "ref_id": "S03",
+      "claim_id": "s03_keeladi_eravathan",
+      "source_id": "SRC-S03-OA",
+      "check_date": "2026-10-08",
+      "finding": "found_as_stated",
+      "locator_found": "p. 40 (Locality II, Layer 5); p. 63 (Figure 16)",
+      "excerpt": "p. 40: 'An inscribed pot sherd in Tamil-Brahmi in red ware lid was found at the depth of 2.36 meters reading ‘eravathan’.'; p. 63: names of individuals such as ... ‘eravathan’ (Figure16)",
+      "notes": "The layer descriptions (pp. 39-40) belong to the Locality II trench YC1 (Figure 4, p. 39). The article also says (p. 63) that 'All the inscribed sherds came from Locality II coeval with the structural activities of Layer 2', which does not match the Layer 4/5 attributions of p. 40: an internal inconsistency of the article, for the verifier and expert to note."
+    },
+    {
+      "precheck_id": "PC-S03-05",
+      "ref_id": "S03",
+      "claim_id": "s03_keeladi_fig17",
+      "source_id": "SRC-S03-OA",
+      "check_date": "2026-10-08",
+      "finding": "found_with_differences",
+      "locator_found": "p. 62 (Figure 17 caption); p. 54; p. 63",
+      "excerpt": "p. 62: 'Figure 17: Tamil – Brahmi Inscribed Black and Red Ware Dish ‘ce n ta n a va (ta) thi’'; p. 54: 'The label inscription below the shoulder of the dish bore the name of an individual probably its owner as ‘centan avathi’.'",
+      "differences": "The knowledge base recorded the interpretation as 'not stated'. The article states it: the name of an individual, probably the owner (p. 54), and lists the reading as 'santhan avathi' (Figure 17) among names of individuals (p. 63). The reading itself is printed three ways: 'ce n ta n a va (ta) thi' (caption), 'centan avathi' (p. 54), 'santhan avathi' (p. 63). The knowledge-base entry was corrected on 2026-10-08 to record all three spellings and the printed interpretation; the correction is a transcription (transcribed_unverified), not a verification.",
+      "notes": "Context as printed: an intact black and red ware dish found in situ inside the tank-like structure at about 1.00 m (p. 54)."
+    },
+    {
+      "precheck_id": "PC-S03-06",
+      "ref_id": "S03",
+      "claim_id": "s03_keeladi_sathan",
+      "source_id": "SRC-S03-OA",
+      "check_date": "2026-10-08",
+      "finding": "found_as_stated",
+      "locator_found": "p. 40 (Locality II, Layer 4); p. 63",
+      "excerpt": "p. 40: 'At a depth of 2.16 meters another Tamil Brahmi inscribed sherd was found reading ‘sathan’.'; p. 63: 'The nature of these writing on the pottery was primarily aimed to register names of individuals probably its owner’s.'",
+      "notes": "See PC-S03-04 on the article's Layer 2 statement (p. 63)."
+    }
+  ]
+}

@@ -198,7 +198,7 @@ def load_dataset(
     """
     records_path = Path(records_path) if records_path else RESEARCH_RECORDS_PATH
     data_root = Path(data_root) if data_root else RESEARCH_DATA_ROOT
-    base = dict(
+    base: dict[str, Any] = dict(
         source=_relative(records_path),
         data_root=_relative(data_root),
         is_research_dataset=is_research_source(records_path),

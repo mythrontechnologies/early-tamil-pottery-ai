@@ -95,7 +95,9 @@ def run_training(config_path: Path | str | None = None,
     # ---- beyond this point the gate has passed on the canonical dataset -----------
     dataset = load_dataset()
     manifest = SplitManifest.load(ROOT / report.split_manifest)  # type: ignore[operator]
-    folds = list(range(int(manifest.k))) if manifest.strategy == "grouped_kfold" else [None]
+    if manifest.strategy == "grouped_kfold" and manifest.k is None:
+        raise ValueError(f"k-fold manifest {report.split_manifest} records no k")
+    folds: list[int | None] = list(range(manifest.k or 0)) if manifest.strategy == "grouped_kfold" else [None]
     if resume_from is not None and len(folds) > 1:
         return RunOutcome("blocked", "Resume is supported for a single split, not a k-fold run "
                                      "(resume each fold's checkpoint separately).", report)
@@ -120,7 +122,7 @@ def _train_one(cfg: TrainingConfig, spec: ClassSpec, dataset: Any, manifest: Spl
     geometry = ImageGeometry.from_project(cfg.data.image_size)
     train_ds = PotteryImageDataset(train_recs, spec, build_train_transform(cfg.augmentation, geometry))
     val_ds = PotteryImageDataset(val_recs, spec, build_eval_transform(geometry))
-    common = dict(batch_size=cfg.data.batch_size, seed=cfg.runtime.seed,
+    common: dict[str, Any] = dict(batch_size=cfg.data.batch_size, seed=cfg.runtime.seed,
                   num_workers=cfg.data.num_workers,
                   pin_memory=cfg.data.pin_memory and device.device == "cuda")
     train_loader = make_loader(train_ds, train=True, imbalance_strategy=cfg.imbalance.strategy,

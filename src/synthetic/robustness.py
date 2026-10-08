@@ -12,17 +12,25 @@ so object pixels are unchanged and only the surroundings differ, which a post-ho
 
 from __future__ import annotations
 
-import hashlib
 import io
-import math
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-import numpy as np
-from PIL import Image, ImageFilter
+from PIL import Image
 
 from src.dataset.loader import DatasetRecord
+from src.evaluation.perturbations import Perturb
+from src.evaluation.perturbations import blur as _blur
+from src.evaluation.perturbations import border as _border  # noqa: F401  (kept for importers)
+from src.evaluation.perturbations import contrast as _contrast
+from src.evaluation.perturbations import gain as _gain
+from src.evaluation.perturbations import jpeg as _jpeg
+from src.evaluation.perturbations import noise as _noise
+from src.evaluation.perturbations import occlude as _occlude
+from src.evaluation.perturbations import rotate as _rotate
+from src.evaluation.perturbations import scale as _scale
+from src.evaluation.perturbations import seed as _seed
 from src.training.augmentation import ImageGeometry, build_eval_transform
 from src.training.data import PotteryImageDataset, load_rgb, make_loader
 
@@ -32,79 +40,7 @@ from .dataset import synthetic_class_spec
 from .evaluate import checkpoint_records, load_synthetic_model, save_report
 from .generator import BACKGROUNDS, build_artifact, generate_view
 
-Perturb = Callable[[Image.Image, np.random.Generator], Image.Image]
-
-
-def _seed(name: str) -> np.random.Generator:
-    return np.random.default_rng(int.from_bytes(hashlib.sha256(name.encode()).digest()[:8], "big"))
-
-
-def _blur(sigma: float) -> Perturb:
-    return lambda im, rng: im.filter(ImageFilter.GaussianBlur(sigma))
-
-
-def _gain(factor: float) -> Perturb:
-    return lambda im, rng: Image.fromarray(np.clip(np.asarray(im, np.float32) * factor, 0, 255).astype(np.uint8))
-
-
-def _contrast(factor: float) -> Perturb:
-    def f(im: Image.Image, rng: np.random.Generator) -> Image.Image:
-        a = np.asarray(im, np.float32)
-        return Image.fromarray(np.clip((a - a.mean()) * factor + a.mean(), 0, 255).astype(np.uint8))
-    return f
-
-
-def _noise(sigma: float) -> Perturb:
-    def f(im: Image.Image, rng: np.random.Generator) -> Image.Image:
-        a = np.asarray(im, np.float32)
-        return Image.fromarray(np.clip(a + rng.normal(0, sigma, a.shape), 0, 255).astype(np.uint8))
-    return f
-
-
-def _jpeg(quality: int) -> Perturb:
-    def f(im: Image.Image, rng: np.random.Generator) -> Image.Image:
-        buf = io.BytesIO()
-        im.save(buf, format="JPEG", quality=quality)
-        return Image.open(io.BytesIO(buf.getvalue())).convert("RGB")
-    return f
-
-
-def _border(im: Image.Image) -> tuple[int, int, int]:
-    a = np.asarray(im)
-    edge = np.concatenate([a[0], a[-1], a[:, 0], a[:, -1]])
-    return tuple(int(v) for v in np.median(edge, axis=0))  # type: ignore[return-value]
-
-
-def _rotate(deg: float) -> Perturb:
-    return lambda im, rng: im.rotate(deg, resample=Image.BILINEAR, expand=True, fillcolor=_border(im))
-
-
-def _scale(factor: float) -> Perturb:
-    def f(im: Image.Image, rng: np.random.Generator) -> Image.Image:
-        w, h = im.size
-        if factor < 1:     # object smaller in an unchanged frame
-            small = im.resize((max(1, round(w * factor)), max(1, round(h * factor))), Image.LANCZOS)
-            canvas = Image.new("RGB", (w, h), _border(im))
-            canvas.paste(small, ((w - small.width) // 2, (h - small.height) // 2))
-            return canvas
-        cw, ch = round(w / factor), round(h / factor)   # zoom in: central crop
-        left, top = (w - cw) // 2, (h - ch) // 2
-        return im.crop((left, top, left + cw, top + ch))
-    return f
-
-
-def _occlude(fraction: float) -> Perturb:
-    def f(im: Image.Image, rng: np.random.Generator) -> Image.Image:
-        w, h = im.size
-        side_w = int(math.sqrt(fraction * w * h * rng.uniform(0.6, 1.6)))
-        side_h = int(fraction * w * h / max(side_w, 1))
-        x, y = int(rng.integers(0, max(1, w - side_w))), int(rng.integers(0, max(1, h - side_h)))
-        out = im.copy()
-        out.paste(tuple(int(v) for v in rng.integers(40, 200, 3)), (x, y, x + side_w, y + side_h))
-        return out
-    return f
-
-
+# The photographic perturbations live in src.evaluation.perturbations (Milestone 11).
 #: name -> (family, severity, perturbation). "background" is handled by re-rendering.
 PERTURBATIONS: dict[str, tuple[str, str, Perturb | None]] = {
     "clean": ("clean", "none", None),

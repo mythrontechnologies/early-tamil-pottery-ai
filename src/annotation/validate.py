@@ -1,4 +1,4 @@
-"""Annotation validation: JSON Schema plus cross-field rules N1-N15.
+"""Annotation validation: JSON Schema plus cross-field rules N1-N20.
 
 ``N*`` rules encode the Milestone 7 annotation discipline: provenance never blurred,
 unknown vs uncertain kept apart, no translation without a reading, no date without
@@ -45,6 +45,13 @@ RULES: dict[str, str] = {
     "N16": "the store matches its append-only ledger (no line edited, removed or added by hand)",
     "N17": "the annotation is not about synthetic engineering data (Milestone 9: synthetic images are never "
            "annotated as archaeological evidence)",
+    "N18": "an adjudication is an expert_reviewed expert annotation with a stated qualification that resolves at "
+           "least two current, non-AI annotations of the same artifact (never itself); 'insufficient_evidence' "
+           "leaves the script 'uncertain' or 'unknown'",
+    "N19": "character (glyph) regions carry a unique sign_index, sit on an examined photograph with an inscription, "
+           "and only character regions carry sign_index / sign_reading",
+    "N20": "reading completeness agrees with the reading: 'illegible' gives no reading; complete / partial / "
+           "fragmentary need one",
 }
 
 
@@ -83,7 +90,7 @@ def _schema_validator() -> Draft202012Validator:
 
 
 def _ref_ids(a: dict[str, Any]) -> set[str]:
-    return {r.get("ref_id") for r in a.get("references", []) if isinstance(r, dict)}
+    return {r["ref_id"] for r in a.get("references", []) if isinstance(r, dict) and isinstance(r.get("ref_id"), str)}
 
 
 def _cited(value: Any) -> bool:
@@ -97,7 +104,7 @@ def validate_annotation(
     knowledge_ref_ids: set[str] | None = None,
     verified_ref_ids: set[str] | None = None,
 ) -> list[Problem]:
-    """Problems with one annotation (N1-N10, N13-N15, N17). Empty list = valid.
+    """Problems with one annotation (N1-N10, N13-N15, N17-N20). Empty list = valid.
 
     ``verified_ref_ids`` (from ``src.knowledge.verification``) enables N14; ``None`` skips it."""
     aid = a.get("annotation_id") if isinstance(a, dict) else None
@@ -245,6 +252,42 @@ def validate_annotation(
         if _cited(ref) and ref not in known_refs:
             add("N10", f"{where} cites {ref!r}, which is not in references or the knowledge base")
 
+    # N18 - adjudication (single-record part; cross-record checks in validate_annotations).
+    adj = a.get("adjudication")
+    if adj is not None:
+        if pt != "expert_annotation" or state != "expert_reviewed":
+            add("N18", "only an expert_reviewed expert annotation can adjudicate")
+        if not is_real(a["annotator"].get("qualification")):
+            add("N18", "an adjudicator states their qualification and affiliation")
+        if a["annotation_id"] in adj["resolves"]:
+            add("N18", "an adjudication cannot resolve itself")
+        if adj["outcome"] == "insufficient_evidence" and script not in ("uncertain", "unknown"):
+            add("N18", f"outcome 'insufficient_evidence' cannot assert script_type={script!r}; use 'uncertain'")
+
+    # N19 - character (glyph) regions.
+    seen_signs: set[tuple[str, int]] = set()
+    for i, r in enumerate(ins.get("regions", [])):
+        if r["label"] == "character":
+            if "sign_index" not in r:
+                add("N19", f"character region {i} needs sign_index (its position in the reading)")
+            elif (r["image_id"], r["sign_index"]) in seen_signs:
+                add("N19", f"sign_index {r['sign_index']} is used twice on {r['image_id']}")
+            else:
+                seen_signs.add((r["image_id"], r["sign_index"]))
+            if present not in ("yes", "uncertain"):
+                add("N19", f"character region {i} is marked but inscription_present={present!r}")
+        elif "sign_index" in r or "sign_reading" in r:
+            add("N19", f"region {i} ({r['label']}) carries sign_index/sign_reading; only character regions do")
+
+    # N20 - reading completeness.
+    completeness = ins.get("reading_completeness", "unknown")
+    if completeness == "illegible" and is_real(reading):
+        add("N20", "reading_completeness='illegible' but a reading is given; record readable signs as 'partial'")
+    if completeness in ("complete", "partial", "fragmentary") and not is_real(reading):
+        add("N20", f"reading_completeness={completeness!r} needs a reading (mark lost signs in it)")
+    if completeness not in ("unknown", "not_applicable") and present == "no":
+        add("N20", "inscription_present='no' leaves reading_completeness 'not_applicable'")
+
     # N13 - usability entries.
     for u in a.get("image_usability", []):
         if u["image_id"] not in images:
@@ -287,6 +330,20 @@ def validate_annotations(
             if aid in by_id:
                 result.problems.append(Problem("N12", "duplicate annotation_id", aid))
             by_id[aid] = a
+    for a in anns:            # N18 cross-record: what an adjudication resolves
+        if not isinstance(a, dict) or not isinstance(a.get("adjudication"), dict):
+            continue
+        for rid in a["adjudication"].get("resolves", []):
+            prev = by_id.get(rid)
+            if prev is None:
+                result.problems.append(Problem("N18", f"adjudication resolves unknown annotation {rid!r}",
+                                               a.get("annotation_id")))
+            elif prev.get("artifact_id") != a.get("artifact_id"):
+                result.problems.append(Problem("N18", f"adjudication resolves {rid}, an annotation of another "
+                                                      "artifact", a.get("annotation_id")))
+            elif prev.get("provenance_type") == "ai_prediction":
+                result.problems.append(Problem("N18", f"{rid} is an AI prediction: AI output is never a party "
+                                                      "to an adjudication", a.get("annotation_id")))
     superseded_by: dict[str, list[str]] = defaultdict(list)
     for a in anns:
         if not isinstance(a, dict) or not a.get("supersedes"):
@@ -302,7 +359,7 @@ def validate_annotations(
             result.problems.append(Problem(
                 "N11", "an annotator may revise only their own annotation; other annotators add "
                        "their own record so disagreement is preserved", aid))
-        superseded_by[a["supersedes"]].append(aid)
+        superseded_by[a["supersedes"]].append(str(aid))
     for old, new in superseded_by.items():
         if len(new) > 1:
             result.problems.append(Problem("N11", f"annotation {old} is superseded more than once: {new}", old))

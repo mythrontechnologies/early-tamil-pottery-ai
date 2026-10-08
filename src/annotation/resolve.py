@@ -5,6 +5,12 @@ Resolution never merges provenance tiers. For each artifact it reports:
 * ``expert_label``      - every current expert annotation marked ``expert_reviewed`` agrees
                           on a script_type other than unknown. The ONLY status that can ever
                           become ground truth (``ground_truth_eligible``).
+* ``adjudicated``       - (schema 1.2.0) a current expert adjudication (``adjudication`` block, rule
+                          N18) resolves EVERY other current human annotation of the artifact. Its
+                          script_type is the label (ground-truth eligible unless 'unknown'). The
+                          resolved annotations stay current and visible; their disagreement is still
+                          reported. An adjudication that does not cover a later annotation (or a
+                          competing adjudication) is stale, and the artifact is ``disputed`` again.
 * ``disputed``          - experts disagree, or any current annotation is marked disputed.
 * ``provisional``       - project / source-information annotations agree; no expert yet.
                           Explicitly NOT ground truth.
@@ -48,6 +54,8 @@ class Resolution:
     annotators: list[AnnotatorView] = field(default_factory=list)
     ai_predictions: list[AnnotatorView] = field(default_factory=list)
     disagreements: dict[str, dict[str, Any]] = field(default_factory=dict)
+    adjudication_id: str | None = None
+    notes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -77,6 +85,25 @@ def resolve_artifact(artifact_id: str, current: Iterable[dict[str, Any]]) -> Res
     if not humans:
         return res
     res.disagreements = _disagreements(humans)
+    adjudications = [a for a in anns if isinstance(a.get("adjudication"), dict)
+                     and a["provenance_type"] == "expert_annotation" and a["review_state"] == "expert_reviewed"]
+    if adjudications:
+        latest = max(adjudications, key=lambda a: (a["created_utc"], a["annotation_id"]))
+        res.adjudication_id = latest["annotation_id"]
+        uncovered = sorted({v.annotation_id for v in humans} - {latest["annotation_id"]}
+                           - set(latest["adjudication"]["resolves"]))
+        if uncovered:
+            res.status = "disputed"
+            res.notes.append(f"adjudication {latest['annotation_id']} predates or ignores current annotation(s) "
+                             f"{', '.join(uncovered)}: a new adjudication must consider them")
+            return res
+        script = latest["inscription"]["script_type"]
+        res.status = "adjudicated"
+        res.label = None if script == "unknown" else script
+        res.ground_truth_eligible = res.label is not None
+        res.notes.append(f"adjudicated by {latest['annotator']['annotator_id']} ({latest['annotation_id']}, "
+                         f"outcome {latest['adjudication']['outcome']}); the resolved annotations are kept")
+        return res
     experts = [v for v in humans if v.provenance_type == "expert_annotation"
                and v.review_state == "expert_reviewed"]
     if any(v.review_state == "disputed" for v in humans):

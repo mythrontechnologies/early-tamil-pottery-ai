@@ -103,7 +103,14 @@ def knowledge() -> dict[str, Any]:
              "resolution": r.get("resolution"), "candidate_works": r.get("candidate_works", []),
              "notes": r.get("project_notes", ""), "verified_claims": list(eff[rid].verified_claims) if rid in eff else []}
             for rid, r in sorted(kb.references.items())]
-    return {"references": refs, "claims": describe(), "claim_report": claim_report()}
+    from src.knowledge.precheck import load_prechecks
+
+    pre = load_prechecks(kb=kb)
+    prechecks = {(c["ref_id"], c["claim_id"]): c | {"source_url": pre.sources.get(c["source_id"], {}).get("url", ""),
+                                                     "source_access": pre.sources.get(c["source_id"], {}).get("access", "")}
+                 for c in pre.claim_checks}
+    return {"references": refs, "claims": describe(), "claim_report": claim_report(), "prechecks": prechecks,
+            "bibliographic_prechecks": pre.bibliographic_checks}
 
 
 @st.cache_data(ttl=60, show_spinner=False)
@@ -188,9 +195,9 @@ def thumbnail_b64(image_path: str, size: int = 520) -> str | None:
     p = RESEARCH_DATA_ROOT / image_path
     if not p.is_file():
         return None
-    with Image.open(p) as im:
-        im.draft("RGB", (size * 2, size * 2))
-        im = ImageOps.exif_transpose(im).convert("RGB")
+    with Image.open(p) as src:
+        src.draft("RGB", (size * 2, size * 2))
+        im = ImageOps.exif_transpose(src).convert("RGB")
         im.thumbnail((size, size))
         buf = io.BytesIO()
         im.save(buf, format="JPEG", quality=82, optimize=True)

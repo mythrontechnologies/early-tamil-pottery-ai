@@ -1,0 +1,59 @@
+{
+  "manifest_version": "1.0.0",
+  "dataset_id": "wmc_tamil_nadu_pottery_m11",
+  "dataset_name": "Tamil Nadu archaeological pottery photographs from Wikimedia Commons (Milestone 11)",
+  "target": "research",
+  "source_name": "Wikimedia Commons",
+  "source_url": "https://commons.wikimedia.org/wiki/Category:Adichanallur_archaeological_site ; https://commons.wikimedia.org/wiki/Category:Anthropology_Museum,_Government_Museum,_Chennai",
+  "local_directory": "data/raw/tamil_nadu_pottery/wikimedia_commons_m11",
+  "license": [
+    "CC-BY-3.0"
+  ],
+  "license_url": [
+    "https://creativecommons.org/licenses/by/3.0"
+  ],
+  "rights_holder": [
+    "Sailko"
+  ],
+  "download_date": [
+    "2026-10-08"
+  ],
+  "number_of_files": 4,
+  "number_of_artifacts": 4,
+  "number_of_unique_images": 4,
+  "geographic_scope": [
+    "tamil_nadu"
+  ],
+  "period_scope": [
+    "not_stated_by_source"
+  ],
+  "object_scope": [
+    "complete vessel displayed in a museum (source title 'coppa', i.e. cup)",
+    "complete vessel displayed in a museum (source title 'dolio', i.e. storage jar)",
+    "complete vessel displayed in a museum (source title 'vaso', i.e. vessel)",
+    "complete vessel with lid displayed in a museum (source title 'urna panciuta', i.e. bellied urn)"
+  ],
+  "script_scope": [
+    "not_stated_by_source"
+  ],
+  "project_labels": [
+    "unknown"
+  ],
+  "research_usable": [
+    "yes"
+  ],
+  "redistribution_allowed": [
+    "yes"
+  ],
+  "commercially_usable": [
+    "yes"
+  ],
+  "attribution_requirements": [
+    "\"Civiltà thamirabani, reperti da adhichanallur, coppa, 1000 ac ca. 01.jpg\" by Sailko, CC-BY-3.0 (https://creativecommons.org/licenses/by/3.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Civilt%C3%A0_thamirabani,_reperti_da_adhichanallur,_coppa,_1000_ac_ca._01.jpg",
+    "\"Civiltà thamirabani, reperti da adhichanallur, dolio, 1000 ac ca.jpg\" by Sailko, CC-BY-3.0 (https://creativecommons.org/licenses/by/3.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Civilt%C3%A0_thamirabani,_reperti_da_adhichanallur,_dolio,_1000_ac_ca.jpg",
+    "\"Civiltà thamirabani, reperti da adhichanallur, urna panciuta, 1000 ac ca.jpg\" by Sailko, CC-BY-3.0 (https://creativecommons.org/licenses/by/3.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Civilt%C3%A0_thamirabani,_reperti_da_adhichanallur,_urna_panciuta,_1000_ac_ca.jpg",
+    "\"Civiltà thamirabani, reperti da adhichanallur, vaso, 1000 ac ca.jpg\" by Sailko, CC-BY-3.0 (https://creativecommons.org/licenses/by/3.0/), via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Civilt%C3%A0_thamirabani,_reperti_da_adhichanallur,_vaso,_1000_ac_ca.jpg"
+  ],
+  "share_alike_required": false,
+  "notes": "Photographs by Sailko (own work, per source). The uploader's title gives '1000 ac ca.' (c. 1000 BCE): that is a caption, never an object date, and is not copied into any date field. No project label is assigned: these vessels are queued for annotation like every other research image, and a 'none' judgement needs an annotator who can examine the whole surface (one face is photographed)."
+}

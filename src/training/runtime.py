@@ -71,7 +71,7 @@ def seed_everything(seed: int, *, deterministic: bool = True) -> dict[str, Any]:
     np.random.seed(seed % 2**32)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    state = {"seed": seed, "deterministic": deterministic}
+    state: dict[str, Any] = {"seed": seed, "deterministic": deterministic}
     if deterministic:
         os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
         torch.backends.cudnn.deterministic = True

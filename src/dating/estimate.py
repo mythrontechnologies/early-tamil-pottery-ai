@@ -164,8 +164,9 @@ def estimate_age(
         est.state = "estimated"
         est.start_year, est.end_year = current
         est.display = f"Estimated: {format_range(*current)}"
-        if current[0] is not None and current[1] is not None:
-            est.centuries = describe_centuries(*current)
+        lo, hi = current
+        if lo is not None and hi is not None:
+            est.centuries = describe_centuries(lo, hi)
         est.confidence, notes = _confidence(used, est.conflicts, context_reliability, refs)
         est.limitations += notes
         if current[0] is None or current[1] is None:
@@ -175,7 +176,7 @@ def estimate_age(
     positions = script_positions(config)
     if script is not None and script.value == "tamil_brahmi" and script.provenance in ESTABLISHING_PROVENANCE:
         dated = [p for p in positions if p.kind == "date_position" and p.lower_year is not None]
-        earliest = min(p.lower_year for p in dated)            # type: ignore[type-var]
+        earliest = min(p.lower_year for p in dated if p.lower_year is not None)
         est.state, est.start_year, est.end_year = "outer_bound_only", earliest, None
         est.display = f"Outer bound only: no earlier than {format_year(earliest)}"
         est.confidence = "very_low"

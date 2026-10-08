@@ -336,7 +336,8 @@ class DatasetValidator:
                     continue
                 rx, ry = reg.get("x"), reg.get("y")
                 rw, rh = reg.get("w"), reg.get("h")
-                if not all(isinstance(v, int) for v in (rx, ry, rw, rh)):
+                if not (isinstance(rx, int) and isinstance(ry, int) and isinstance(rw, int)
+                        and isinstance(rh, int)):
                     continue
                 if rx + rw > w or ry + rh > h:
                     add("R13", "error",

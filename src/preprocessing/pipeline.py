@@ -42,6 +42,7 @@ from PIL import Image
 from .loader import Issue, LoadedImage, load_image, sha256_file
 from .quality import DISCLAIMER, QualityMetrics, assess
 from .transforms import (
+    ResizeStrategy,
     TransformLog,
     apply_exif_orientation,
     resize_preserving_aspect,
@@ -73,13 +74,22 @@ def _assert_not_raw(path: Path) -> None:
         )
 
 
+
+def _strategy(value: object) -> ResizeStrategy:
+    """The configured resize strategy, refused unless it is one the transforms implement."""
+    if value == "pad":
+        return "pad"
+    if value == "crop":
+        return "crop"
+    raise ValueError(f"preprocessing.resize_strategy must be 'pad' or 'crop', got {value!r}")
+
 @dataclass
 class PreprocessConfig:
     """Preprocessing parameters, normally loaded from ``configs/project.yaml``."""
 
     pipeline_version: str = "1.0.0"
     target_size: int = 224
-    resize_strategy: str = "pad"
+    resize_strategy: ResizeStrategy = "pad"
     resample: str = "lanczos"
     pad_color: tuple[int, int, int] = (0, 0, 0)
     alpha_background: tuple[int, int, int] = (255, 255, 255)
@@ -102,7 +112,7 @@ class PreprocessConfig:
         return cls(
             pipeline_version=str(section.get("pipeline_version", "1.0.0")),
             target_size=int(section.get("target_size", 224)),
-            resize_strategy=str(section.get("resize_strategy", "pad")),
+            resize_strategy=_strategy(section.get("resize_strategy", "pad")),
             resample=str(section.get("resample", "lanczos")),
             pad_color=tuple(section.get("pad_color", (0, 0, 0))),
             alpha_background=tuple(section.get("alpha_background", (255, 255, 255))),
