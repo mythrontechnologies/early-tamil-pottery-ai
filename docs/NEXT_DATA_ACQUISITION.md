@@ -8,7 +8,7 @@ threshold is changed by it.
 
 | | Count |
 |---|---|
-| Research artifacts / images | 17 / 30 (Wikimedia Commons, CC BY / CC BY-SA) |
+| Research artifacts / images | 21 / 34 (Wikimedia Commons, CC BY / CC BY-SA; +4 Adichanallur vessels in Milestone 11) |
 | Labelled artifacts per class (`tamil_brahmi`, `graffiti`, `none`, `uncertain`) | 0 / 0 / 0 / 0 |
 | Pilot artifacts that could become labels | at most 6. 107 and 109 may be reproductions (P10), which would leave **4**, and every one shows a marked sherd, so the `none` class gets nothing |
 | Supporting images (`data/external/`, not training data) | 15 |
@@ -45,6 +45,12 @@ never raise the count. They stay under one `artifact_id` and one split (R3, G6).
 | Pattanam (Kerala) and Tissamaharama (Sri Lanka) sherds already in `data/external/` | CC BY-SA 4.0 | tamil_brahmi (per source) | Out of the Tamil Nadu scope. They may enter a **separately flagged** comparison set only by an explicit scope decision. Not in the primary training set. |
 
 Realistic yield: perhaps 5–15 usable **marked** sherds. Almost nothing for `none`.
+
+**Result of the Milestone 11 screening (2026-10-08):** the remaining Keezhadi files hold no further
+individually photographed marked sherd; four individually photographed Adichanallur vessels (Government
+Museum, Chennai; CC BY 3.0) were acquired; the in-situ Adichanallur pits stay rejected (overlapping urns,
+one buried face). Priority 1 is now **exhausted**: progress depends on Priority 2 (a permission).
+Details: `PUBLIC_DATASET_AUDIT.md` §5.
 
 ### Priority 2: museum photographs with explicit reuse permission (medium; the main route to Target 2)
 

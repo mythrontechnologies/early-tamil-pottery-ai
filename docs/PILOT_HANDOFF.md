@@ -57,7 +57,7 @@ archaeological evidence." and cannot be saved as a human annotation (rule N15).
 
 | Decide | How |
 |---|---|
-| Original object or reproduction? | `original` / `reproduction` / `uncertain`, with your basis (schema 1.1.0) |
+| Original object or reproduction? | `original` / `reproduction` / `uncertain`, with your basis (schema 1.1.0+) |
 | Is there an inscription or mark? | `yes` / `no` / `uncertain` (examined, cannot tell) |
 | What kind? | `tamil_brahmi`, `graffiti` (non-script marks), `tamil_brahmi_and_graffiti`, `none`, `uncertain`, `other_script`, with your confidence |
 | Where? | zoom, then "Add region from zoom window" for every mark |
@@ -90,7 +90,23 @@ revising **their own** annotation.
 
 `outputs/pilot_handoff/verification_checklist.csv` lists the **10 claims** the project relies on
 R1, S01 and S03 for. Each row gives the claim and the locator the project transcribed; that
-locator is **unverified**. For each claim you can check:
+locator is **unverified**.
+
+**Milestone 11 made this quick.** A software agent has already found 9 of the 10 claims in copies the
+project may consult; each row now carries `precheck_finding`, `precheck_locator` (the page) and
+`precheck_copy_url` (the copy to open). These are pointers, not verification: open the copy, go to the
+page, read the passage, and record *your* check. The fastest path for one claim:
+
+```powershell
+python -m src.knowledge prechecks --ref S03
+python -m src.knowledge verify-from-precheck PC-S03-02 --verifier <you> --role project_member --date YYYY-MM-DD --i-opened-the-source
+```
+
+Look closely at **PC-S03-05** (Fig. 17): the pre-check found that the article states an interpretation
+the knowledge base had missed and prints the reading three ways; if you agree, record
+`--status discrepancy_found` with a note. **R1** could not be pre-checked: no authorised copy is online.
+
+For each claim you can check:
 
 1. Open the publication: a physical copy, an authorised digital copy, or the publisher's
    open-access version. **An unauthorised online copy does not count**, and neither does a
@@ -113,9 +129,9 @@ python -m src.knowledge status
 
 | Ref | Work | Claims | Note |
 |---|---|---|---|
-| R1 | Mahadevan, *Early Tamil Epigraphy* (2003; rev. ed. 2014) | 1 | The project has no authorised copy. |
-| S01 | Rajan & Sivanantham, *Inscribed Potsherds of Tamil Nadu* (TNSDA 2026) | 3 | Read via Tamil Digital Library; not checked. |
-| S03 | Ramakrishna et al., "Excavations at Keeladi …", *Heritage* 6 (2018) | 6 | Transcribed; not checked. |
+| R1 | Mahadevan, *Early Tamil Epigraphy* (2003; rev. ed. 2014) | 1 | Bibliographic details confirmed (BnF). No authorised copy online: needs a library copy. |
+| S01 | Rajan & Sivanantham, *Inscribed Potsherds of Tamil Nadu* (TNSDA 2026) | 3 | All 3 pre-checked in the Tamil Digital Library copy (Vol. I p. 80; Vol. II pp. xi–xiii, p. 1075). |
+| S03 | Ramakrishna et al., "Excavations at Keeladi …", *Heritage* 6 (2018) | 6 | All 6 pre-checked in the journal's open-access PDF: 4 as stated, 1 partly S03's, 1 discrepancy (Fig. 17). |
 
 Two citation questions need a scholar's answer, and the project has not guessed them. The
 "Early AMS determinations" position cites `R3`, while the knowledge base holds `R3a` (Rajan &
@@ -144,8 +160,11 @@ knowledge base.
   **candidate** for R5. It is not established that the project's R5 means this work, or that
   the work states the "association not secure" objection as position D puts it.
 
+Update 2026-10-08: the R5 candidate's existence, author, title, volume, year and first page are confirmed
+in the publisher's (DAI) issue contents (pre-check BC-R5-CANDIDATE). Whether R5 means it remains unresolved.
+
 `python -m src.knowledge claim-report` prints every claim with its expected publication, the
-recorded locator and its verification state. R3 and R5 show as UNRESOLVED.
+recorded locator, its verification state and the software pre-check. R3 and R5 show as UNRESOLVED.
 
 ## 4. What happens next (project team)
 

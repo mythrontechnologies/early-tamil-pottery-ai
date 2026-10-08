@@ -9,6 +9,17 @@ fingerprints; SHA-256 of `configs/project.yaml` and `configs/training.yaml`, the
 determinism setting; the ledger heads of the annotation store, verification registry and
 promotion log; and the readiness verdict.
 
+## Environment
+
+| | |
+|---|---|
+| Python | 3.13 (tested on 3.13.7; code targets ≥ 3.10) |
+| Exact packages | `requirements-lock.txt` (`pip freeze` of the tested environment); `requirements.txt` holds minimums |
+| PyTorch / CUDA | torch 2.14.0 + torchvision 0.29.0, CUDA 12.6 wheels (`scripts/setup.ps1`); CPU wheels with `-Cpu` / `--cpu` |
+| GPU | optional. Tested on an NVIDIA RTX 4050 Laptop (6 GiB). A ResNet-18 step at 224 px, batch 16, fp16 peaks at ~383 MiB; the synthetic pipeline at ~69 MiB |
+| CPU fallback | `runtime.device: auto` falls back to CPU and records why; an explicit `cuda` request on a machine without CUDA is an error, never a silent fallback. Mixed precision is enabled only on CUDA |
+| Checks | `python scripts/check_env.py`, `python -m pytest -q`, `python -m mypy`, `python -m src.synthetic verify` |
+
 ## What is deterministic
 
 | Component | How |
@@ -20,6 +31,9 @@ promotion log; and the readiness verdict.
 | Training | `seed_everything(seed, deterministic=True)`; seeded workers and sampler; a CPU test reproduces weights bit for bit |
 | Checkpoints | `model_fingerprint` (SHA-256 of weights) stored and re-verified on load |
 | Human evidence | append-only, ledger-chained; promotion entries record the store's ledger head |
+| Synthetic data | `python -m src.synthetic verify` V14 re-renders images from seed + version + config and compares bytes |
+| Near-duplicate check, robustness perturbations | deterministic (dHash; perturbations seeded per image id) |
+| Reference pre-checks | each consulted document's SHA-256 is recorded in `source_prechecks.json` |
 
 GPU training with cuDNN may differ in the last bits between hardware/driver versions even in
 deterministic mode; the environment block records what was used.

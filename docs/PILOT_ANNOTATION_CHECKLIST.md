@@ -2,7 +2,8 @@
 
 **For:** the expert and the project annotator, working **independently**.
 **Artifacts:** `WMC_KEELADI_MUS_SHERD_105` … `_110` (one photograph each).
-**Tool:** `streamlit run app/annotate.py` (or the worksheet `outputs/pilot_handoff/pilot_worksheet_*.csv`).
+**Tool:** `streamlit run app/main.py` → Annotation (or the worksheet `outputs/pilot_handoff/pilot_worksheet_*.csv`,
+imported with `python -m src.annotation import-worksheet <file> --role project|expert`).
 
 > **An uncertain answer is preferable to an unsupported positive identification.**
 > `uncertain` = you examined it and cannot decide. `unknown` = you did not assess it.
@@ -21,7 +22,7 @@ you have finished your own judgement.
 | 3 | If visible, what script category is **defensible**? (`tamil_brahmi`, `graffiti`, `tamil_brahmi_and_graffiti`, `other_script`, `none`) | script type, with a confidence | `uncertain` |
 | 4 | Which **exact region** holds the marks? | zoom, then "Add region from zoom window" (one region per group of marks) | describe it in a note |
 | 5 | Are individual characters visible **well enough to read**? | characters visible; usability → characters readable | `uncertain` / `no` |
-| 6 | If yes, **what is the reading**? Only characters you can see. Mark doubtful or lost letters; record alternatives separately. | reading, alternative readings, reading confidence | leave empty |
+| 6 | If yes, **what is the reading**? Only characters you can see. Mark doubtful or lost letters; record alternatives separately. Is it complete, partial, fragmentary or illegible? Optionally mark each sign as a `character` region. | reading, alternative readings, reading confidence, reading completeness | leave empty; `illegible` if marks are there but unreadable |
 | 7 | Is there a **published reading** of this object? | alternative readings, source = ref id | "none known" in notes |
 | 8 | If so, **cite it**: ref id, page, plate or figure. | references | – |
 | 9 | Is a **translation actually established** by a source? | MEANING → translation + source | leave empty |
@@ -49,4 +50,6 @@ python -m src.annotation pilot        # is every sherd complete?
 ```
 
 Do not open the other annotator's work until both have saved. After that:
-`python -m src.annotation agreement` lists every item on which you differ.
+`python -m src.annotation agreement` and `python -m src.annotation disagreements` list every item on which
+you differ. An expert resolves a disagreement with an **adjudication** (ANNOTATION_GUIDE §12); it is never
+averaged.

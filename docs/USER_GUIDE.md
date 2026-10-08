@@ -16,9 +16,9 @@ Seven pages in the top navigation:
 |---|---|
 | Overview | what the system is, live headline numbers, how it reasons; an interactive 3D sherd labelled **Illustrative 3D visualization — not an archaeological artifact** (drawn by the interface from abstract texture; not a model of any real object; carries no inscription) |
 | Analysis | inspection workstation: the photograph (2D, authoritative) or a labelled 2.5D inspection view, a findings panel, and the **evidence chain** from observation to reference |
-| Annotation | the annotation lab: inspection stage (photograph, overlays, region marking) beside the unchanged form (Object · Inscription · Meaning · Dating · Evidence · Review), provenance and revision history below |
+| Annotation | the annotation lab: inspection stage (photograph, overlays, region and glyph marking) beside the form (Object · Inscription · Meaning · Dating · Evidence · Review), provenance and revision history below; tabs **Review** (tier legend, field-level disagreements), **Pilot & agreement**, **Queue** (every artifact, its state and the next human step) |
 | Dataset | the collection as museum plinths; **Inspect** opens the Artifact Inspector (source, licence, annotation, expert and training state); training readiness against the unchanged gate |
-| Evidence | references and claims with their verification state: verified / transcribed / bibliographic / **unresolved** |
+| Evidence | references and claims with their verification state: verified / transcribed / bibliographic / **unresolved**; where a software pre-check found a claim, the trail shows *Where to check* under the badge **Software pre-check · not verification** |
 | Workflow | the eleven stages from `python -m src.workflow status` as a journey; stages after the current one read **not yet reached**; each stage expands to its detail and next action |
 | About | purpose, limits, visual language, keyboard shortcuts, modes and 2D alternatives |
 
@@ -108,6 +108,24 @@ See [`ANNOTATION_GUIDE.md`](ANNOTATION_GUIDE.md) and the one-page
 or *Expert*, enter your id, answer only what the photograph supports, and save. Saving
 appends; nothing is overwritten.
 
+* **Signs.** Region label `character` marks one sign; give its position in the reading and, only if you
+  can read it, the sign (`?` otherwise). Say whether the reading is complete, partial, fragmentary or
+  illegible.
+* **Adjudication (experts).** Tick *I am ADJUDICATING disagreeing annotations* in the sidebar, select the
+  annotations you have read, state the outcome and your basis. The resolved annotations stay visible.
+* **Offline.** `python -m src.annotation handoff --all` writes worksheets; `import-worksheet` brings them in
+  (dry run first, all-or-nothing).
+* **What the five kinds of statement look like** (Review tab legend): *Source metadata* (what the uploader
+  or publisher said) · *Project annotation* (provisional) · *Expert annotation* · *AI draft* (never evidence)
+  · *Promoted ground truth* (only after a human-approved promotion).
+
+## 3. Check a reference (verifiers)
+
+`python -m src.knowledge prechecks` lists where a software agent found each claim of R1, S01 and S03 (copy
+URL and page). Open the copy at that page, read the passage, then
+`python -m src.knowledge verify-from-precheck <PC-id> --verifier <you> --role project_member --date YYYY-MM-DD --i-opened-the-source`
+(dry run; add `--commit`). The Evidence page and the Verification checklist tab show the same pointers.
+
 ## Command line
 
 ```powershell
@@ -115,6 +133,8 @@ python -m src.inference analyze photo.jpg [--json]      # the same analysis as t
 python -m src.workflow status                          # where the project is, and the next step
 python -m src.annotation integrity                     # are the append-only stores intact?
 python -m src.knowledge entries                        # every sourced claim and its status
+python -m src.annotation queue                         # what to annotate next
+python -m src.annotation disagreements --all           # who said what, field by field
 ```
 
 Synthetic demonstration (SYNTHETIC engineering data only):

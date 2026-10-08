@@ -1,10 +1,12 @@
 # Annotation Guide
 
 **For:** anyone annotating artifacts in this project: project annotators and experts.
-**Tool:** `streamlit run app/annotate.py`
+**Tool:** `streamlit run app/main.py` → Annotation (or `streamlit run app/annotate.py`); offline:
+worksheets (`python -m src.annotation handoff --all`, then `import-worksheet`, §11)
 **Store:** `data/metadata/annotations/annotations.jsonl` (append-only; created on first save)
-**Schema:** `data/metadata/schema/annotation.schema.json` (1.1.0); rules N1–N16
+**Schema:** `data/metadata/schema/annotation.schema.json` (1.2.0); rules N1–N20
 (`python -m src.annotation rules`)
+**What to annotate next:** `python -m src.annotation queue` (or the Queue tab)
 
 > **The one rule.** Record what *you* can see or what a *cited source* says, and nothing
 > else. If you cannot tell, leave it `unknown`. An honest `unknown` is useful; a confident
@@ -51,7 +53,7 @@ Ware identification from a museum photo through glass is usually `unknown`. Free
 (fabric, surface, manufacturing, colour, decoration, condition) describe what is visible. Write
 "red surface" rather than "red slipped ware" unless you can tell a slip from the fabric.
 
-`object_status` (schema 1.1.0): is the photographed object an `original` archaeological
+`object_status` (schema 1.1.0+): is the photographed object an `original` archaeological
 object, a `reproduction` (a replica, cast or painted display model), or `uncertain`? Put the
 basis in `object_notes`: a museum label, a catalogue entry, or visible features. A
 reproduction is never promoted to a training label (rule P10). Its inscription is not
@@ -68,12 +70,19 @@ evidence for the original's reading.
 - **Regions:** zoom to the inscription, then "Add region from zoom window". Coordinates are
   **normalised** (0–1) on the stored image. The original file is never touched. Mark every
   photograph on which you can see the inscription.
+- **Glyph (character) regions** (schema 1.2.0, rule N19): if you can isolate individual signs, add one
+  region per sign with the label `character`, its position in the reading (`sign_index`, 1 = first) and,
+  only if you can read it, `sign_reading` (`?` for a sign you can see but not read). Never guess a sign.
 - **Characters visible:** count only characters you can distinguish (0 = not counted).
 - **Reading:** only characters you can actually see. Keep editorial marks for damage
   (e.g. `[ta]` for a doubtful letter, `..` for lost ones). **Never complete a word from
   expectation.** Every reading needs a source (`this_annotator` or a reference id) and a
   confidence (N7).
 - **Alternative readings:** record them with their source. Disagreement is information.
+- **Reading completeness** (schema 1.2.0, rule N20): `complete` (every sign read), `partial` (some signs
+  lost or doubtful; mark them in the reading), `fragmentary` (only isolated signs), `illegible` (marks
+  present, nothing readable: give **no** reading), `unknown` (not assessed). The reasoning then says
+  "Partial transcription", "Fragmentary" or "Inscription illegible" instead of implying a full reading.
 
 ### Translation / meaning
 | Situation | `interpretation_type` | `translation` | `meaning` |
@@ -137,9 +146,13 @@ usable, and a sharp one may show nothing. Do not skip photos because of a techni
 - **Review states:** `unreviewed` → `project_reviewed` → `expert_reviewed`, or `disputed`.
   **`expert_reviewed` is reserved for expert annotations** (N4). A project annotation can
   never be made equivalent to an expert label.
-- **Resolution** (per artifact): `expert_label` (expert-reviewed experts agree; the only
-  status that is `ground_truth_eligible`), `disputed`, `provisional` (project annotators
-  agree; **not** ground truth), `project_disagreement`, `unannotated`.
+- **Resolution** (per artifact): `expert_label` (expert-reviewed experts agree), `adjudicated`
+  (an expert adjudication resolves every other current annotation, §12), `disputed`, `provisional`
+  (project annotators agree; **not** ground truth), `project_disagreement`, `unannotated`. Only
+  `expert_label` and `adjudicated` are `ground_truth_eligible`.
+- **Field by field:** `python -m src.annotation disagreements [--all]` lists every field on which two
+  annotators differ (object status, presence, script, reading, completeness, interpretation, dating,
+  regions). Answers you did not assess (`unknown`) are never counted as disagreement.
 
 ## 5. Do not
 
@@ -154,7 +167,7 @@ usable, and a sharp one may show nothing. Do not skip photos because of a techni
 ## 6. After annotating
 
 ```powershell
-python -m src.annotation validate     # N1-N14 over the whole store + knowledge base K1-K5
+python -m src.annotation validate     # N1-N20 over the whole store + knowledge base K1-K8
 python -m src.annotation summary      # status and disagreements per artifact
 python -m src.reasoning analyze <artifact_id>   # what the reasoning layer concludes, and why
 ```
@@ -221,8 +234,8 @@ disagreeing item is listed for an expert to settle.
 
 ## 9. From expert annotation to training label (promotion)
 
-Only an expert can resolve a disagreement, by saving a revised annotation of their own. When
-an artifact's status is `expert_label`, it can be promoted:
+Only an expert can resolve a disagreement: by saving a revised annotation of their own, or by an
+adjudication (§12). When an artifact's status is `expert_label` or `adjudicated`, it can be promoted:
 
 ```powershell
 python -m src.annotation promote --pilot           # DRY RUN (default): before -> after, checks P1-P9
@@ -246,3 +259,36 @@ readings or dates that differ are recorded as disputed, with every position kept
   reproduction is never promoted (**P10**).
 * The analysis page (`streamlit run app/main.py`) shows your saved annotation in its own panel
   for registered photographs, apart from the expert panel and the AI observation.
+
+## 11. Worksheets (annotating without the app)
+
+```powershell
+python -m src.annotation handoff --all            # outputs/pilot_handoff/worksheet_all_{project_annotator,expert}.csv
+python -m src.annotation import-worksheet outputs\pilot_handoff\worksheet_all_project_annotator.csv --role project
+python -m src.annotation import-worksheet <file> --role project --commit   # only when the dry run says the records are valid
+```
+
+One row per photograph; fill only the judgement columns, put your id in `annotator_id` on every row you
+answer, and leave rows you did not examine blank (they are skipped). Rows of one artifact by one annotator
+become one annotation, so the artifact-level answers must agree across those rows. Formats the importer
+understands: `regions` as `x,y,w,h label` (fractions of the image; several separated by `;`; a glyph as
+`x,y,w,h character #2 'ka'`; anything else is kept as a note and you mark it in the app), `dating_evidence`
+as `type; observation; start..end or -; source` items separated by `|`, `dating_range` as `-300..-100` or
+`Insufficient evidence`, `references` as `S03 p. 63; R1`. The import is all-or-nothing and runs rules
+N1–N20 against the whole store. A project worksheet cannot set `review_state`. Re-importing for an artifact
+you already annotated needs `--revise` (your earlier record is kept and superseded).
+
+## 12. Adjudication (experts)
+
+When annotations disagree (status `disputed` or `project_disagreement`), a qualified expert who has read
+them records an **adjudication**: in the app, choose *Expert*, state your qualification, tick
+**"I am ADJUDICATING disagreeing annotations"**, select the annotations you are resolving (at least two;
+AI predictions can never be selected), choose the outcome and write the basis. Your record states *your*
+decision in its own fields; the annotations you resolve are not changed and stay visible.
+
+* `decided`: you stand by the values you recorded. `insufficient_evidence`: the photographs cannot settle
+  it; the script is then `uncertain` (or `unknown`), never a guess (rule N18).
+* The artifact becomes `adjudicated` and its label is your `script_type`. If anyone saves a new annotation
+  of that artifact afterwards, your adjudication no longer covers it and the artifact is `disputed` again
+  until a new adjudication considers it.
+* Promotion takes the label from the adjudication alone and notes which annotations it resolved.

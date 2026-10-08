@@ -16,10 +16,13 @@ on expert-labelled data), and every component works, and is tested, without one.
 ```
 src/
   acquisition/    licence-gated download from approved sources (Wikimedia Commons) + provenance registry
-  dataset/        record schema, validation (E*/R*), ingestion, audit, splits, readiness gate (G1-G11)
+  dataset/        record schema, validation (E*/R*), ingestion, audit, splits (+ near-duplicate leakage guard),
+                  readiness gate (G1-G11)
   preprocessing/  guarded image loading (P1-P8), EXIF/colour, letterbox, technical quality metrics
-  annotation/     append-only multi-annotator store (N1-N16), pilot, agreement, promotion (P1-P10), UI helpers
-  knowledge/      knowledge base (K1-K8), claim list, verification registry (V1-V10), describe()
+  annotation/     append-only multi-annotator store (N1-N20), pilot, agreement, adjudication-aware resolution,
+                  promotion (P0-P10), worksheets / queue / field-level disagreement report / export, UI helpers
+  knowledge/      knowledge base (K1-K8), claim list, verification registry (V1-V10), software source
+                  pre-checks (PC1-PC8; never verification), describe()
   reasoning/      deterministic evidence-based reasoning: script, reading, meaning, age, period, limitations
   dating/         signed-year arithmetic (no year 0), evidence-tiered age estimation, chronology positions
   translation/    translation / meaning: only what a human source established
@@ -28,7 +31,8 @@ src/
   classification/ script classifier interface (NoModelClassifier default; CheckpointClassifier)
   inference/      analyze(image) -> InferenceResult; CLI; stdlib HTTP API
   training/       config, data loaders, model zoo, trainer (AMP, early stopping, resume), checkpoints
-  evaluation/     metrics, calibration, OCR CER/WER, reproducibility report; gated CLI (+ `synthetic` benchmark)
+  evaluation/     metrics, calibration, OCR CER/WER, detection / OCR failure / error / robustness tasks,
+                  shared photographic perturbations, reproducibility report; gated CLI (+ `synthetic` benchmark)
   synthetic/      SYNTHETIC engineering data and the synthetic AI demonstration (Milestones 9-10), kept apart:
                   generator, dataset/split/fingerprint, verify, training/evaluation/robustness, calibration
                   (temperature scaling), vision (RegionNet detector, GlyphCenterNet segmentation, GlyphNet),
@@ -63,10 +67,12 @@ app/
 Wikimedia Commons ──(acquisition: licence A1-A9, host allow-list)──> data/raw + provenance registry
                                                                    └> data/metadata/records.jsonl (script_type = unknown)
 records ──(dataset validation, strict, hashes)──> readiness gate G1-G11 ──X── training (BLOCKED)
-photograph ──> annotate.py ──(N1-N16, ledger)──> annotations.jsonl ──> agreement ──> promotion (P1-P10, dry run,
+photograph ──> annotate.py / worksheet import ──(N1-N20, ledger)──> annotations.jsonl ──> agreement / disagreements
+                  ──> expert adjudication (N18) ──> promotion (P1-P10, dry run,
                                                                                    human-approved, reversible, logged)
                                                                                    └> records.jsonl labels ──> split ──> training
 knowledge/*.yaml + verification registry (V1-V10, ledger) ──> effective reference status ──> reasoning
+source_prechecks.json (software; PC1-PC8) ──> "where to check" for the human verifier ──X── status (never)
 photograph ──> inference.analyze ──> quality │ regions │ classifier* │ OCR* │ reasoning(human evidence only) ──> result
                                               (* AI observation, reported, never evidence)
 
@@ -92,6 +98,13 @@ real / unregistered image ──X── synthetic pipeline (never applied)
 10. **Safe deserialisation.** Checkpoints load with `weights_only=True`; weights are fingerprinted; YAML uses `safe_load`.
 11. **Synthetic data stays synthetic.** It lives only under `data/synthetic/` and `models/synthetic/`; research validation (E6), annotation (N17) and promotion (P0) refuse it; every checkpoint, experiment and result carries `dataset_type`; a synthetic checkpoint is refused wherever a research model is expected.
 12. **Modes never merge.** The synthetic pipeline runs only on images whose SHA-256 is in the synthetic dataset, only in Synthetic Demonstration mode (or the explicit synthetic API/CLI); a real or unregistered photograph never reaches a synthetic model, and Real Research mode never runs one.
+13. **Software never verifies.** A pre-check records where a claim was found (`checked_by: software_agent`,
+    `effect: none`); it is read by no status, reasoning or promotion code. Only `verify` / `verify-from-precheck`
+    with a named human writes the registry.
+14. **Adjudication keeps the disagreement.** An adjudication is a new expert record that names the annotations it
+    resolves; they stay current. A later annotation makes it stale (status returns to `disputed`).
+15. **No near-copy across splits.** A photograph within 6 dHash bits of another artifact's photograph blocks the
+    split until a human merges or clears the pair.
 
 ## Extension points
 

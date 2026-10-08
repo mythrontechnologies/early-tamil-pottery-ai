@@ -198,3 +198,21 @@ button[aria-label^="Help for"] { min-width: 24px; min-height: 24px; display: inl
   .etp-badge { display: inline-block; white-space: normal; max-width: 100%; overflow-wrap: anywhere; line-height: 1.35; }
   .etp-badge .g { margin-right: .38rem; }
 }
+
+/* ---------------------------------------------------------------------------------------------
+   Milestone 11: layouts that follow the TEXT size, not only the window width.
+   Pixel media queries do not fire when a reader enlarges text (175-200 %) on a tablet or desktop,
+   so card grids kept four columns and nowrap badges pushed the page sideways (found by
+   tests/browser/pages.js). Grids now cap their column count but drop columns as soon as a column
+   would be narrower than a text-relative minimum; badges wrap between words at every width.
+   --------------------------------------------------------------------------------------------- */
+.etp-grid.cols-6 { grid-template-columns: repeat(auto-fill, minmax(min(100%, max(9rem, calc((100% - 5 * .9rem) / 6))), 1fr)); }
+.etp-grid.cols-4 { grid-template-columns: repeat(auto-fill, minmax(min(100%, max(12rem, calc((100% - 3 * .9rem) / 4))), 1fr)); }
+.etp-grid.cols-3 { grid-template-columns: repeat(auto-fill, minmax(min(100%, max(14rem, calc((100% - 2 * .9rem) / 3))), 1fr)); }
+.etp-grid.cols-2 { grid-template-columns: repeat(auto-fill, minmax(min(100%, max(18rem, calc((100% - .9rem) / 2))), 1fr)); }
+.etp-grid.asym { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr); }
+@media (max-width: 1100px) { .etp-grid.asym { grid-template-columns: repeat(auto-fill, minmax(min(100%, max(14rem, calc((100% - .9rem) / 2))), 1fr)); } }
+.etp-grid > * { min-width: 0; }
+.etp-card h3, .etp-card h4, .etp-card .l, .etp-card .foot { overflow-wrap: anywhere; }
+.etp-badge { display: inline-block; white-space: normal; max-width: 100%; overflow-wrap: anywhere; line-height: 1.35; }
+.etp-badge .g { margin-right: .38rem; }

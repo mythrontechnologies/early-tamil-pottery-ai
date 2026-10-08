@@ -7,6 +7,8 @@ dataset (``python -m src.synthetic generate``). Nothing here writes data: the ap
 
 * ``tests/browser/overflow.js``      no horizontal overflow at 390x844 and 360x800, with text at
                                      100-200 % (phones enlarge text), in every analysis state;
+* ``tests/browser/pages.js``         every other page at phone / tablet / desktop width, text 100-200 %: no
+                                     overflow, no exception, a heading (Milestone 11);
 * ``tests/browser/accessibility.js`` keyboard operation (real and synthetic modes), the 2D / 2.5D and
                                      WebGL-failure fallbacks, reduced motion, and click-to-result time and
                                      frame rates of the synthetic demonstration and the 3D scene.
@@ -128,3 +130,17 @@ def test_keyboard_fallbacks_motion_and_performance(app_url, tmp_path):
     perf = r["performance"]
     assert perf["click_to_result_ms"] < 15000                   # responsive: well under the run-once budget
     assert perf["replay_fps"] >= 30 and perf["scene_3d"]["mode"] == "3d" and perf["scene_3d"]["fps"] >= 30
+
+
+def test_every_page_fits_and_renders_at_every_text_size(app_url, tmp_path):
+    """Milestone 11: Overview, Annotation, Dataset, Evidence, Workflow and About at phone (390), tablet (768)
+    and desktop (1280) width, text at 100-200 %: no horizontal overflow, no Streamlit exception, a heading."""
+    cases = run_probe("pages.js", app_url, tmp_path)
+    for vp in ("390x844", "768x1024", "1280x800"):
+        for page in ("overview", "annotation", "dataset", "evidence", "workflow", "about"):
+            for scale in ("100%", "125%", "150%", "175%", "200%"):
+                assert f"{vp} {page} @{scale}" in cases
+    broken = {c: m for c, m in cases.items() if m["exception"] or not m["heading"]}
+    assert not broken, f"pages with an exception or no heading: {broken}"
+    overflowing = {c: m for c, m in cases.items() if max(m["main"], m["doc"], m["frame"]) > 1}
+    assert not overflowing, f"horizontal overflow (px): {overflowing}"

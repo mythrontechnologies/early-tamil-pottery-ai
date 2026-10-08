@@ -9,7 +9,10 @@
 | What runs today | `NoModelClassifier`, `NoDetector`, `NullMarkAnalyzer`, `NullTranscriber` (honest null stages) |
 | Metrics | **none**. "Evaluation blocked — insufficient expert-labelled archaeological data." |
 
-Nothing in this repository reports an accuracy, a calibration or an OCR error rate for real data.
+Nothing in this repository reports an accuracy, a calibration or an OCR error rate for real data. When
+expert labels exist, `python -m src.evaluation evaluate` reports artifact-level metrics, calibration, an
+error analysis and (`--robustness`) perturbation robustness, under the evidence tier `real_expert_labelled`
+([`EVALUATION.md`](EVALUATION.md)).
 The numbers produced by the test suite come from synthetic noise tensors and exist only to
 exercise code.
 

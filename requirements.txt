@@ -1,20 +1,17 @@
 # Early Tamil Pottery AI — runtime dependencies
 #
-# Target: Python 3.13 (3.13.7 confirmed present on this machine; 3.10 also available).
+# Target: Python 3.13 (tested on 3.13.7; the code targets >= 3.10 per pyproject's ruff setting).
 #
 # ── PyTorch / GPU note ───────────────────────────────────────────────────────
-# An NVIDIA RTX 4050 Laptop GPU (6 GB) is present on this machine, but the torch
-# currently installed globally is the CPU-only build (2.9.1+cpu). To use the GPU,
-# install a CUDA build FIRST, from the PyTorch index, before installing this file:
+# Install the torch build for your hardware FIRST, from the PyTorch index, then this file:
 #
-#     pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
+#     pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126   # NVIDIA GPU
+#     pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu     # CPU only
 #
-# Confirm the correct CUDA tag for your driver at https://pytorch.org/get-started/locally/
-# then verify with:  python -c "import torch; print(torch.cuda.is_available())"
-#
-# 6 GB of VRAM comfortably fits ResNet18 / EfficientNet-B0 / ConvNeXt-Tiny at 224px
-# with modest batch sizes. It does not fit large OCR transformers without care.
-# CPU-only is acceptable for Milestones 1–3; Milestone 4 will want the GPU.
+# (scripts/setup.ps1 / setup.sh do this; -Cpu / --cpu selects the CPU wheels.) Check the CUDA tag for
+# your driver at https://pytorch.org/get-started/locally/ and verify with `python scripts/check_env.py`.
+# Everything runs on CPU: training and the synthetic demonstration are slower, nothing else changes.
+# The exact versions used for every recorded result are in requirements-lock.txt.
 # ─────────────────────────────────────────────────────────────────────────────
 
 # --- Core numerical / data ---

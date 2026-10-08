@@ -93,6 +93,7 @@ The **acquired** column of each row reports the outcome of the run, as confirmed
 | Commons: 2 "Painted Potsherds – Govt Museum Egmore" | CC BY 4.0 | `data/external/supporting_pottery` | Held in Chennai, **find-site not stated**; cannot be called Tamil Nadu pottery. |
 | Commons: 2 Arikamedu objects at Musée Guimet (PHGCOM, "self-made") | CC BY-SA 4.0 | `data/external/supporting_pottery` | Puducherry, not Tamil Nadu; one is Roman pottery. |
 | Commons: 7 Tamil-Brahmi rock and cave inscription photos | CC BY-SA 3.0 / 4.0 | `data/external/tamil_brahmi_inscriptions` | Real Tamil-Brahmi, but **not pottery**. Kept for future OCR work only. |
+| Commons (Milestone 11): 4 "Civiltà thamirabani, reperti da adhichanallur" — cup, storage jar, lidded urn, footed vessel — by Sailko | CC BY 3.0 | `data/raw` (`wmc_tamil_nadu_pottery_m11`) | Own work; each photograph shows **one** vessel in the Anthropology Museum, Government Museum, Chennai; Adichanallur per the source title and category. One face visible; the caption date is not an object date. |
 
 ### 2.2 Rejected, or leads only
 
@@ -148,3 +149,26 @@ The **acquired** column of each row reports the outcome of the run, as confirmed
 3. **Share-alike.** Any adapted image derived from a CC BY-SA file (e.g. a published crop)
    must be released under CC BY-SA. Model weights are not generally considered adaptations
    of individual images, but this is unsettled. Record it before publishing.
+
+## 5. Milestone 11 screening (2026-10-08)
+
+Every file of these Commons categories was listed with its licence, author and description from the API,
+and every thumbnail was looked at once, for **eligibility only** (an individual pottery object from Tamil
+Nadu that the project may use), never for a class: Keezhadi archeological site (183 files), Keezhadi
+Museum, Keezhadi, Keeladi Museum, Sivakalai archaeological site (18), Korkai, Adichanallur archaeological
+site (47), Adichanallur earthenware burial urns, Anthropology Museum (Government Museum, Chennai), Arikamedu
+(86); plus 31 full-text searches (potsherd, graffiti, Tamil-Brahmi, rouletted ware, Kodumanal, Porunthal,
+Alagankulam, Vembakottai, Kilnamandi, Mayiladumparai, Korkai, Uraiyur, Kaveripattinam, …).
+
+| Outcome | Files |
+|---|---|
+| Acquired | 4 Adichanallur vessels (Sailko, CC BY 3.0), see §2.1 |
+| Already held | the 18 Keezhadi files of Milestone 6, including all six individually photographed marked sherds (the pilot) |
+| Not pottery | trenches and structures, site and museum buildings, coins, beads, bangles, iron tools, terracotta figurines and balls, hero stones, ring wells, a ship model |
+| Not individual objects | showcases and gallery overviews (several vessels; no object identifiable) |
+| Reproductions of designed graphics | museum panels and posters (their photographs belong to the museum) |
+| In-situ pits | Adichanallur 01–27, Sivakalai trenches: several overlapping urns per photograph, the same vessels from several angles (grouping / leakage risk), one buried face (no `none` judgement possible); decision of Milestone 6 kept |
+| Out of scope | Ambari (Guwahati, Assam) rouletted sherds; Arikamedu (Puducherry); Tissamaharama (Sri Lanka); crops of printed catalogue pages ("Catalogue of the prehistoric antiquities from Adichanallur and Perumbair", page crops): reproductions of a publication, not photographs of objects; not examined further |
+
+Conclusion: open sources no longer yield individually photographed **marked** sherds from Tamil Nadu, and
+yield nothing for the `none` class. Target 1 needs one institutional permission (`NEXT_DATA_ACQUISITION.md`).

@@ -7,15 +7,33 @@ inscriptions and graffiti.
 > epigraphic or archaeological assessment.**
 
 **Status: engineering complete; blocked on real evidence.** Everything engineering can honestly
-complete is complete: acquisition, validation, preprocessing, annotation (append-only,
-tamper-evident), agreement, reversible promotion, knowledge base and verification workflow,
-evidence-based reasoning, an inference API/CLI/HTTP service, a Streamlit application,
-evaluation and a gated training pipeline. What remains is **real archaeological evidence**:
-expert annotation, reference verification, enough labelled artifacts per class, then training.
-The project holds **30 openly licensed photographs (17 artifacts)**, **none carries an expert
-label**, and there is **no trained model**. The analysis tool therefore answers most questions
-with "Insufficient evidence", which is the correct answer. See
-[`docs/FINAL_ENGINEERING_STATUS.md`](docs/FINAL_ENGINEERING_STATUS.md).
+complete is complete: licence-gated acquisition, validation, preprocessing, a dual-annotation
+workflow with expert adjudication (append-only, tamper-evident), agreement and field-level
+disagreement reports, reversible promotion, a knowledge base with a human verification workflow
+and software pre-checks, evidence-based reasoning, an inference API/CLI/HTTP service, a Streamlit
+application, gated evaluation (classification, detection, OCR, robustness) and a gated training
+pipeline. What remains is **real archaeological evidence**: expert annotation, a human check of the
+references, enough labelled artifacts per class, then training. The project holds **34 openly
+licensed photographs (21 artifacts)**, **none carries an expert label**, and there is **no trained
+archaeological model**. The analysis tool therefore answers most questions with "Insufficient
+evidence", which is the correct answer. See
+[`docs/FINAL_ENGINEERING_STATUS.md`](docs/FINAL_ENGINEERING_STATUS.md) and
+[`docs/MILESTONE_11_REPORT.md`](docs/MILESTONE_11_REPORT.md).
+
+---
+
+## At a glance
+
+| Question | Answer |
+|---|---|
+| **What does the system do?** | Given a photograph of a pottery sherd, it reports image quality, the human evidence recorded for that object (who said what), an evidence-based script / reading / meaning / date assessment with explicit uncertainty, and — separately, never as evidence — any AI observation. It also runs the whole annotation → agreement → adjudication → promotion → training → evaluation workflow. |
+| **What works now?** | Everything above, on real photographs, with the honest result "Insufficient evidence" because no expert has annotated yet. The full AI pipeline (classify → detect → segment → OCR → interpret → reason) works end to end in **Synthetic Demonstration** mode. |
+| **What is synthetic mode?** | A procedurally generated engineering dataset (1,000 objects, 2,202 images; invented glyphs, invented rules) used only to prove the software works. Every synthetic output says **SYNTHETIC — NOT ARCHAEOLOGICAL EVIDENCE**; synthetic models never see a real photograph and real mode never runs one. |
+| **What is real mode?** | The default. Real photographs from openly licensed sources, with provenance and SHA-256; human annotations in provenance tiers (project / expert / adjudication); AI output only ever as an `ai_prediction`. |
+| **What is blocked, and why?** | Real training and real evaluation: the readiness gate (G1-G11) requires expert-promoted labels in all four classes (`tamil_brahmi`, `graffiti`, `none`, `uncertain`), ≥ 5 artifacts per class for grouped CV (≥ 20 for holdout), and a verified artifact-level split. Today there are 0 labels. Reference *verification* needs a named human; software has pre-checked where each claim is. |
+| **What must a human do next?** | Annotate the six pilot sherds (project annotator + expert, independently); confirm the pre-checked references; obtain photographs of uninscribed sherds. Exact steps: [Annotate real data](#annotate-real-data) and [`docs/FINAL_ENGINEERING_STATUS.md`](docs/FINAL_ENGINEERING_STATUS.md) §E. |
+
+An LLM-generated explanation is not evidence and is never presented as such.
 
 ---
 
@@ -38,24 +56,22 @@ that four things are kept apart and shown separately:
 | **Historical evidence** | What do published archaeological and epigraphic sources establish? |
 | **Conclusion** | What range or reading follows? |
 
-An LLM-generated explanation is not evidence and is never presented as such.
-
 ---
 
 ## Current state
 
 | | |
 |---|---|
-| Research images | **30** (17 artifacts), Wikimedia Commons, CC BY / CC BY-SA — see [`docs/PUBLIC_DATASET_AUDIT.md`](docs/PUBLIC_DATASET_AUDIT.md) |
+| Research images | **34** (21 artifacts), Wikimedia Commons, CC BY / CC BY-SA, provenance and SHA-256 for every file — see [`docs/PUBLIC_DATASET_AUDIT.md`](docs/PUBLIC_DATASET_AUDIT.md) |
 | Expert-labelled images | **0** — every record has `script_type = unknown` pending annotation |
 | Supporting images | 15 in `data/external/` (out-of-region pottery, Tamil-Brahmi rock inscriptions) |
-| Verified references | **0** — verification registry built (Milestone 8); R1, S01, S03 not yet checked against the publications (`python -m src.knowledge status`) |
+| Verified references | **0** — only a named human verifies. Milestone 11 **pre-checked** R1, S01, S03 by software: bibliographic details confirmed for all three; S01 3/3 and S03 5/6 claims found at exact pages in authorised / open-access copies (one S03 discrepancy recorded); R1's claim needs a library copy (`python -m src.knowledge prechecks`) |
 | Models | **no archaeological model.** Training pipeline complete (AMP, resume, fingerprints). Milestone 9 validated it end to end on a separate SYNTHETIC engineering dataset; the resulting models live in `models/synthetic/`, are marked SYNTHETIC ONLY, and are refused wherever an archaeological model is expected ([`docs/SYNTHETIC_TRAINING.md`](docs/SYNTHETIC_TRAINING.md)). Milestone 10 added a complete SYNTHETIC demonstration pipeline (detector, glyph OCR, synthetic reasoning) that runs on synthetic images only ([`docs/SYNTHETIC_END_TO_END.md`](docs/SYNTHETIC_END_TO_END.md)) |
 | Synthetic engineering data | 1,000 generated objects / 2,202 images in `data/synthetic/` — **SYNTHETIC — NOT ARCHAEOLOGICAL EVIDENCE**; never counted, never gated, never annotated or promoted ([`docs/SYNTHETIC_DATASET.md`](docs/SYNTHETIC_DATASET.md)) |
 | Training ready | **false** — blocked by `src/dataset/readiness.py` (gates G1–G11) |
-| Annotations | **0** — annotation tool, evidence-based reasoning, expert pilot (six Keezhadi close-ups) ready ([`docs/ANNOTATION_GUIDE.md`](docs/ANNOTATION_GUIDE.md)). Pilot opened 2026-09-24: no human or expert input yet; 107/109 flagged "REVIEW REQUIRED — possible reproduction / duplicate inscription" (unconfirmed); per-sherd questions in [`docs/PILOT_ANNOTATION_CHECKLIST.md`](docs/PILOT_ANNOTATION_CHECKLIST.md) ([`docs/MILESTONE_8_PILOT_RESULTS.md`](docs/MILESTONE_8_PILOT_RESULTS.md)) |
+| Annotations | **0** — annotation tool (with expert adjudication, glyph regions, worksheets and a queue), evidence-based reasoning, expert pilot (six Keezhadi close-ups) ready ([`docs/ANNOTATION_GUIDE.md`](docs/ANNOTATION_GUIDE.md)). Pilot opened 2026-09-24: no human or expert input yet; 107/109 flagged "REVIEW REQUIRED — possible reproduction / duplicate inscription" (unconfirmed); per-sherd questions in [`docs/PILOT_ANNOTATION_CHECKLIST.md`](docs/PILOT_ANNOTATION_CHECKLIST.md) ([`docs/MILESTONE_8_PILOT_RESULTS.md`](docs/MILESTONE_8_PILOT_RESULTS.md)) |
 | Label promotion | built, dry-run by default, reversible; **0 promotions** ([`docs/MILESTONE_8_REPORT.md`](docs/MILESTONE_8_REPORT.md)) |
-| Tests | see `python -m pytest tests/ -q` (final count in [`docs/FINAL_ENGINEERING_STATUS.md`](docs/FINAL_ENGINEERING_STATUS.md)) |
+| Tests / static checks | `python -m pytest tests/ -q`; `ruff` and `mypy` clean (counts in [`docs/FINAL_ENGINEERING_STATUS.md`](docs/FINAL_ENGINEERING_STATUS.md)) |
 
 No archaeological dataset has been fabricated. A synthetic pottery corpus used as research data would
 produce a model that is confident and baseless — the exact failure this project exists to avoid. The
@@ -69,27 +85,57 @@ graffiti or any archaeological category.
 
 ```powershell
 .\scripts\setup.ps1                 # once (add -Cpu for CPU-only); Linux: scripts/setup.sh
-.\scripts\start_app.ps1             # http://localhost:8501  (analysis page + annotation tool)
+.\scripts\start_app.ps1             # http://localhost:8501  (all seven pages)
+.\scripts\start_api.ps1             # http://127.0.0.1:8765  (GET /health, POST /analyze)
 python -m src.inference analyze photo.jpg     # the same analysis on the command line
 python -m src.workflow status                 # every stage, raw data -> evaluation, and the next step
+python -m src.annotation queue                # every artifact's annotation state and next human step
 ```
 Guides: [`USER_GUIDE`](docs/USER_GUIDE.md) · [`ARCHITECTURE`](docs/ARCHITECTURE.md) ·
 [`ANNOTATION_GUIDE`](docs/ANNOTATION_GUIDE.md) · [`DATASET_POLICY`](docs/DATASET_POLICY.md) ·
-[`MODEL_CARD`](docs/MODEL_CARD.md) · [`REPRODUCIBILITY`](docs/REPRODUCIBILITY.md) ·
-[`LIMITATIONS`](docs/LIMITATIONS.md) · [`DEPLOYMENT`](docs/DEPLOYMENT.md).
+[`MODEL_CARD`](docs/MODEL_CARD.md) · [`EVALUATION`](docs/EVALUATION.md) ·
+[`REPRODUCIBILITY`](docs/REPRODUCIBILITY.md) · [`LIMITATIONS`](docs/LIMITATIONS.md) ·
+[`DEPLOYMENT`](docs/DEPLOYMENT.md) · [`TROUBLESHOOTING`](docs/TROUBLESHOOTING.md).
+
+## Annotate real data
+
+1. `python -m src.annotation queue` — what needs annotating; pilot artifacts first.
+2. **App:** `streamlit run app/main.py` → Annotation. Set your id and role in the sidebar (project annotator or
+   expert, with qualification), choose the artifact, zoom, mark regions (one `character` region per sign if you
+   read signs), answer only what the photograph supports (`uncertain` / `unknown` are good answers), save.
+   Saving appends; nothing is overwritten. One-page brief: [`docs/PILOT_ANNOTATION_CHECKLIST.md`](docs/PILOT_ANNOTATION_CHECKLIST.md).
+   **Offline:** `python -m src.annotation handoff --all` writes blank worksheets to `outputs/pilot_handoff/`;
+   fill them in Excel, then `python -m src.annotation import-worksheet <file.csv> --role project|expert`
+   (dry run) and add `--commit` when it says the records are valid.
+3. Project annotator and expert work **independently**; then `python -m src.annotation disagreements`. An expert
+   resolves a disagreement by recording an **adjudication** (Annotation → sidebar "I am ADJUDICATING").
+4. `python -m src.annotation promote --pilot` (dry run) → a human approves with
+   `--execute --approve <digest> --approver <id>`. Every promotion is logged and reversible.
+
+## Train a real model once the gates pass
+
+```powershell
+python -m src.dataset near-duplicates      # no near-copy photographs across artifacts
+python -m src.dataset split                # artifact-level, seeded, fingerprinted manifest (refuses when data are insufficient)
+python -m src.dataset readiness            # G1-G11 must all PASS
+python -m src.training train               # runs only if they do; otherwise exit 3, nothing trained
+python -m src.evaluation evaluate --checkpoint models\checkpoints\<run>\best.pt --robustness
+python -m src.evaluation reproducibility   # commit, environment, data / split / config fingerprints
+```
+Nothing here can be forced: the gate has no bypass flag and evaluates only the canonical dataset.
 
 ## Quickstart
 
 ```bash
-cd V:\ADM\early-tamil-pottery-ai
+git clone https://github.com/mythrontechnologies/early-tamil-pottery-ai
+cd early-tamil-pottery-ai
 
 # 1. Isolate the environment (recommended - the machine's global Python has 188 packages)
 python -m venv .venv
 .venv\Scripts\activate
 
-# 2. GPU users: install CUDA torch FIRST, before anything pulls in the CPU wheel.
-#    Already done in this project's .venv (torch 2.14.0+cu126, RTX 4050 detected).
-#    Check the right CUDA tag for your driver at pytorch.org.
+# 2. Install torch for your hardware FIRST, before anything pulls in another wheel.
+#    Check the right CUDA tag for your driver at pytorch.org; CPU: .../whl/cpu
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
 
 # 3. Dependencies
@@ -98,7 +144,8 @@ pip install -r requirements.txt -r requirements-dev.txt
 # 4. Verify
 python scripts/check_env.py
 python -m pytest tests/ -q
-python -m pytest -m browser    # opt-in: real app in Chromium at phone width (needs playwright-cli)
+python -m pytest -m browser    # opt-in: real app in Chromium (needs playwright-cli + the synthetic dataset)
+# Exact reproduction of a recorded result: pip install -r requirements-lock.txt (see its header)
 ```
 
 ### Dataset commands
@@ -127,7 +174,7 @@ python -m src.acquisition registry                # what has been acquired, by l
 
 ```bash
 streamlit run app/main.py                         # the application (7 pages; annotation is append-only)
-python -m src.annotation validate                 # rules N1-N15 + knowledge base K1-K5
+python -m src.annotation validate                 # rules N1-N20 + knowledge base K1-K8
 python -m src.annotation summary                  # per-artifact status, disagreements
 python -m src.annotation quality                  # technical quality vs archaeological usability
 python -m src.reasoning analyze <artifact_id>     # evidence-based identification / reading / age
@@ -141,6 +188,13 @@ python -m src.knowledge claim-report              # per claim: publication, stat
 python -m src.knowledge verify ... [--commit]     # record a human check (dry run by default)
 python -m src.annotation handoff                  # blank pilot worksheets + verification checklist
 python -m src.knowledge import-checklist <csv> [--commit]   # import a filled checklist (all-or-nothing)
+python -m src.knowledge prechecks                 # SOFTWARE pre-checks: where each claim was found (not verification)
+python -m src.knowledge verify-from-precheck <PC-id> --verifier <id> --role project_member --date YYYY-MM-DD --i-opened-the-source [--commit]
+python -m src.annotation queue                    # every artifact: state + next human step
+python -m src.annotation disagreements [--all]    # field by field, who said what (never resolved here)
+python -m src.annotation export                   # current annotations, tier-labelled (JSONL + CSV)
+python -m src.annotation handoff --all            # blank worksheets for every research photograph
+python -m src.annotation import-worksheet <csv> --role project|expert [--revise] [--commit]
 ```
 
 ### Training and evaluation commands
@@ -149,7 +203,20 @@ python -m src.knowledge import-checklist <csv> [--commit]   # import a filled ch
 python -m src.training device                     # CUDA / GPU / AMP report
 python -m src.training config                     # validated training configuration
 python -m src.training train                      # gate first; exit 3 "Training blocked" today
-python -m src.evaluation evaluate --checkpoint P  # "NO REAL DATA — EVALUATION BLOCKED" today
+python -m src.evaluation evaluate --checkpoint P [--robustness]  # "NO REAL DATA — EVALUATION BLOCKED" today
+python -m src.evaluation detection --predictions regions.jsonl   # vs expert-promoted regions (blocked today)
+python -m src.evaluation ocr --predictions readings.jsonl        # vs expert-promoted readings (blocked today)
+python -m src.dataset near-duplicates             # near-copy photographs across artifacts (split leakage)
+```
+
+### Quality checks
+
+```bash
+python -m pytest tests/ -q                        # unit, integration, UI (AppTest), static checks
+python -m pytest -m browser                       # opt-in: every page in Chromium at phone/tablet/desktop width, text 100-200 %
+python -m ruff check src app scripts tests
+python -m mypy                                    # configured in pyproject.toml (src, app, scripts)
+python -m src.synthetic verify                    # 14 synthetic integrity / separation / reproducibility checks
 ```
 
 ### Synthetic engineering commands (Milestone 9 — SYNTHETIC, NOT ARCHAEOLOGICAL EVIDENCE)
@@ -215,18 +282,19 @@ early-tamil-pottery-ai/
 │           ├── image_record.schema.json    ← the contract
 │           └── _example_record.json        ← fictitious structural example
 ├── knowledge/                referenced knowledge base (references, sites, scripts, published readings)
-│   └── verification/         human reference-verification registry (empty)
+│   └── verification/         human reference-verification registry (empty) + software pre-checks (not verification)
 ├── src/
 │   ├── dataset/              ingestion, validation, loader, splits, sampling, stats, gate
 │   ├── preprocessing/        loader, transforms, quality, pipeline
 │   ├── acquisition/          licence policy, Commons adapter, provenance, acquisition pipeline
-│   ├── annotation/           annotation rules, store, resolution, pilot, agreement, promotion
+│   ├── annotation/           annotation rules, store, resolution (incl. adjudication), pilot, agreement,
+│   │                         promotion, worksheets / queue / disagreement report / export
 │   ├── reasoning/            deterministic evidence-based analysis (engine, inputs, CLI)
 │   ├── dating/               signed-year chronology (no year 0), evidence-based age ranges
 │   ├── translation/          interpretation: "no translation established" unless sourced
-│   ├── knowledge/            knowledge-base loader/validator, reference verification
+│   ├── knowledge/            knowledge-base loader/validator, reference verification, software pre-checks
 │   ├── training/             config, augmentation, model, engine, checkpoints, experiments
-│   ├── evaluation/           metrics, artifact aggregation, blocked reports
+│   ├── evaluation/           metrics, calibration, OCR, detection / error / robustness tasks, perturbations
 │   ├── classification/  detection/  ocr/
 │   ├── translation/     dating/     knowledge/
 ├── app/                      Streamlit application: main.py, analyze.py, annotate.py, views/, ui/
@@ -266,7 +334,12 @@ early-tamil-pottery-ai/
     ├── PILOT_HANDOFF.md         brief for the expert, the annotator and the reference verifier
     ├── MILESTONE_8_PILOT_RESULTS.md  first processing run of the six-artifact pilot
     ├── PILOT_ANNOTATION_CHECKLIST.md one-page question list per pilot sherd
-    └── NEXT_DATA_ACQUISITION.md      fastest legitimate path to 5 and 20 artifacts per class
+    ├── NEXT_DATA_ACQUISITION.md      fastest legitimate path to 5 and 20 artifacts per class
+    ├── MILESTONE_9_REPORT.md / SYNTHETIC_*.md   synthetic engineering dataset and pipeline
+    ├── MILESTONE_10_REPORT.md        synthetic end-to-end demonstration
+    ├── MILESTONE_11_REPORT.md        pre-checks, adjudication, worksheets, leakage guard, real evaluation, typing
+    ├── EVALUATION.md                 evidence tiers and every metric
+    └── TROUBLESHOOTING.md
 ```
 
 Data files are git-ignored; **the metadata describing them is committed**, so the dataset is
@@ -341,6 +414,7 @@ checks them against the physical publications.
 | 8 | Expert annotation pilot + verification + reversible promotion | ✅ **complete** — workflow built; awaiting an expert; 0 expert labels, 0 verified references |
 | 9 | Synthetic dataset + full ML pipeline validation | ✅ **complete** — isolated synthetic data; pipeline validated end to end; real training still blocked ([`docs/MILESTONE_9_REPORT.md`](docs/MILESTONE_9_REPORT.md)) |
 | 10 | Synthetic end-to-end AI demonstration | ✅ **complete** — calibrated classifier, region detector, glyph segmentation + OCR, synthetic interpretation and chronology reasoning, CLI/API/UI with live pipeline replay; SYNTHETIC only; real training still blocked ([`docs/MILESTONE_10_REPORT.md`](docs/MILESTONE_10_REPORT.md)) |
+| 11 | Reference pre-checks, annotation completion, leakage guard, real evaluation | ✅ **complete** — R1/S01/S03 pre-checked (0 verified: a human must); +4 licensed artifacts (21/34); adjudication, glyph regions, worksheets, queue; near-duplicate split guard; gated detection / OCR / robustness evaluation; mypy clean ([`docs/MILESTONE_11_REPORT.md`](docs/MILESTONE_11_REPORT.md)) |
 | — | Classifier training *(originally M4)* | blocked on authorised data |
 | — | Evaluation and error analysis *(originally M5)* | infrastructure built; blocked on data |
 | — | Inscription-region detection *(originally M6)* | blocked |
@@ -359,14 +433,14 @@ original numbers in brackets because code comments and earlier reports refer to 
 
 ## Environment
 
-Verified on this machine, 2026-09-23:
+Verified on this machine, 2026-10-08:
 
 | | |
 |---|---|
-| Python | 3.13.7 (3.10 also available) |
-| GPU | NVIDIA RTX 4050 Laptop, 6 GiB |
+| Python | 3.13.7 (the code targets ≥ 3.10) |
+| GPU | NVIDIA RTX 4050 Laptop, 6 GiB (optional: everything runs on CPU, training and the synthetic demonstration more slowly) |
 | torch | `2.14.0+cu126` in `.venv` — **CUDA available: True** |
-| `.venv` | fully provisioned; all 686 tests run from it |
+| Exact versions | `requirements-lock.txt` (`pip freeze` of the tested `.venv`) |
 
 Use `.venv\Scripts\python.exe`, not the global interpreter. The dataset layer needs only
 the standard library plus `jsonschema` and `PyYAML`; preprocessing adds Pillow and NumPy.

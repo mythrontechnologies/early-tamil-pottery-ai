@@ -6,3 +6,7 @@
 pytest>=8.0
 jupyter>=1.0
 ruff>=0.5
+# Static type checking (Milestone 11): python -m mypy   (configured in pyproject.toml)
+mypy>=1.10
+types-PyYAML
+types-jsonschema

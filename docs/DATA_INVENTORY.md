@@ -84,7 +84,8 @@ Every route above yields images with *published* labels at best. The project als
 
 - adjudicate `graffiti` vs `tamil_brahmi` on ambiguous sherds;
 - confirm that `uncertain` is being used honestly rather than as an annotator's escape hatch;
-- verify the references in `docs/CHRONOLOGICAL_SCOPE.md` §6;
+- verify the references in `docs/CHRONOLOGICAL_SCOPE.md` §6 (software pre-checks give the page and
+  the copy for R1, S01, S03: `python -m src.knowledge prechecks`);
 - answer the open questions in `docs/CHRONOLOGICAL_SCOPE.md` §8.
 
 Without this, `label_source` can never rise above `project_annotation_unverified`, and the

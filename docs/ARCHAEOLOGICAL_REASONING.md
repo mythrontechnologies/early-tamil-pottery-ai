@@ -224,8 +224,27 @@ records atomically, logs full before/after states, and can be reverted. See
 `ANNOTATION_GUIDE.md` §9 and `MILESTONE_8_REPORT.md`.
 
 ## 9. Current behaviour on the real data
-All 17 artifacts return: STATUS **Insufficient evidence**, script **not determined**, reading
+All 21 artifacts return (re-run 2026-10-08): STATUS **Insufficient evidence**, script **not determined**, reading
 **none**, translation "No translation established.", age and estimated period **Insufficient
 evidence**, confidence **unknown**. That is correct: no annotation exists yet (Milestone 8
 built the pilot workflow; no expert has annotated). This includes the six pilot sherds, even
 though the uploader's caption gives a date for the Keeladi deposit.
+
+## 10. Conservative transcription outcomes (Milestone 11)
+
+The reading an annotator records now carries its completeness (annotation schema 1.2.0), and the reasoning
+states it instead of implying a full reading:
+
+| Recorded | Status statement | Translation |
+|---|---|---|
+| `complete` reading | (none extra) | only if a source establishes one; a personal name: "Proper name; no literal translation established." |
+| `partial` reading | "Partial transcription: some signs lost or doubtful" | "No translation established." unless a source gives one; lost signs are never supplied |
+| `fragmentary` reading | "Fragmentary: only isolated signs read" | none |
+| `illegible` (marks present, no reading) | "Inscription illegible: no transcription" | "No reading established; nothing can be translated." |
+| no reading | "Insufficient evidence" (with no script) | "No reading established; nothing can be translated." |
+
+When an expert **adjudication** resolves disagreeing annotations, the adjudicating annotation is the
+reasoning basis, and the limitations say that the label comes from an adjudication and that the
+disagreement is preserved. Chronology is unchanged (§3): ranges only with evidence, the evidence hierarchy and
+its evidence categories, conflicts reported and never averaged, no year 0, and no date from wording, image
+appearance or a model probability alone.
