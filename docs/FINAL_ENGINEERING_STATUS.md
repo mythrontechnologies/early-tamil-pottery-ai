@@ -8,8 +8,8 @@ archaeological evidence: a human check of the references, expert annotation, eno
 class, and then training. None of it can be engineered, and none of it has been fabricated.
 
 ```text
-Tests:              981 passed, 3 browser tests deselected, 1 expected warning (a hardening test feeds a raw pickle to the safe loader); 29 test files
-Browser:            3 passed (phone-width overflow at 100-200 % text; keyboard, fallbacks, reduced motion, timing; every page at phone / tablet / desktop width, text 100-200 %)
+Tests:              986 passed, 4 browser tests deselected, 1 expected warning (a hardening test feeds a raw pickle to the safe loader); 29 test files (2026-10-09, view-mode fix; 981 at Milestone 11)
+Browser:            4 passed (phone-width overflow at 100-200 % text; keyboard, fallbacks, reduced motion, timing; every page at phone / tablet / desktop width, text 100-200 %; one session through every page with the app's navigation, Research and Presentation)
 Static checks:      ruff clean; mypy clean (127 files: src, app, scripts)
 Research data:      21 artifacts / 34 images (Wikimedia Commons, CC BY / CC BY-SA), provenance 34/34, raw files unchanged
 Labels:             0   (tamil_brahmi 0 | graffiti 0 | none 0 | uncertain 0)
@@ -64,8 +64,8 @@ the Milestone 11 additions above ([`MILESTONE_11_REPORT.md`](MILESTONE_11_REPORT
 
 | Check | Result |
 |---|---|
-| `pytest tests/ -q` | 981 passed, 3 browser tests deselected, 1 expected warning (a hardening test feeds a raw pickle to the safe loader); 29 test files |
-| `pytest -m browser` | 3 passed (phone-width overflow at 100-200 % text; keyboard, fallbacks, reduced motion, timing; every page at phone / tablet / desktop width, text 100-200 %) |
+| `pytest tests/ -q` | 986 passed, 4 browser tests deselected, 1 expected warning (a hardening test feeds a raw pickle to the safe loader); 29 test files (re-run 2026-10-09 after the view-mode fix; 981 on 2026-10-08) |
+| `pytest -m browser` | 4 passed (phone-width overflow at 100-200 % text; keyboard, fallbacks, reduced motion, timing; every page at phone / tablet / desktop width, text 100-200 %; added 2026-10-09: one session through every page with the app's navigation in Research and Presentation mode) |
 | `ruff check src app scripts tests` / `mypy` | clean / no issues in 127 files |
 | `src.workflow status` | stages 1-5 PASS (34 records, 34 files, 21 artifacts, provenance 34/34, 0 hash mismatches) |
 | `src.dataset validate --strict --verify-hashes` / `near-duplicates` | PASS / 0 pairs |

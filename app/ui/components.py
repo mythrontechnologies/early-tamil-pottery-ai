@@ -80,9 +80,17 @@ def nav_link(page: str, label: str, icon: str | None = None, query_params: dict[
 
 
 def mode_switch() -> None:
-    """Research / Presentation view switch (presentation only; never changes data)."""
+    """Research / Presentation view switch (presentation only; never changes data).
+
+    A view of the session's view mode (``ui.boot``): seeded from it before rendering, written back by
+    ``keep_mode``. ``required`` keeps one mode selected (clicking the selected one does nothing).
+    """
+    from ui.boot import MODES, SWITCH_KEY, keep_mode, mode
+
+    st.session_state[SWITCH_KEY] = mode()
     with st.container(key="etp_mode_switch"):
-        st.segmented_control("View mode", ["Research", "Presentation"], key="ui_mode", label_visibility="collapsed",
+        st.segmented_control("View mode", MODES, key=SWITCH_KEY, required=True, on_change=keep_mode,
+                             label_visibility="collapsed",
                              help="Research shows provenance, hashes and verification detail; Presentation keeps the "
                                   "findings, the AI warning and every limitation but collapses implementation detail.")
 

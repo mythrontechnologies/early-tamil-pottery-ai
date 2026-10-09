@@ -259,6 +259,57 @@ def test_presentation_mode_hides_research_detail(apptest, ui_mode, shown):
     assert ("Provenance table" in _html(at)) is shown
 
 
+#: the pages in app/main.py's navigation order
+PAGES = ["views/overview.py", "analyze.py", "annotate.py", "views/dataset.py", "views/evidence.py",
+         "views/workflow.py", "views/about.py"]
+
+
+@pytest.mark.parametrize("chosen", ["Research", "Presentation"])
+def test_view_mode_survives_every_page_switch(apptest, chosen):
+    """Regression: the switch was keyed on the mode itself. Streamlit gives each page's widget its own id, so a
+    page switch could reset the mode to None and the page's next run crashed in boot() ("'NoneType' object has
+    no attribute 'lower'"). Also covers pages sharing a session key (Analysis' region text box vs. the
+    Annotation page's unsaved regions), which crashed the first run after switching between them here."""
+    from ui.boot import DEFAULT_MODE, MODE_KEY, SWITCH_KEY
+
+    at = apptest("main.py").run()
+    assert not at.exception and at.session_state[MODE_KEY] == DEFAULT_MODE == "Research"      # fresh session
+    at.segmented_control(key=SWITCH_KEY).set_value(chosen).run()
+    for page in PAGES[1:] + PAGES[::-1]:
+        at.switch_page(page).run()
+        assert not at.exception, (page, [e.value for e in at.exception])
+        at.run()                                                    # any interaction on the page
+        assert not at.exception, (page, [e.value for e in at.exception])
+        assert at.session_state[MODE_KEY] == chosen and at.segmented_control(key=SWITCH_KEY).value == chosen, page
+
+
+def test_view_mode_switch_cannot_be_emptied(apptest):
+    from ui.boot import MODE_KEY, SWITCH_KEY
+
+    at = apptest("views/about.py").run()
+    switch = at.segmented_control(key=SWITCH_KEY)
+    assert switch.proto.required and switch.value == "Research"
+    switch.unselect("Research").run()                               # clicking the selected mode does nothing
+    assert not at.exception and at.session_state[MODE_KEY] == "Research"
+
+
+def test_palette_mode_link_sets_the_view_mode(apptest):
+    from ui.boot import MODE_KEY, SWITCH_KEY
+
+    at = apptest("main.py")
+    at.query_params["mode"] = "presentation"
+    at.run()
+    assert not at.exception
+    assert at.session_state[MODE_KEY] == "Presentation" and at.segmented_control(key=SWITCH_KEY).value == "Presentation"
+
+
+def test_an_invalid_view_mode_is_an_error_not_a_silent_default(apptest):
+    at = apptest("views/about.py")
+    at.session_state["ui_mode"] = None
+    at.run()
+    assert at.exception and "invalid view mode" in at.exception[0].value
+
+
 def test_annotation_lab_marks_saves_and_keeps_history(apptest, tmp_path, live_research):
     import json
 

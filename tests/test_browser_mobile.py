@@ -12,6 +12,9 @@ dataset (``python -m src.synthetic generate``). Nothing here writes data: the ap
 * ``tests/browser/accessibility.js`` keyboard operation (real and synthetic modes), the 2D / 2.5D and
                                      WebGL-failure fallbacks, reduced motion, and click-to-result time and
                                      frame rates of the synthetic demonstration and the 3D scene.
+* ``tests/browser/navigation.js``    one session moving through every page with the app's own navigation, in
+                                     Research and Presentation mode, at phone / tablet / desktop width: the mode
+                                     is kept, never emptied, and no page raises (text 100-200 %: no overflow).
 
 Regression: before the fix, enlarged text (125 %) pushed the synthetic analysis page 41-71 px wider
 than the screen (no-wrap badges, non-wrapping flex headings, the 2D/2.5D control, long tokens).
@@ -144,3 +147,27 @@ def test_every_page_fits_and_renders_at_every_text_size(app_url, tmp_path):
     assert not broken, f"pages with an exception or no heading: {broken}"
     overflowing = {c: m for c, m in cases.items() if max(m["main"], m["doc"], m["frame"]) > 1}
     assert not overflowing, f"horizontal overflow (px): {overflowing}"
+
+
+def test_view_mode_is_kept_across_in_app_navigation(app_url, tmp_path):
+    """Regression: the view-mode switch was keyed on the mode, and Streamlit gives a widget on each page its own
+    id. Inside one session a page switch dropped the chosen mode and a return visit left it None; the page's next
+    run crashed in boot() ("'NoneType' object has no attribute 'lower'"), and so did clicking the selected mode.
+    The other probes load each page fresh (one session per page), so they could not see it."""
+    r = run_probe("navigation.js", app_url, tmp_path)
+    pages = ("analysis", "annotation", "dataset", "evidence", "workflow", "about", "overview")
+    for vp in ("390x844", "768x1024", "1280x800"):
+        assert r["first_load"][vp] == "Research"                                   # fresh session: the default
+        assert r["deselect"][vp] == {"shown": "Research", "exception": 0}          # cannot be emptied
+        for mode, other in (("Research", "Presentation"), ("Presentation", "Research")):
+            for page in pages + tuple(f"{p} (back)" for p in pages[-2::-1]):
+                c = r["cases"][f"{vp} {mode} {page}"]
+                assert c["linked"] and c["heading"] and c["exception"] == 0, (vp, mode, page, c)
+                assert (c["on_arrival"], c["switched"], c["switched_back"]) == (mode, other, mode), (vp, mode, page, c)
+                if page.startswith("analysis"):
+                    assert c["synthetic_banner"], (vp, mode, page)
+                if page == "analysis" and vp == "1280x800":
+                    assert c["synthetic_result"], (vp, mode)                       # a synthetic run in this mode
+                if "(back)" not in page:
+                    for scale in ("100%", "125%", "150%", "175%", "200%"):
+                        assert c["overflow"][scale] <= 1, (vp, mode, page, c["overflow"])

@@ -133,8 +133,10 @@ with st.sidebar:
 
 recs = by_artifact[artifact_id]
 image_ids = [r["image_id"] for r in recs]
-st.session_state.setdefault("regions", {})
-regions: list[dict] = st.session_state["regions"].setdefault(artifact_id, [])
+# Unsaved regions per artifact. Not "regions": that key is the Analysis page's region text box (a
+# string), and a session that moved here from Analysis can still hold it on this page's first run.
+st.session_state.setdefault("pending_regions", {})
+regions: list[dict] = st.session_state["pending_regions"].setdefault(artifact_id, [])
 
 tab_annotate, tab_review, tab_pilot, tab_queue = st.tabs(["Annotate", "Review", "Pilot & agreement", "Queue"])
 
