@@ -4,8 +4,9 @@ Run only after the user explicitly switches the data mode. Choose a generated, h
 synthetic image, press Run analysis, and the complete synthetic pipeline runs once, live: every stage
 reports its real result and its measured latency as it finishes. The results are then shown with the
 pipeline replay on the illustrative 3D sherd, the photograph viewer with the detected synthetic regions,
-the language / reading results (synthetic glyph transcription; transliteration not applicable; translation not
-available), the synthetic evidence chain, the reasoning, the ground-truth comparison and the performance figures.
+the language / reading results (synthetic glyph transcription, then the fictional synthetic-language
+transliteration and English translation from the deterministic decoder — SYNTHETIC LANGUAGE, NOT TAMIL-BRAHMI),
+the synthetic evidence chain, the reasoning, the ground-truth comparison and the performance figures.
 
 Everything here is labelled SYNTHETIC. Nothing here reads or writes research data, annotations or the
 knowledge base, and no real reference is shown in support of a synthetic result.
@@ -76,10 +77,13 @@ def _panel(a: dict[str, Any]) -> str:
 
 def _translation(a: dict[str, Any]) -> str:
     lang = field_map(a.get("reading_results"))
+    info = (a.get("reading_results") or {}).get("language") or {}
     if not lang:
         return ""
-    return (f'<div class="etp-finding"><div class="k">Translation</div><div class="v">{e(lang["translation"]["display"])}</div>'
-            f'<div class="who">Transliteration: {e(lang["transliteration"]["display"])}</div></div>')
+    return (f'<div class="etp-finding"><div class="k">Synthetic translation · synthetic language, not Tamil-Brahmi</div>'
+            f'<div class="v">{e(lang["translation"]["display"])}</div>'
+            f'<div class="who">Transliteration: {e(lang["transliteration"]["display"])}</div>'
+            f'<div class="who">{e(info.get("status_text", ""))} · {e(info.get("method", ""))}</div></div>')
 
 
 def _ground_truth(gt: dict[str, Any]) -> str:
@@ -90,6 +94,10 @@ def _ground_truth(gt: dict[str, Any]) -> str:
         rows.append(("CER / WER", f'{gt["cer"]} / {gt["wer"]} · edit distance {gt["glyph_edit_distance"]}', True))
     rows += [("Best region IoU", gt["best_region_iou"] if gt["best_region_iou"] is not None else "—", True),
              ("Interpretation", f'{gt["true_interpretation"]} → {"same" if gt["interpretation_correct"] else "different"}', True)]
+    if "true_synthetic_translation" in gt:
+        rows += [("True synthetic translation", f'{gt["true_synthetic_translation"] or "—"} ({gt["true_synthetic_language_status"]})', False),
+                 ("Predicted synthetic translation", f'{gt["predicted_synthetic_translation"] or "—"} → '
+                  f'{"correct" if gt["synthetic_translation_correct"] else "WRONG"}', False)]
     return (f'<div class="etp-card" style="padding:.9rem 1.1rem"><div class="etp-eyebrow">Ground-truth check · synthetic benchmark only'
             f'</div><p style="color:var(--text-2);font-size:.88rem">{e(gt["note"])} Errors are shown exactly; nothing is corrected.</p>'
             f"{kv(rows)}</div>")
@@ -177,7 +185,7 @@ def render_synthetic_demo() -> None:
         st.html(_panel(a))
 
     if a.get("reading_results"):
-        section("Language / reading results", "synthetic demonstration · no transliteration · no translation")
+        section("Language / reading results", "synthetic language — not Tamil-Brahmi · transliteration · translation")
         st.html(reading_results_html(a["reading_results"], research=research()))
 
     section("Synthetic evidence chain", "every node SYNTHETIC · select a step for detail")

@@ -71,6 +71,10 @@ class SplitSettings:
     stratify_by: str
     balance_secondary: tuple[str, ...]
     manifest_dir: Path
+    #: Generated data only (the synthetic split): artifact identity is known by construction - every artifact is
+    #: drawn from its own random streams - so a near-duplicate pair is recorded in the manifest's warnings instead of
+    #: refusing the split. Research data never sets this: a human must merge or clear each pair (Milestone 11).
+    distinct_by_construction: bool = False
 
     @classmethod
     def from_config(cls, config: dict[str, Any] | None = None) -> SplitSettings:
@@ -258,7 +262,7 @@ def check_splittable(
     from .near_duplicates import dataset_near_duplicates
 
     pairs, _ = dataset_near_duplicates([r for recs in eligible.values() for r in recs])
-    for p in pairs:
+    for p in pairs if not settings.distinct_by_construction else ():
         problems.append(f"near-duplicate photographs across artifacts: {p}. Merge the two artifacts (same "
                         "artifact_id) or record them as distinct in split.near_duplicate_exceptions with a reason")
 
@@ -428,6 +432,14 @@ def make_split(
     held = sorted({r for r in excluded.values() if r.startswith("held_out_label")})
     if held:
         warnings.append(f"held-out labels present and excluded from this split: {held}")
+    if settings.distinct_by_construction:
+        from .near_duplicates import dataset_near_duplicates
+
+        pairs, _ = dataset_near_duplicates([r for recs in eligible.values() for r in recs])
+        if pairs:
+            warnings.append(f"{len(pairs)} near-duplicate photograph pair(s) across artifacts recorded, not merged: the "
+                            "artifacts are distinct by construction (generated from separate random streams). "
+                            + "; ".join(str(p) for p in pairs))
 
     manifest = SplitManifest(
         strategy=resolved,

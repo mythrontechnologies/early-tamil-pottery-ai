@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ui.components import badge, e
+from ui.components import badge, e, kv
 
 STATE_BADGE = {"established": None, "not_established": ("insufficient", "Not established"),
                "not_applicable": ("neutral", "Not applicable"), "not_available": ("insufficient", "Not available")}
@@ -21,7 +21,8 @@ TIER_BADGE = {"promoted_ground_truth": ("expert", "Promoted ground truth"), "adj
               "expert_reviewed": ("expert", "Expert-reviewed"), "expert_annotation": ("expert", "Expert · not reviewed"),
               "source_information": ("bibliographic", "Published source · unverified"),
               "project_annotation": ("project", "Project · not expert-reviewed"),
-              "ai_draft": ("ai", "AI draft · not a reading"), "synthetic_model": ("synthetic", "Synthetic model output")}
+              "ai_draft": ("ai", "AI draft · not a reading"), "synthetic_model": ("synthetic", "Synthetic model output"),
+              "synthetic_rule_decoder": ("synthetic", "Synthetic rule-based decoder")}
 
 
 def _field(f: dict[str, Any], *, research: bool) -> str:
@@ -40,6 +41,20 @@ def _field(f: dict[str, Any], *, research: bool) -> str:
             + ("<ul>" + "".join(f"<li>{e(x)}</li>" for x in notes) + "</ul>" if notes else "")
             + (f'<div class="who">Evidence: {e("; ".join(f["evidence"]))}</div>' if research and f["evidence"] else "")
             + "</div>")
+
+
+def _language(lang: dict[str, Any]) -> str:
+    """The synthetic-language strip: banner, method, status and the word-by-word gloss (never for real data)."""
+    rows = [("Method", f'{lang["method"]} · {lang["spec"]}', False), ("Status", lang["status_text"], False)]
+    if lang.get("reason"):
+        rows.append(("Reason", lang["reason"], False))
+    gloss = "".join(f'<tr><td class="mono" lang="zxx">{e(g["glyph"])}</td><td lang="zxx">{e(g["reading"])}</td>'
+                    f'<td>{e(g["gloss"])}</td><td>{e(g["class"])}</td><td>{e(g["role"])}</td></tr>' for g in lang.get("gloss", []))
+    table = ('<table class="etp-gloss"><caption>Word-by-word gloss (fictional synthetic lexicon)</caption><thead><tr>'
+             '<th scope="col">Glyph</th><th scope="col">Reading</th><th scope="col">Gloss</th><th scope="col">Class</th>'
+             f'<th scope="col">Role</th></tr></thead><tbody>{gloss}</tbody></table>') if gloss else ""
+    return (f'<div class="etp-synthetic etp-language" role="note" aria-label="{e(lang["banner"])}">'
+            f'{badge("synthetic", lang["banner"])}<p>{e(lang["fiction"])} {e(lang["method_note"])}</p>{kv(rows)}{table}</div>')
 
 
 def reading_results_html(block: dict[str, Any] | None, *, research: bool) -> str:
@@ -61,6 +76,7 @@ def reading_results_html(block: dict[str, Any] | None, *, research: bool) -> str
             f'aria-label="Language and reading results{", synthetic demonstration" if syn else ""}">'
             f'<p class="etp-reading-lede">{lede}<span>{e(block["statement"])}</span></p>'
             '<div class="etp-grid cols-3">' + "".join(_field(f, research=research) for f in block["fields"]) + "</div>"
+            + (_language(block["language"]) if syn and block.get("language") else "")
             + draft_html + "</section>")
 
 

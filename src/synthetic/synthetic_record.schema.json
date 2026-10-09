@@ -3,7 +3,7 @@
   "$id": "early-tamil-pottery-ai/synthetic_record.schema.json",
   "title": "Synthetic engineering record (Milestone 9) - SYNTHETIC, NOT ARCHAEOLOGICAL EVIDENCE",
   "description": "One generated image of one synthetic object. Separate from image_record.schema.json on purpose: a synthetic record can never validate as a research record, and a research record can never validate as a synthetic one. Archaeological fields are fixed sentinels: synthetic images have no site, context, period, date, transcription or translation.",
-  "schema_version": "synthetic-1.0.0",
+  "schema_version": "synthetic-1.1.0",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -12,10 +12,10 @@
     "synthetic_generator_version", "generation_seed", "artifact_index", "view_index", "site", "context",
     "period", "dating_basis", "script_type", "inscription_present", "inscription_type", "transcription",
     "translation", "label_source", "label_confidence", "synthetic_surface", "synthetic_uncertain_mode",
-    "synthetic_glyph_sequence", "synthetic_regions", "generation_params_sha256"
+    "synthetic_glyph_sequence", "synthetic_language_target", "synthetic_regions", "generation_params_sha256"
   ],
   "properties": {
-    "schema_version": {"const": "synthetic-1.0.0"},
+    "schema_version": {"const": "synthetic-1.1.0"},
     "dataset_type": {"const": "synthetic"},
     "synthetic_marker": {"const": "SYNTHETIC — NOT ARCHAEOLOGICAL EVIDENCE"},
     "label_warning": {"const": "Synthetic task label — not archaeological evidence."},
@@ -42,16 +42,26 @@
     "inscription_present": {"enum": ["yes", "no", "uncertain"],
                             "description": "Whether the generator drew deliberate marks: yes, no, or uncertain (drawn but degraded below legibility). Never 'unknown': the generator always knows."},
     "inscription_type": {"enum": ["synthetic_glyph_row", "synthetic_isolated_marks", "synthetic_degraded_marks", "not_applicable"]},
-    "transcription": {"const": "not_applicable", "description": "Synthetic marks have no language; see synthetic_glyph_sequence for the benchmark tokens."},
-    "translation": {"const": "not_applicable"},
+    "transcription": {"const": "not_applicable", "description": "No archaeological transcription exists for a synthetic image. The glyph codes are in synthetic_glyph_sequence; their fictional synthetic-language target in synthetic_language_target."},
+    "translation": {"const": "not_applicable", "description": "No archaeological translation exists for a synthetic image (see synthetic_language_target)."},
     "label_source": {"const": "synthetic_ground_truth"},
     "label_confidence": {"const": "high", "description": "Certainty that the generator drew this category; not archaeological confidence."},
     "synthetic_surface": {"enum": ["reddish", "buff", "grey", "dark", "two_tone"]},
     "synthetic_uncertain_mode": {"enum": ["cut_row", "faint", "fragment", "overscratched", "not_applicable"]},
     "synthetic_glyph_sequence": {
       "type": "array", "maxItems": 2,
-      "description": "Words of synthetic glyph codes (SG00-SG15), left to right. Benchmark tokens only: no sound, reading or meaning.",
+      "description": "Words of synthetic glyph codes (SG00-SG15), left to right: the generator's ground truth. Generator 1.1.0 writes sentences of the invented synthetic language (src.synthetic.lexicon) - SYNTHETIC LANGUAGE, NOT TAMIL-BRAHMI.",
       "items": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^SG[0-9]{2}$"}}
+    },
+    "synthetic_language_target": {
+      "type": "object", "additionalProperties": false, "required": ["spec", "status", "transliteration", "translation"],
+      "description": "Benchmark target: the invented synthetic-language specification applied to the TRUE glyph sequence. Evaluation only; never read by inference. SYNTHETIC LANGUAGE - NOT TAMIL-BRAHMI.",
+      "properties": {
+        "spec": {"type": "string", "pattern": "^synthetic-language-[0-9]+\\.[0-9]+\\.[0-9]+$"},
+        "status": {"enum": ["translated", "partial", "unknown_glyph", "invalid_sequence", "insufficient_evidence"]},
+        "transliteration": {"type": ["string", "null"]},
+        "translation": {"type": ["string", "null"]}
+      }
     },
     "synthetic_regions": {
       "type": "array",

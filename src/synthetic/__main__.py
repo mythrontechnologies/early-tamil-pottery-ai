@@ -9,6 +9,7 @@
     python -m src.synthetic calibrate [--checkpoint PATH]          # temperature scaling on the VAL split
     python -m src.synthetic train-vision                           # region detector + OCR models (bundle)
     python -m src.synthetic demo [--image-id ID] [--json]          # the complete synthetic pipeline, once
+    python -m src.synthetic translate SG01 SG09 SG02 [--json]      # decode codes: SYNTHETIC LANGUAGE, NOT TAMIL-BRAHMI
 
 Training and evaluation use the project's existing commands with an explicit dataset switch:
 
@@ -136,6 +137,28 @@ def cmd_demo(args: argparse.Namespace) -> int:
     return 0
 
 
+def render_language(d: dict) -> str:
+    """The synthetic-language block (CLI): every line comes from the decoder's result."""
+    L = [d["banner"], f"  Transcription:    {d['transcription'] or '(none)'}",
+         f"  Transliteration:  {d['transliteration'] or '(none)'}",
+         f"  Translation:      {d['translation'] or '(none)'}",
+         f"  Method:           {d['method']} ({d['spec']})", f"  Status:           {d['status_text']} [{d['status']}]"]
+    if d["reason"]:
+        L.append(f"  Reason:           {d['reason']}")
+    L += ["  Gloss:            " + "  ".join(f"{g['glyph']}={g['reading'] or '?'} '{g['gloss'] or '?'}' ({g['role']})"
+                                              for g in d["gloss"])] if d["gloss"] else []
+    L.append(f"  {d['fiction']}")
+    return "\n".join(L)
+
+
+def cmd_translate(args: argparse.Namespace) -> int:
+    from .lexicon import decode
+
+    d = decode(" ".join(args.glyphs)).to_dict()
+    print(json.dumps(d, indent=2, ensure_ascii=False) if args.json else render_language(d))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="python -m src.synthetic",
                                 description=f"Synthetic engineering dataset ({MARKER}).")
@@ -186,6 +209,11 @@ def build_parser() -> argparse.ArgumentParser:
     dm.add_argument("--no-record", action="store_true", help="do not write a run record")
     dm.add_argument("--json", action="store_true")
     dm.set_defaults(func=cmd_demo)
+    tr = sub.add_parser("translate", help="decode synthetic glyph codes with the fictional synthetic-language "
+                                          "specification (SYNTHETIC LANGUAGE — NOT TAMIL-BRAHMI)")
+    tr.add_argument("glyphs", nargs="+", help="codes such as SG01 SG09 SG02; '/' separates written words")
+    tr.add_argument("--json", action="store_true")
+    tr.set_defaults(func=cmd_translate)
     return p
 
 

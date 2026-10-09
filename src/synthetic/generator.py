@@ -10,6 +10,14 @@ Determinism. Every random draw comes from ``numpy.random.default_rng([seed, arti
 * ``STREAM_VIEWS``   how many photographs the artifact gets        (never sees the class)
 * ``STREAM_DISTRACT`` scratches, cracks and pits on EVERY class     (never sees the class)
 * ``STREAM_MARKS``   the class-specific marks                      (the only class-dependent stream)
+* ``STREAM_LANGUAGE`` the sentence of a Tamil-Brahmi-like glyph row (generator 1.1.0; see below)
+
+Generator 1.1.0: a Tamil-Brahmi-like glyph row is a SENTENCE of the invented synthetic language
+(``src.synthetic.lexicon``; SYNTHETIC LANGUAGE — NOT TAMIL-BRAHMI). The row is laid out exactly as in 1.0.0 (same
+draws, same geometry, same glyph count); its codes are kept when they already form a valid sentence, otherwise
+they are replaced by a sentence of the same length drawn from ``STREAM_LANGUAGE``. So no other image changes, and
+a row that was already grammatical (e.g. ``SG01 SG09 SG02``) is byte-identical. A row of fewer than 3 glyphs
+(placement had to drop glyphs) cannot be a sentence and keeps its codes; its language target says so.
 * ``VIEW_BASE + v``  camera, lighting, background, blur, noise, occlusion, JPEG quality of view v
                                                                     (never sees the class)
 
@@ -44,10 +52,12 @@ from PIL import Image
 
 from . import SYNTHETIC_LABELS
 from .glyphs import BY_CODE, GLYPH_CODES, MOTIFS, motif_strokes
+from .lexicon import decode, sample_sentence
 
-GENERATOR_VERSION = "1.0.0"
+GENERATOR_VERSION = "1.1.0"       # 1.1.0: Tamil-Brahmi-like rows are synthetic-language sentences
 
 STREAM_OBJECT, STREAM_MARKS, STREAM_DISTRACT, STREAM_VIEWS = 1, 2, 3, 4
+STREAM_LANGUAGE = 5
 VIEW_BASE = 100
 _ASSIGNMENT_STREAM = 0xC1A55
 
@@ -360,7 +370,7 @@ def _visible_box(marks: np.ndarray, mask: np.ndarray) -> list[list[float]] | Non
 
 
 def _marks(rng: np.random.Generator, label: str, S: int, mask: np.ndarray, cfg: Any,
-           erosion: np.ndarray) -> tuple[np.ndarray, dict[str, Any]]:
+           erosion: np.ndarray, language: np.random.Generator | None = None) -> tuple[np.ndarray, dict[str, Any]]:
     """Class-specific marks. Returns (marks groove map, description). Only this stream sees the class."""
     m = cfg.marks
     groove = np.zeros((S, S), np.float32)
@@ -382,6 +392,8 @@ def _marks(rng: np.random.Generator, label: str, S: int, mask: np.ndarray, cfg: 
                 break
         else:  # pragma: no cover - outlines are guaranteed an inscribed circle of 18% of the canvas
             raise RuntimeError("could not place a glyph row")
+        if language is not None and row["n"] >= 3 and decode(row["codes"]).status != "translated":
+            row["codes"] = sample_sentence(language, row["n"])
         glyphs = _render_row(row, center, groove, depth)
         words: list[list[str]] = [[], []]
         for g in glyphs:
@@ -513,7 +525,8 @@ def build_artifact(cfg: Any, index: int, label: str) -> ArtifactState:
     albedo, erosion, surface = _surface(ro, S, mask)
     curvature, curv = _curvature(ro, S)
     groove_strength = float(ro.uniform(0.45, 0.75))
-    marks_groove, marks = _marks(rng_for(cfg.seed, index, STREAM_MARKS), label, S, mask, cfg, erosion)
+    marks_groove, marks = _marks(rng_for(cfg.seed, index, STREAM_MARKS), label, S, mask, cfg, erosion,
+                                 rng_for(cfg.seed, index, STREAM_LANGUAGE))
     dist_groove, cracks, distract = _distractors(rng_for(cfg.seed, index, STREAM_DISTRACT), S, mask, cfg)
     groove = np.clip(np.maximum(marks_groove, dist_groove) * mask, 0, 1)
     groove = cv2.GaussianBlur(groove, (0, 0), 0.8)

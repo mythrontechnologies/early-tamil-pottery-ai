@@ -4,10 +4,15 @@
 
     image -> 01 load -> 02 preprocess -> 03 classify (ResNet18 + temperature scaling)
           -> 04 detect (RegionNet: synthetic inscription regions + glyph rows)
-          -> 05 segment (selected strategy) -> 06 OCR (GlyphNet) -> 07 interpret (synthetic grammar)
+          -> 05 segment (selected strategy) -> 06 OCR (GlyphNet)
+          -> 07 interpret: the deterministic synthetic-language decoder (src.synthetic.lexicon) turns the PREDICTED
+             glyph codes into a fictional transliteration and English translation (``synthetic_language``;
+             SYNTHETIC LANGUAGE — NOT TAMIL-BRAHMI), and the placeholder interpretation category (synthetic grammar)
           -> 08 reason (synthetic chronology, reasoning, evidence chain)
-          -> reading_results: transcription (synthetic glyph codes), transliteration not applicable, translation
-             not available (src.synthetic.reading); never a word, a name or a meaning
+          -> reading_results (src.synthetic.reading): transcription, transliteration, translation, completeness
+
+The decoder sees only the predicted codes: never the record, the artifact id, the file name or the generator's
+ground truth, which ``ground_truth_check`` alone compares afterwards (evaluation, not inference).
 
 Every stage is timed (CUDA synchronised) and reported through an optional ``on_stage`` callback, so a
 UI can show real progress. The pipeline refuses to start unless the classifier checkpoint and the
@@ -34,6 +39,8 @@ from . import DATASET_TYPE, LABEL_WARNING, MARKER, PURPOSE, UI_BANNER
 from .calibration import confidence_words
 from .inference import SyntheticCheckpointClassifier, latest_synthetic_checkpoint
 from .interpretation import interpret
+from .lexicon import decode as decode_language
+from .lexicon import target as language_target
 from .ocr_benchmark import WORD_SEPARATOR, _iou, enhanced_gray
 from .reading import synthetic_reading_results
 from .reasoning import chronology, evidence_chain, reasoning_lines
@@ -210,8 +217,11 @@ class SyntheticPipeline:
 
         def interpret_stage() -> tuple[str, dict[str, Any]]:
             it = interpret(state["ocr"]["words"], state["classify"]["label"]).to_dict()
-            return (f"synthetic interpretation category: {it['category']} (invented rule table, no meaning) · "
-                    "translation not available"), it
+            lang = decode_language(state["ocr"]["words"]).to_dict()          # predicted codes only
+            state["language"] = lang
+            said = f"'{lang['translation']}'" if lang["translation"] else "no translation"
+            return (f"synthetic language ({lang['spec']}): {said} [{lang['status']}] · placeholder category "
+                    f"{it['category']}"), it
 
         def reason() -> tuple[str, dict[str, Any]]:
             o = state["ocr"]
@@ -249,6 +259,7 @@ class SyntheticPipeline:
             "inscription": {"regions": det["regions"], "rows": det["rows"], "class": "synthetic_inscription_region"},
             "ocr": {k: v for k, v in state["ocr"].items()},
             "interpretation": state["interpret"],
+            "synthetic_language": state["language"],
             "chronology": state["reason"],
             "consistency": consistency,
         }
@@ -286,6 +297,8 @@ def ground_truth_check(a: dict[str, Any], record: dict[str, Any]) -> dict[str, A
     best_iou = max((_iou((p["x"], p["y"], p["width"], p["height"]), (g["x"], g["y"], g["width"], g["height"]))
                     for p in a["inscription"]["regions"] for g in gt_regions), default=None)
     truth_interp = interpret(truth_words, record["script_type"]).category
+    lang_truth = record.get("synthetic_language_target") or language_target(truth_words)
+    lang_pred = a["synthetic_language"]
     return {
         "note": "Generator ground truth, available only because the image is synthetic. It is compared, never used.",
         "true_label": record["script_type"], "label_correct": a["classification"]["label"] == record["script_type"],
@@ -298,6 +311,12 @@ def ground_truth_check(a: dict[str, Any], record: dict[str, Any]) -> dict[str, A
         "best_region_iou": round(best_iou, 4) if best_iou is not None else None,
         "true_regions": len(gt_regions),
         "true_interpretation": truth_interp, "interpretation_correct": truth_interp == a["interpretation"]["category"],
+        "true_synthetic_language_status": lang_truth["status"],
+        "true_synthetic_transliteration": lang_truth["transliteration"],
+        "true_synthetic_translation": lang_truth["translation"],
+        "predicted_synthetic_translation": lang_pred["translation"],
+        "synthetic_translation_correct": (lang_pred["status"], lang_pred["translation"])
+                                         == (lang_truth["status"], lang_truth["translation"]),
     }
 
 

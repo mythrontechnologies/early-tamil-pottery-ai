@@ -236,3 +236,10 @@ button[aria-label^="Help for"] { min-width: 24px; min-height: 24px; display: inl
 .etp-reading-field li { font-size: .84rem; line-height: 1.5; color: var(--text-2); overflow-wrap: anywhere; }
 .etp-reading-syn .etp-reading-field { border: 1.5px dashed var(--synthetic); }
 .etp-reading .etp-ai { margin-top: .9rem; }
+/* synthetic-language strip and gloss table (fictional language; app/ui/reading.py) */
+.etp-language { margin-top: .9rem; }
+.etp-gloss { width: 100%; border-collapse: collapse; margin-top: .6rem; font-size: .86rem; table-layout: fixed; }
+.etp-gloss caption { text-align: left; color: var(--muted); font-size: .8rem; padding-bottom: .3rem; }
+.etp-gloss th, .etp-gloss td { text-align: left; padding: .3rem .45rem; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+.etp-gloss th { color: var(--muted); font-weight: 500; }
+.etp-gloss td.mono { font-family: var(--mono); font-size: .8rem; }

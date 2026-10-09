@@ -35,6 +35,7 @@ TIERS: dict[str, str] = {
     "project_annotation": "Project annotation (not expert-reviewed)",
     "ai_draft": "AI draft (not a reading)",
     "synthetic_model": "Synthetic model output (not evidence)",
+    "synthetic_rule_decoder": "Synthetic rule-based decoder (fictional language, not evidence)",
     "none": "No source",
 }
 

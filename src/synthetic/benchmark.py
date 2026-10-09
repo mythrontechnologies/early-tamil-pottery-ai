@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 import time
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -33,6 +34,8 @@ from src.dataset.splits import partition_records
 from . import DATASET_TYPE, MARKER, PURPOSE, SYNTHETIC_MODELS_ROOT, assert_synthetic_model_destination
 from .dataset import SyntheticPaths, find_manifest, load_synthetic_dataset
 from .interpretation import interpret
+from .lexicon import METHOD, SPEC_ID
+from .lexicon import target as language_target
 from .ocr_benchmark import _rgb, classify, enhanced_gray, glyph_crops
 from .pipeline import SyntheticPipeline
 from .reasoning import chronology
@@ -117,6 +120,7 @@ def end_to_end(pipe: SyntheticPipeline, records: list[Any]) -> dict[str, Any]:
     from .vision import rates
 
     pairs, interp_ok, interp_n, chron_ok, label_ok, lat, mem = [], 0, 0, 0, 0, [], []
+    lang_n, lang_ok, pred_status, target_status = 0, Counter[str](), Counter[str](), Counter[str]()
     for r in records:
         rec = dict(r.record)
         a = pipe.run(r.image_path, record=rec)
@@ -129,12 +133,24 @@ def end_to_end(pipe: SyntheticPipeline, records: list[Any]) -> dict[str, Any]:
             pairs.append((truth_words, a["ocr"]["words"]))
             interp_n += 1
             interp_ok += interpret(truth_words, r.script_type).category == a["interpretation"]["category"]
+            target, pred = rec["synthetic_language_target"], a["synthetic_language"]      # target: evaluation only
+            lang_n += 1
+            lang_ok["translation_exact"] += (pred["status"], pred["translation"]) == (target["status"], target["translation"])
+            lang_ok["transliteration_exact"] += pred["transliteration"] == target["transliteration"]
+            lang_ok["status_agreement"] += pred["status"] == target["status"]
+            lang_ok["targets_consistent_with_spec"] += language_target(truth_words) == target
+            pred_status[pred["status"]] += 1
+            target_status[target["status"]] += 1
         truth_chron = chronology(words=truth_words, synthetic_class=r.script_type, class_confidence=1.0, ocr_score=1.0,
                                  surface=rec.get("synthetic_surface"))
         chron_ok += (truth_chron.state, truth_chron.categories) == (a["chronology"]["state"], a["chronology"]["categories"])
     n = max(len(records), 1)
     return {"images": len(records), "classification_accuracy_through_pipeline": round(label_ok / n, 4),
             "ocr": rates(pairs), "interpretation_agreement": round(interp_ok / max(interp_n, 1), 4),
+            "synthetic_language": {"images": lang_n} | {
+                k: round(lang_ok[k] / max(lang_n, 1), 4)
+                for k in ("translation_exact", "transliteration_exact", "status_agreement", "targets_consistent_with_spec")}
+                | {"predicted_status": dict(sorted(pred_status.items())), "target_status": dict(sorted(target_status.items()))},
             "synthetic_chronology_reasoning_test": {"agreement_with_ground_truth_rules": round(chron_ok / n, 4),
                                                     "images": len(records)},
             "latency_seconds": {"mean": round(float(np.mean(lat)), 4), "p95": round(float(np.percentile(lat, 95)), 4),
@@ -194,6 +210,10 @@ def run_synthetic_benchmark(*, partition: str = "test", root: Path | str | None 
         "E_robustness": rob,
         "F_interpretation_and_chronology": {"interpretation_agreement": e2e["interpretation_agreement"],
                                             "synthetic_chronology_reasoning_test": e2e["synthetic_chronology_reasoning_test"]},
+        "H_synthetic_language": e2e["synthetic_language"] | {
+            "spec": SPEC_ID, "method": METHOD,
+            "wording": "translation of the predicted glyph codes under the FICTIONAL synthetic-language specification, "
+                       "compared with held-out synthetic targets; not Tamil-Brahmi translation accuracy"},
         "G_performance": {"latency_seconds": e2e["latency_seconds"], "peak_gpu_memory_mib": e2e["peak_gpu_memory_mib"],
                           "device": e2e["device"], "classification_accuracy_through_pipeline": e2e["classification_accuracy_through_pipeline"]},
         "seconds": round(time.perf_counter() - start, 1),
@@ -243,7 +263,15 @@ def render_benchmark(r: dict[str, Any]) -> str:
         L.append("")
     L += ["F. SYNTHETIC INTERPRETATION AND CHRONOLOGY REASONING TEST",
           f"   interpretation agreement with ground-truth rules {f['interpretation_agreement']:.4f}",
-          f"   synthetic chronology reasoning test: agreement {f['synthetic_chronology_reasoning_test']['agreement_with_ground_truth_rules']:.4f}", "",
+          f"   synthetic chronology reasoning test: agreement {f['synthetic_chronology_reasoning_test']['agreement_with_ground_truth_rules']:.4f}", ""]
+    h = r.get("H_synthetic_language")
+    if h:
+        L += [f"H. SYNTHETIC LANGUAGE — NOT TAMIL-BRAHMI ({h['spec']}; {h['method']})",
+              f"   {h['images']} Tamil-Brahmi-like images: exact translation {h['translation_exact']:.4f}  transliteration "
+              f"{h['transliteration_exact']:.4f}  status {h['status_agreement']:.4f}  (targets consistent with the spec "
+              f"{h['targets_consistent_with_spec']:.4f})",
+              f"   predicted status {h['predicted_status']}  target status {h['target_status']}", ""]
+    L += [
           f"G. PERFORMANCE — complete pipeline on {g['device']}: mean {g['latency_seconds']['mean'] * 1000:.1f} ms, "
           f"p95 {g['latency_seconds']['p95'] * 1000:.1f} ms; peak GPU memory {g['peak_gpu_memory_mib']} MiB", "", PURPOSE]
     if r.get("report_path"):

@@ -94,7 +94,7 @@ def _build(cls: type, data: Any, section: str) -> Any:
 
 @dataclass(frozen=True)
 class SyntheticDatasetConfig:
-    generator_version: str = "1.0.0"
+    generator_version: str = "1.1.0"
     seed: int = 20261003
     artifacts_per_class: int = 250
     object_px: int = 512
@@ -118,7 +118,7 @@ class SyntheticDatasetConfig:
         if data.get("dataset_type", DATASET_TYPE) != DATASET_TYPE:
             raise SyntheticConfigError(f"dataset_type must be {DATASET_TYPE!r}; this loader builds synthetic data only")
         built = {name: _build(klass, data.get(name), name) for name, klass in sections.items()}
-        cfg = cls(generator_version=str(data.get("generator_version", "1.0.0")),
+        cfg = cls(generator_version=str(data.get("generator_version", "1.1.0")),
                   seed=int(data.get("seed", 20261003)),
                   artifacts_per_class=int(data.get("artifacts_per_class", 250)),
                   object_px=int(data.get("object_px", 512)), **built)

@@ -10,6 +10,11 @@ historical inscription, and no record names a site, date, excavation, publicatio
 This folder is never read by the research loader, the readiness gate, the annotation store or
 label promotion; synthetic data placed anywhere else under `data/` is refused.
 
+Generator 1.1.0 (record schema `synthetic-1.1.0`): every Tamil-Brahmi-like glyph row is a sentence of
+an INVENTED synthetic language, and every record carries its `synthetic_language_target` (benchmark
+target, evaluation only). **SYNTHETIC LANGUAGE — NOT TAMIL-BRAHMI.** See
+[`docs/SYNTHETIC_LANGUAGE.md`](../../docs/SYNTHETIC_LANGUAGE.md).
+
 Regenerate (deterministic: identical metadata; byte-identical images with the same Pillow build):
 
 ```bash

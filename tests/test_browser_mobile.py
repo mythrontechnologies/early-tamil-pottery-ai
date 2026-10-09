@@ -310,11 +310,14 @@ def test_view_mode_is_kept_across_in_app_navigation(app_url, tmp_path):
 
 
 def test_language_reading_results_render_everywhere(app_url, tmp_path):
-    """The translation is a field of its own, at every width and text size, in both view modes; synthetic glyph
-    codes get no transliteration and no translation; nothing is invented for a research photograph."""
+    """The translation is a field of its own, at every width and text size, in both view modes. The default synthetic
+    image (SYNTH-A0007-V1) shows the fictional synthetic-language reading of its predicted codes; nothing is
+    invented for a research photograph."""
     from src.annotation.store import AnnotationStore
-    from src.synthetic.reading import TRANSLATION, TRANSLITERATION
+    from src.synthetic.lexicon import STATUS_TEXT
     from src.translation.reading import NO_READING_TO_TRANSLATE
+
+    translation, transliteration = "The chief gives shelter.", "pala taren maku"
 
     r = run_probe("reading.js", app_url, tmp_path)
     labels = ["Inscription / mark", "Transcription", "Transliteration", "Translation", "Reading completeness"]
@@ -326,12 +329,13 @@ def test_language_reading_results_render_everywhere(app_url, tmp_path):
                 assert c and c["visible"] and c["fields"] == labels, (vp, data, mode, c)
                 assert c["offscreen"] == 0 and max(c["overflow"].values()) <= 1, (vp, data, mode, c)
                 if data == "synthetic":
-                    assert c["translation"] == TRANSLATION and c["transliteration"] == TRANSLITERATION
+                    assert c["translation"] == translation and c["transliteration"] == transliteration
                     assert c["transcription"] and c["evidence"] is (mode == "Research")
                 elif unannotated:                            # no human reading exists: stated, never invented
                     assert c["translation"] == NO_READING_TO_TRANSLATE
         stages = r[f"{vp} replay"]
         assert len(stages) == 8 and all(s["on"] for s in stages)
         by = {s["title"]: s["details"] for s in stages}
-        assert by["INTERPRET"] == [f"Translation: {TRANSLATION}"]
-        assert by["OCR"][1] == f"Transliteration: {TRANSLITERATION}" and by["OCR"][0].startswith("Transcription (synthetic): ")
+        assert by["INTERPRET"] == ["Synthetic language: not Tamil-Brahmi", f"Transliteration: {transliteration}",
+                                   f"Translation: {translation}", f"Status: {STATUS_TEXT['translated']}"]
+        assert by["OCR"] == ["Transcription (synthetic): SG01 SG09 SG02"]

@@ -6,8 +6,8 @@ illustratively: the sherd is NOT a scan of the input image and says so), the syn
 synthetic glyph transcription as text, and a ring of eight stage lights. The right half replays the
 recorded pipeline run: each of the eight stages reveals its ACTUAL result and its MEASURED latency.
 The replay uses a short fixed transition per stage; it never pretends a stage took longer than it did.
-The language / reading results appear where they arise: the synthetic glyph transcription and
-"transliteration: not applicable" under 06 OCR, "translation: not available" under 07 INTERPRET.
+The language / reading results appear where they arise: the synthetic glyph transcription under 06 OCR,
+the fictional synthetic-language transliteration, translation and decoder status under 07 INTERPRET.
 
 Accessibility: every control is a real button (Play/Pause, Skip, Replay, 2D view); stage reveals are
 announced through an aria-live region; prefers-reduced-motion shows everything at once without
@@ -157,9 +157,12 @@ li .d b{font-weight:600}
 def replay_html(analysis: dict[str, Any], height: int = 520) -> str:
     c, o, ins = analysis["classification"], analysis["ocr"], analysis["inscription"]
     lang = {f["field"]: f for f in (analysis.get("reading_results") or {}).get("fields", [])}
-    details = ({"ocr": [["Transcription (synthetic)", lang["transcription"]["display"]],
-                        ["Transliteration", lang["transliteration"]["display"]]],
-                "interpret": [["Translation", lang["translation"]["display"]]]} if lang else {})
+    info = (analysis.get("reading_results") or {}).get("language") or {}
+    details = ({"ocr": [["Transcription (synthetic)", lang["transcription"]["display"]]],
+                "interpret": [["Synthetic language", "not Tamil-Brahmi"],
+                              ["Transliteration", lang["transliteration"]["display"]],
+                              ["Translation", lang["translation"]["display"]],
+                              ["Status", info.get("status_text", "")]]} if lang else {})
     data = {"stages": [{k: s[k] for k in ("number", "title", "seconds", "summary")} | {"details": details.get(s.get("key"), [])}
                        for s in analysis["stages"]],
             "label": c["display_label"], "confidence": c["confidence"], "regions": len(ins["regions"]),

@@ -2,11 +2,11 @@
   "dataset_type": "synthetic",
   "synthetic_marker": "SYNTHETIC — NOT ARCHAEOLOGICAL EVIDENCE",
   "purpose": "The synthetic dataset exists solely for engineering and model-pipeline validation. It must not be interpreted as archaeological evidence or used to make claims about real Tamil Nadu pottery.",
-  "generator_version": "1.0.0",
+  "generator_version": "1.1.0",
   "generation_seed": 20261003,
-  "config_digest": "bc4431587d8751f217ba8b7f30394e5e76a5dd30904ed0b7a23949c881943d24",
+  "config_digest": "f1196a6e59eed3f61564644120268ccb93250a924075488e2421dcbd887949cb",
   "config": {
-    "generator_version": "1.0.0",
+    "generator_version": "1.1.0",
     "seed": 20261003,
     "artifacts_per_class": 250,
     "object_px": 512,
@@ -92,10 +92,10 @@
     "synthetic_tamil_brahmi_like": 544,
     "synthetic_uncertain": 547
   },
-  "records_fingerprint": "52004dd5aca49a5dd17b0846af76f17ab697ec35d9a23c049fa1a9f20fe8c078",
-  "image_set_fingerprint": "828c6e57ec8413c9e86921cd1adb06fccfc22c473ceb3aba2577f37efd07bb84",
-  "metadata_fingerprint": "64a4eb67f5aa1c67b3d4e703859c7d553bba01d492b9a9a24e6497372f068259",
-  "split_digest": "6c1e3cab8bf3962fc08f2c054cfeccbecf5059d495cfb48b073873ac9fa2f74e",
-  "split_manifest": "split_holdout_52004dd5aca4_seed20261003.json",
-  "synthetic_fingerprint": "d61e25c6dfe07878fd3a8d9bf47b434417691fefcf7ddb15f3e913855bc14240"
+  "records_fingerprint": "4e6eb6684b505d5eb3cd8b65a2d6090a78d20e8eab7745669d52366e90ea715d",
+  "image_set_fingerprint": "dd5d27ad66097d31bc6d77d80c44dbfe362f325c6959e6ea8511bc77c8fc4d15",
+  "metadata_fingerprint": "5fde0e2bcaef04969a3b01840d385f8744ade66e5dea3255ec59bf8e92a946ca",
+  "split_digest": "a96ed8d187700227ca051693ec154fe14847830a83e2aecc0b2bb0a6408b6c10",
+  "split_manifest": "split_holdout_4e6eb6684b50_seed20261003.json",
+  "synthetic_fingerprint": "c57c6fb985433fae39da8032b318f338f9db8517d7a160f5684023bc25f685f1"
 }

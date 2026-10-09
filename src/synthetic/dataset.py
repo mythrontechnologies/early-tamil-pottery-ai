@@ -69,8 +69,9 @@ from .generator import (
     class_assignment,
     generate_view,
 )
+from .lexicon import target as language_target
 
-SCHEMA_VERSION = "synthetic-1.0.0"
+SCHEMA_VERSION = "synthetic-1.1.0"     # 1.1.0: synthetic_language_target (src.synthetic.lexicon)
 FINGERPRINT_VERSION = "synthetic-fingerprint-v1"
 
 
@@ -113,7 +114,7 @@ def split_settings(cfg: SyntheticDatasetConfig, paths: SyntheticPaths | None = N
     return SplitSettings(seed=s.seed, ratios=(s.train, s.val, s.test),
                          min_artifacts_per_class_for_holdout=s.min_artifacts_per_class_for_holdout,
                          k_folds=s.k_folds, stratify_by="script_type", balance_secondary=tuple(s.balance_secondary),
-                         manifest_dir=(paths or SyntheticPaths.at()).splits)
+                         manifest_dir=(paths or SyntheticPaths.at()).splits, distinct_by_construction=True)
 
 
 # --------------------------------------------------------------------------- #
@@ -154,6 +155,7 @@ def make_record(cfg: SyntheticDatasetConfig, state: ArtifactState, gv: Generated
         "synthetic_surface": state.params["surface"]["surface"],
         "synthetic_uncertain_mode": state.marks["uncertain_mode"],
         "synthetic_glyph_sequence": state.marks["glyph_sequence"],
+        "synthetic_language_target": language_target(state.marks["glyph_sequence"]),
         "synthetic_regions": gv.regions,
         "generation_params_sha256": gv.params_digest,
     }
@@ -371,6 +373,10 @@ def validate_synthetic_records(records: list[dict[str, Any]], root: Path | None 
             if sha in seen_hash:
                 out.append(SyntheticFinding("S4", f"identical image to {seen_hash[sha]}", iid))
             seen_hash.setdefault(sha, str(iid))
+        seq = r.get("synthetic_glyph_sequence")
+        if isinstance(seq, list) and r.get("synthetic_language_target") != language_target(seq):
+            out.append(SyntheticFinding("S7", "synthetic_language_target disagrees with the synthetic-language "
+                                              "specification applied to synthetic_glyph_sequence", iid))
         if r.get("script_type") in INSCRIPTION_PRESENT and r.get("inscription_present") != INSCRIPTION_PRESENT[r["script_type"]]:
             out.append(SyntheticFinding("S6", f"inscription_present={r.get('inscription_present')!r} disagrees with "
                                               f"{r['script_type']}", iid))

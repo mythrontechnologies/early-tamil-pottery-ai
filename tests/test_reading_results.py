@@ -20,7 +20,8 @@ from src.reasoning.engine import analyze_artifact
 from src.reasoning.types import Attributed, InscriptionInput, ReasoningInputs
 from src.synthetic.interpretation import GLYPH_GROUPS
 from src.synthetic.interpretation import interpret as synthetic_interpret
-from src.synthetic.reading import NOT_RUN, TRANSLATION, TRANSLITERATION, synthetic_reading_results
+from src.synthetic.lexicon import BANNER, METHOD, decode
+from src.synthetic.reading import NOT_RUN, synthetic_reading_results
 from src.translation.reading import (
     FIELDS,
     HUMAN_ONLY,
@@ -197,8 +198,10 @@ class TestNeverFromAI:
 
 
 # --------------------------------------------------------------------------- #
-# Synthetic: transcription only; never a transliteration or a translation
+# Synthetic: transcription from the OCR; transliteration and translation from the fictional-language decoder
 # --------------------------------------------------------------------------- #
+
+REFERENCE = "The chief gives shelter."
 
 
 def _fake_synthetic(words, cls="synthetic_tamil_brahmi_like"):
@@ -209,39 +212,39 @@ def _fake_synthetic(words, cls="synthetic_tamil_brahmi_like"):
             "ocr": ({"status": "read", "transcription": text, "glyph_count": sum(map(len, words)),
                      "mean_glyph_score": 0.93, "segmentation": "learned_centers"} if read else
                     {"status": "no_reading", "reason": "no glyph row detected or segmented", "transcription": ""}),
-            "interpretation": synthetic_interpret(words, cls).to_dict()}
+            "interpretation": synthetic_interpret(words, cls).to_dict(),
+            "synthetic_language": decode(words).to_dict()}
 
 
 class TestSyntheticReadings:
-    def test_glyph_ids_get_no_transliteration_and_no_translation(self):
-        f = _f(synthetic_reading_results(_fake_synthetic([["SG01", "SG09", "SG02"]])))
+    def test_reference_sequence_is_read_transliterated_and_translated(self):
+        block = synthetic_reading_results(_fake_synthetic([["SG01", "SG09", "SG02"]]))
+        f = _f(block)
         assert f["transcription"]["value"] == "SG01 SG09 SG02" and f["transcription"]["tier"] == "synthetic_model"
-        assert f["transliteration"]["display"] == TRANSLITERATION and f["transliteration"]["state"] == "not_applicable"
-        assert f["translation"]["display"] == "Not available — synthetic glyph identifiers have no established linguistic meaning."
-        assert f["translation"]["display"] == TRANSLATION and f["translation"]["value"] is None
-        assert "synthetic_personal_name_like" in f["translation"]["explanation"]
-        assert "not a meaning or a translation" in f["translation"]["explanation"]
-        assert all(x["synthetic"] for x in f.values())
+        assert (f["transliteration"]["value"], f["transliteration"]["tier"]) == ("pala taren maku", "synthetic_rule_decoder")
+        assert (f["translation"]["value"], f["translation"]["state"]) == (REFERENCE, "established")
+        assert f["completeness"]["value"] == "complete"
+        assert block["language"]["banner"] == BANNER and block["language"]["method"] == METHOD
+        assert block["language"]["status_text"] == "Translated under the fictional synthetic-language specification"
+        assert BANNER in block["statement"] and all(x["synthetic"] for x in f.values())
 
-    def test_no_sequence_ever_produces_a_translation_word_or_name(self):
+    def test_a_translation_only_ever_comes_from_the_decoder(self):
         codes = sorted(GLYPH_GROUPS)
-        cases = [[]] + [[list(c)] for c in itertools.combinations(codes, 2)] + [[[a], [b, c]] for a, b, c in
+        cases = [[]] + [[list(c)] for c in itertools.combinations(codes, 3)] + [[[a], [b, c]] for a, b, c in
                                                                              itertools.islice(itertools.permutations(codes, 3), 300)]
         for words in cases:
             for cls in ("synthetic_tamil_brahmi_like", "synthetic_graffiti_like", "synthetic_none", "synthetic_uncertain"):
-                block = synthetic_reading_results(_fake_synthetic(words, cls))
-                f = _f(block)
-                assert f["translation"]["value"] is None and f["translation"]["display"] == TRANSLATION
-                assert f["transliteration"]["value"] is None and f["transliteration"]["state"] == "not_applicable"
-                values = [x["value"] for x in f.values() if x["value"] is not None]
-                text = json.dumps(block, ensure_ascii=False)
-                assert not TAMIL.search(text)
-                for v in values:                     # every value is a glyph-code string or a fixed status token
-                    assert re.fullmatch(r"(SG\d\d( / | )?)+|synthetic_[a-z_]+|unknown|not_applicable", str(v)), v
+                a = _fake_synthetic(words, cls)
+                block = synthetic_reading_results(a)
+                f, lang = _f(block), a["synthetic_language"]
+                assert f["translation"]["value"] == lang["translation"]          # never more than the decoder said
+                if lang["status"] not in ("translated", "partial"):
+                    assert f["translation"]["value"] is None and f["translation"]["state"] != "established"
+                assert not TAMIL.search(json.dumps(block, ensure_ascii=False))
 
     def test_without_the_pipeline(self):
         f = _f(synthetic_reading_results(None))
-        assert f["transcription"]["display"] == NOT_RUN and f["translation"]["display"] == TRANSLATION
+        assert f["transcription"]["display"] == NOT_RUN and f["translation"]["value"] is None
 
     def test_pipeline_and_analyze_carry_the_block(self, tiny_synthetic, tiny_synthetic_pipeline):
         from test_synthetic_pipeline import _brahmi
@@ -250,11 +253,13 @@ class TestSyntheticReadings:
         pipe = tiny_synthetic_pipeline["pipeline"]
         a = pipe.run(tiny_synthetic["root"] / rec["image_path"], record=rec)
         f = _f(a["reading_results"])
-        assert f["translation"]["display"] == TRANSLATION and a["reading_results"]["synthetic"] is True
+        assert a["reading_results"]["synthetic"] is True
+        assert f["translation"]["value"] == a["synthetic_language"]["translation"]
+        assert a["synthetic_language"] == decode(a["ocr"]["words"]).to_dict()
         if a["ocr"]["status"] == "read":
             assert f["transcription"]["value"] == a["ocr"]["transcription"]
         interp = next(s for s in a["stages"] if s["key"] == "interpret")
-        assert "translation not available" in interp["summary"] and "no meaning" in interp["summary"]
+        assert "synthetic language (synthetic-language-1.0.0)" in interp["summary"]
         d = analyze(tiny_synthetic["root"] / rec["image_path"], records=[], synthetic_records=tiny_synthetic_pipeline["index"],
                     synthetic_pipeline=pipe).to_dict()
         assert d["reading_results"] == d["synthetic_analysis"]["reading_results"]
@@ -264,7 +269,7 @@ class TestSyntheticReadings:
         from src.synthetic.demo import render_demo
 
         text = render_demo(a)
-        assert "Language / reading results (SYNTHETIC DEMONSTRATION" in text and TRANSLATION in text
+        assert "Language / reading results (SYNTHETIC DEMONSTRATION" in text and BANNER in text
 
 
 # --------------------------------------------------------------------------- #
@@ -299,16 +304,19 @@ class TestReadingUi:
         a = _fake_synthetic([["SG01", "SG09", "SG02"]])
         block = synthetic_reading_results(a)
         page = html_of(block, research=False)
-        assert TRANSLATION in page and "b-synthetic" in page and 'lang="zxx"' in page and "etp-reading-syn" in page
+        assert REFERENCE in page and "pala taren maku" in page and BANNER in page and "Word-by-word gloss" in page
+        assert "b-synthetic" in page and 'lang="zxx"' in page and "etp-reading-syn" in page and METHOD in page
         a |= {"reading_results": block, "performance": {"total_seconds": 0.01},
               "stages": [{"key": k, "number": i + 1, "title": k.title(), "seconds": 0.001, "summary": "s"}
                          for i, k in enumerate(("load", "preprocess", "classify", "detect", "segment", "ocr", "interpret", "reason"))]}
         replay = replay_html(a)
         data = json.loads(replay.split("const DATA=", 1)[1].split(";\n", 1)[0])
         details = {s["title"]: s["details"] for s in data["stages"]}
-        assert details["Ocr"] == [["Transcription (synthetic)", "SG01 SG09 SG02"], ["Transliteration", TRANSLITERATION]]
-        assert details["Interpret"] == [["Translation", TRANSLATION]] and details["Load"] == []
-        assert "s.details" in replay and "textContent" in replay
+        assert details["Ocr"] == [["Transcription (synthetic)", "SG01 SG09 SG02"]]
+        assert details["Interpret"] == [["Synthetic language", "not Tamil-Brahmi"], ["Transliteration", "pala taren maku"],
+                                        ["Translation", REFERENCE],
+                                        ["Status", "Translated under the fictional synthetic-language specification"]]
+        assert details["Load"] == [] and "s.details" in replay and "textContent" in replay
 
     @pytest.mark.parametrize("ui_mode", ["Research", "Presentation"])
     def test_analysis_page_research_photograph(self, ui_mode, live_research, tmp_path, monkeypatch):
@@ -346,6 +354,7 @@ def test_synthetic_demonstration_page_shows_the_reading_results(ui_mode, tmp_pat
     assert not at.exception, [e.value for e in at.exception]
     html = "\n".join(x.proto.body for x in at.get("html"))
     assert "etp-reading-syn" in html and "Language and reading results, synthetic demonstration" in html
-    assert html.count(TRANSLATION) >= 2                              # the panel and the section
+    assert html.count(REFERENCE) >= 2 and "pala taren maku" in html  # the default image: the panel and the section
+    assert BANNER in html and "Word-by-word gloss" in html
     assert "Synthetic interpretation category · not a meaning" in html and not TAMIL.search(html.split("etp-reading", 1)[1])
     assert ('<div class="who">Evidence:' in html) is (ui_mode == "Research")

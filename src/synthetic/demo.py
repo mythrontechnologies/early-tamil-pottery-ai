@@ -75,6 +75,7 @@ def write_run_record(analysis: dict[str, Any]) -> Path:
            "models": {"classifier": prov["classifier"], "vision_bundle": prov["vision_bundle"]},
            "input": analysis["input"], "summary": analysis["summary"], "performance": analysis["performance"],
            "ground_truth_check": analysis.get("ground_truth_check"), "reading_results": analysis.get("reading_results"),
+           "synthetic_language": analysis.get("synthetic_language"),
            "warning": analysis["warning"]}
     out = RUNS_DIR / f"{run['run_id']}.json"
     assert_synthetic_model_destination(out)
@@ -95,6 +96,10 @@ def render_demo(a: dict[str, Any]) -> str:
          f"Synthetic glyph transcription: {o['transcription'] or '(none)'}",
          f"Synthetic interpretation:      {it['category']} (invented rule table: a placeholder, not a meaning)",
          f"Synthetic chronology:          {ch['display']} (synthetic confidence {ch['confidence']})", ""]
+    if a.get("synthetic_language"):
+        from .__main__ import render_language
+
+        L += [render_language(a["synthetic_language"]), ""]
     rr = a.get("reading_results")
     if rr:
         L += ["Language / reading results (SYNTHETIC DEMONSTRATION — not archaeological evidence):"]
@@ -110,6 +115,10 @@ def render_demo(a: dict[str, Any]) -> str:
               f"  predicted           {gt['predicted_transcription'] or '(none)'}"
               + (f"   CER {gt['cer']}  WER {gt['wer']}" if gt["cer"] is not None else ""),
               f"  best region IoU {gt['best_region_iou']}   interpretation {'correct' if gt['interpretation_correct'] else 'different'}"]
+        if "true_synthetic_translation" in gt:
+            L += [f"  synthetic translation: true {gt['true_synthetic_translation']!r} ({gt['true_synthetic_language_status']})"
+                  f" -> predicted {gt['predicted_synthetic_translation']!r} "
+                  f"{'correct' if gt['synthetic_translation_correct'] else 'WRONG'}"]
     L += ["", "Stages:"] + [f"  {s['number']:02d} {s['title'].upper():<11} {s['seconds'] * 1000:8.1f} ms  {s['summary']}"
                             for s in a["stages"]]
     L += [f"  total {perf['total_seconds'] * 1000:.1f} ms on {perf['device']}; peak GPU memory "
