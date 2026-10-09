@@ -53,13 +53,148 @@ def _free_port() -> int:
         return s.getsockname()[1]
 
 
+def _port_closed(port: int, wait: float = 30) -> bool:
+    deadline = time.monotonic() + wait
+    while True:
+        with socket.socket() as s:
+            if s.connect_ex(("127.0.0.1", port)) != 0:
+                return True
+        if time.monotonic() > deadline:
+            return False
+        time.sleep(0.5)
+
+
+if sys.platform == "win32":
+    import ctypes
+    from ctypes import wintypes
+
+    class _IoCounters(ctypes.Structure):
+        _fields_ = [(f, ctypes.c_ulonglong) for f in ("ReadOperationCount", "WriteOperationCount",
+                    "OtherOperationCount", "ReadTransferCount", "WriteTransferCount", "OtherTransferCount")]
+
+    class _BasicLimits(ctypes.Structure):                      # JOBOBJECT_BASIC_LIMIT_INFORMATION
+        _fields_ = [("PerProcessUserTimeLimit", ctypes.c_int64), ("PerJobUserTimeLimit", ctypes.c_int64),
+                    ("LimitFlags", wintypes.DWORD), ("MinimumWorkingSetSize", ctypes.c_size_t),
+                    ("MaximumWorkingSetSize", ctypes.c_size_t), ("ActiveProcessLimit", wintypes.DWORD),
+                    ("Affinity", ctypes.c_size_t), ("PriorityClass", wintypes.DWORD),
+                    ("SchedulingClass", wintypes.DWORD)]
+
+    class _ExtendedLimits(ctypes.Structure):                   # JOBOBJECT_EXTENDED_LIMIT_INFORMATION
+        _fields_ = [("BasicLimitInformation", _BasicLimits), ("IoInfo", _IoCounters),
+                    ("ProcessMemoryLimit", ctypes.c_size_t), ("JobMemoryLimit", ctypes.c_size_t),
+                    ("PeakProcessMemoryUsed", ctypes.c_size_t), ("PeakJobMemoryUsed", ctypes.c_size_t)]
+
+    class _ThreadEntry(ctypes.Structure):                      # THREADENTRY32
+        _fields_ = [("dwSize", wintypes.DWORD), ("cntUsage", wintypes.DWORD), ("th32ThreadID", wintypes.DWORD),
+                    ("th32OwnerProcessID", wintypes.DWORD), ("tpBasePri", wintypes.LONG),
+                    ("tpDeltaPri", wintypes.LONG), ("dwFlags", wintypes.DWORD)]
+
+    _K32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    for _name, _args, _res in (
+            ("CreateJobObjectW", [wintypes.LPVOID, wintypes.LPCWSTR], wintypes.HANDLE),
+            ("SetInformationJobObject", [wintypes.HANDLE, ctypes.c_int, wintypes.LPVOID, wintypes.DWORD], wintypes.BOOL),
+            ("AssignProcessToJobObject", [wintypes.HANDLE, wintypes.HANDLE], wintypes.BOOL),
+            ("TerminateJobObject", [wintypes.HANDLE, wintypes.UINT], wintypes.BOOL),
+            ("OpenProcess", [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD], wintypes.HANDLE),
+            ("CreateToolhelp32Snapshot", [wintypes.DWORD, wintypes.DWORD], wintypes.HANDLE),
+            ("Thread32First", [wintypes.HANDLE, ctypes.POINTER(_ThreadEntry)], wintypes.BOOL),
+            ("Thread32Next", [wintypes.HANDLE, ctypes.POINTER(_ThreadEntry)], wintypes.BOOL),
+            ("OpenThread", [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD], wintypes.HANDLE),
+            ("ResumeThread", [wintypes.HANDLE], wintypes.DWORD),
+            ("CloseHandle", [wintypes.HANDLE], wintypes.BOOL)):
+        getattr(_K32, _name).argtypes, getattr(_K32, _name).restype = _args, _res
+
+    def _ok(result: int, call: str) -> int:
+        if not result or result == ctypes.c_void_p(-1).value:
+            raise ctypes.WinError(ctypes.get_last_error(), f"{call} failed")
+        return result
+
+    def _job_owning(pid: int) -> int:
+        """A job that ends ``pid`` and everything it starts when terminated, or when its last handle closes."""
+        job = _ok(_K32.CreateJobObjectW(None, None), "CreateJobObjectW")
+        limits = _ExtendedLimits()
+        limits.BasicLimitInformation.LimitFlags = 0x2000          # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        _ok(_K32.SetInformationJobObject(job, 9, ctypes.byref(limits), ctypes.sizeof(limits)),  # ExtendedLimit
+            "SetInformationJobObject")
+        process = _ok(_K32.OpenProcess(0x0101, False, pid), "OpenProcess")   # PROCESS_SET_QUOTA | _TERMINATE
+        try:
+            _ok(_K32.AssignProcessToJobObject(job, process), "AssignProcessToJobObject")
+        finally:
+            _K32.CloseHandle(process)
+        return job
+
+    def _resume(pid: int) -> None:
+        """Resume the (single, suspended) main thread of a process created with CREATE_SUSPENDED."""
+        snapshot = _ok(_K32.CreateToolhelp32Snapshot(0x4, 0), "CreateToolhelp32Snapshot")   # TH32CS_SNAPTHREAD
+        try:
+            entry = _ThreadEntry(dwSize=ctypes.sizeof(_ThreadEntry))
+            more = _K32.Thread32First(snapshot, ctypes.byref(entry))
+            while more:
+                if entry.th32OwnerProcessID == pid:
+                    thread = _ok(_K32.OpenThread(0x0002, False, entry.th32ThreadID), "OpenThread")  # SUSPEND_RESUME
+                    try:
+                        if _K32.ResumeThread(thread) == 0xFFFFFFFF:
+                            raise ctypes.WinError(ctypes.get_last_error(), "ResumeThread failed")
+                    finally:
+                        _K32.CloseHandle(thread)
+                    return
+                more = _K32.Thread32Next(snapshot, ctypes.byref(entry))
+            raise RuntimeError(f"no thread found for process {pid}")
+        finally:
+            _K32.CloseHandle(snapshot)
+
+
+class _ServerTree:
+    """A server process and every process it starts, stopped together, even if pytest itself is killed.
+
+    On Windows the venv's python.exe is a launcher that runs the real interpreter as a child, and a hard-killed
+    pytest runs no teardown: the server outlived the run and kept its port. So the launcher starts suspended, joins
+    a job object with JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE (all its descendants join too: the job allows no
+    breakaway) and only then runs. stop() terminates the job; if pytest dies first, Windows closes the job handle,
+    which ends the job's processes. Elsewhere the server leads its own process group, which stop() signals.
+    """
+
+    def __init__(self, cmd: list[str], cwd: Path) -> None:
+        self.job: int | None = None
+        if sys.platform == "win32":
+            self.proc = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                         creationflags=0x4)                 # CREATE_SUSPENDED
+            try:
+                self.job = _job_owning(self.proc.pid)
+                _resume(self.proc.pid)
+            except BaseException:
+                self.stop()
+                raise
+        else:
+            self.proc = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                         start_new_session=True)
+
+    def stop(self) -> None:
+        if sys.platform == "win32":
+            if self.job is not None:
+                _K32.TerminateJobObject(self.job, 1)
+                _K32.CloseHandle(self.job)
+                self.job = None
+            else:
+                self.proc.kill()
+            self.proc.wait(timeout=30)
+            return
+        import signal
+        try:
+            os.killpg(self.proc.pid, signal.SIGTERM)
+            self.proc.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            os.killpg(self.proc.pid, signal.SIGKILL)
+            self.proc.wait(timeout=30)
+        except ProcessLookupError:
+            pass
+
+
 @pytest.fixture(scope="module")
 def app_url():
     port = _free_port()
-    proc = subprocess.Popen(
-        [sys.executable, "-m", "streamlit", "run", "app/main.py", "--server.port", str(port),
-         "--server.headless", "true", "--browser.gatherUsageStats", "false"],
-        cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    server = _ServerTree([sys.executable, "-m", "streamlit", "run", "app/main.py", "--server.port", str(port),
+                          "--server.headless", "true", "--browser.gatherUsageStats", "false"], cwd=ROOT)
     url = f"http://localhost:{port}"
     try:
         deadline = time.monotonic() + 180
@@ -70,16 +205,13 @@ def app_url():
                         break
             except OSError:
                 pass
-            if proc.poll() is not None or time.monotonic() > deadline:
+            if server.proc.poll() is not None or time.monotonic() > deadline:
                 pytest.fail("the Streamlit app did not start")
             time.sleep(1)
         yield url
     finally:
-        proc.terminate()
-        try:
-            proc.wait(timeout=30)
-        except subprocess.TimeoutExpired:
-            proc.kill()
+        server.stop()
+        assert _port_closed(port), f"the Streamlit server still listens on port {port} after the tests"
 
 
 def run_probe(name: str, url: str, tmp_path: Path) -> dict:
