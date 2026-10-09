@@ -2,8 +2,8 @@
 
 > **SYNTHETIC — NOT ARCHAEOLOGICAL EVIDENCE.** Everything on this page runs on the procedurally
 > generated engineering dataset of Milestone 9 ([`SYNTHETIC_DATASET.md`](SYNTHETIC_DATASET.md)).
-> The glyphs are invented shapes, the interpretation categories and the chronology categories are
-> invented rules, and every number measures software on generated images. Nothing here is a reading,
+> The glyphs are invented shapes, the synthetic language and its grammatical interpretation and the chronology
+> categories are invented rules, and every number measures software on generated images. Nothing here is a reading,
 > a translation or a date of any real object. Real archaeological training remains **blocked**.
 
 The demonstration exists to show that the whole AI system works end to end — image to classification,
@@ -26,7 +26,7 @@ synthetic image ──> 01 LOAD ──> 02 PREPROCESS ──> 03 CLASSIFY ──
 | 04 DETECT | `vision.py` (RegionNet) | 2-channel stride-4 heat map: channel 0 glyph rows (threshold 0.5), channel 1 `synthetic_inscription_region` (threshold 0.7, erosion 1) → boxes with confidence |
 | 05 SEGMENT | `vision.py` (GlyphCenterNet) | each row is cropped as *row ∪ the region box containing it* (`ocr_crop`), deskewed to 96×384, and glyph centres are found by a CenterNet-lite (stride 2) |
 | 06 OCR | `ocr_benchmark.py` (GlyphNet) | each glyph box → one of 16 invented glyph classes `SG00`–`SG15` → a **Synthetic glyph transcription** |
-| 07 INTERPRET | `interpretation.py` | invented grammar `synthetic-grammar-1` (rules R0–R4) → `synthetic_personal_name_like`, `synthetic_name_and_title_like`, `synthetic_ownership_formula_like`, `synthetic_numeral_like`, `synthetic_symbolic_mark_like`, `synthetic_no_reading` |
+| 07 INTERPRET | `lexicon.py` | the invented synthetic language ([`SYNTHETIC_LANGUAGE.md`](SYNTHETIC_LANGUAGE.md)) → fictional transliteration and English translation (`synthetic_language`) and a grammatical interpretation, agent / action / object per clause (`interpretation`). The earlier placeholder categories of `interpretation.py` (`synthetic-grammar-1`) were retired on 2026-10-09 |
 | 08 REASON | `reasoning.py` | synthetic chronology from three independent sources (glyph form, mark type, recorded surface) combined by intersection; a conflict is reported, never averaged; no source → insufficient. Output is a category `SYNTH_CAT_01`–`04`, never a BCE/CE date. Also the reasoning lines and the 8-node synthetic evidence chain |
 
 Every stage is timed (`torch.cuda.synchronize` on GPU); the result carries per-stage seconds, peak GPU
@@ -59,7 +59,7 @@ and `model_fingerprint` are re-checked against the manifest; they are written on
 
 ## Results — SYNTHETIC ENGINEERING BENCHMARK (test split)
 
-> **Update 2026-10-09 — generator 1.1.0 (synthetic language).** The dataset was regenerated so that every Tamil-Brahmi-like row is a sentence of the invented synthetic language ([`SYNTHETIC_LANGUAGE.md`](SYNTHETIC_LANGUAGE.md); SYNTHETIC LANGUAGE — NOT TAMIL-BRAHMI); other classes are byte-identical and the split assignment is unchanged. The models were retrained. Current: records `4e6eb6684b50…`, synthetic `c57c6fb985433fae…`, split `a96ed8d18770…`; classifier `synthetic_20261009T065459Z_4e6eb668_s20261003_resnet18` (test artifact accuracy 0.872, balanced 0.872, macro F1 0.861; T = 2.886, ECE 0.114 → 0.021); vision bundle `vision_20261009T071624Z_4e6eb668_s20261003` (regions F1 0.627, rows F1 0.732, segmentation F1 0.967, end-to-end CER 0.091, WER 0.277); synthetic-language exact translation 0.826 on 86 held-out images (`benchmark_20261009T071739Z_test`). The tables below record the 2026-10-03 run (generator 1.0.0) and are kept as history.
+> **Update 2026-10-09 — generator 1.1.0 (synthetic language).** The dataset was regenerated so that every Tamil-Brahmi-like row is a sentence of the invented synthetic language ([`SYNTHETIC_LANGUAGE.md`](SYNTHETIC_LANGUAGE.md); SYNTHETIC LANGUAGE — NOT TAMIL-BRAHMI); other classes are byte-identical and the split assignment is unchanged. Later the same day the split was corrected so that no near-duplicate component crosses a partition ([`SYNTHETIC_DATASET.md`](SYNTHETIC_DATASET.md) §7) and the models were retrained on it. Current: records `4e6eb6684b50…`, synthetic `e999614b37e1eeea…`, split `1201fe36c1f0…`; classifier `synthetic_20261009T105815Z_4e6eb668_s20261003_resnet18` (test artifact accuracy 0.892, balanced 0.892, macro F1 0.891; T = 1.614, ECE 0.071 → 0.050); vision bundle `vision_20261009T111151Z_4e6eb668_s20261003` (regions F1 0.621, rows F1 0.794, segmentation F1 0.962, end-to-end CER 0.079, WER 0.206); synthetic-language exact translation 0.821 and grammatical-role agreement 0.821 on 84 held-out images (`benchmark_20261009T111257Z_test`). The tables below record the 2026-10-03 run (generator 1.0.0) and are kept as history.
 
 `python -m src.evaluation synthetic` (report in `models/synthetic/reports/benchmark/`).
 

@@ -6,8 +6,10 @@
           -> 04 detect (RegionNet: synthetic inscription regions + glyph rows)
           -> 05 segment (selected strategy) -> 06 OCR (GlyphNet)
           -> 07 interpret: the deterministic synthetic-language decoder (src.synthetic.lexicon) turns the PREDICTED
-             glyph codes into a fictional transliteration and English translation (``synthetic_language``;
-             SYNTHETIC LANGUAGE — NOT TAMIL-BRAHMI), and the placeholder interpretation category (synthetic grammar)
+             glyph codes into a fictional transliteration and English translation (``synthetic_language``) and a
+             structured grammatical interpretation - agent, action, object per clause (``interpretation``); two
+             separate fields. SYNTHETIC LANGUAGE — NOT TAMIL-BRAHMI. (The placeholder categories of
+             src.synthetic.interpretation were retired on 2026-10-09.)
           -> 08 reason (synthetic chronology, reasoning, evidence chain)
           -> reading_results (src.synthetic.reading): transcription, transliteration, translation, completeness
 
@@ -38,8 +40,8 @@ from src.evaluation.ocr import edit_distance
 from . import DATASET_TYPE, LABEL_WARNING, MARKER, PURPOSE, UI_BANNER
 from .calibration import confidence_words
 from .inference import SyntheticCheckpointClassifier, latest_synthetic_checkpoint
-from .interpretation import interpret
 from .lexicon import decode as decode_language
+from .lexicon import grammatical_interpretation
 from .lexicon import target as language_target
 from .ocr_benchmark import WORD_SEPARATOR, _iou, enhanced_gray
 from .reading import synthetic_reading_results
@@ -216,12 +218,12 @@ class SyntheticPipeline:
             return f"{TRANSCRIPTION_LABEL}: {text}", data
 
         def interpret_stage() -> tuple[str, dict[str, Any]]:
-            it = interpret(state["ocr"]["words"], state["classify"]["label"]).to_dict()
             lang = decode_language(state["ocr"]["words"]).to_dict()          # predicted codes only
             state["language"] = lang
+            it = grammatical_interpretation(lang)
             said = f"'{lang['translation']}'" if lang["translation"] else "no translation"
-            return (f"synthetic language ({lang['spec']}): {said} [{lang['status']}] · placeholder category "
-                    f"{it['category']}"), it
+            return (f"synthetic language ({lang['spec']}): {it['summary']}; translation {said} "
+                    f"[{lang['status']}]"), it
 
         def reason() -> tuple[str, dict[str, Any]]:
             o = state["ocr"]
@@ -266,7 +268,7 @@ class SyntheticPipeline:
         analysis["summary"] = (f"SYNTHETIC: {c['label']} ({c['confidence']:.2f}) · "
                                + (f"{TRANSCRIPTION_LABEL.lower()} '{state['ocr']['transcription']}' · "
                                   if state["ocr"]["status"] == "read" else "no synthetic glyph transcription · ")
-                               + f"{state['interpret']['category']} · {state['reason']['display']}")
+                               + f"{state['interpret']['summary']} · {state['reason']['display']}")
         analysis["confidence"] = {"synthetic_model_confidence": c["confidence"], "words": c["confidence_words"],
                                   "calibration_status": c["calibration_status"],
                                   "synthetic_chronology_confidence": state["reason"]["confidence"],
@@ -296,7 +298,7 @@ def ground_truth_check(a: dict[str, Any], record: dict[str, Any]) -> dict[str, A
     gt_regions = [r for r in record["synthetic_regions"] if r["kind"] in ("glyph_row", "mark")]
     best_iou = max((_iou((p["x"], p["y"], p["width"], p["height"]), (g["x"], g["y"], g["width"], g["height"]))
                     for p in a["inscription"]["regions"] for g in gt_regions), default=None)
-    truth_interp = interpret(truth_words, record["script_type"]).category
+    truth_interp = grammatical_interpretation(decode_language(truth_words))
     lang_truth = record.get("synthetic_language_target") or language_target(truth_words)
     lang_pred = a["synthetic_language"]
     return {
@@ -310,7 +312,9 @@ def ground_truth_check(a: dict[str, Any], record: dict[str, Any]) -> dict[str, A
         "exact_transcription": (pred_words == truth_words) if ref else None,
         "best_region_iou": round(best_iou, 4) if best_iou is not None else None,
         "true_regions": len(gt_regions),
-        "true_interpretation": truth_interp, "interpretation_correct": truth_interp == a["interpretation"]["category"],
+        "true_interpretation": truth_interp["summary"],
+        "interpretation_correct": (truth_interp["status"], truth_interp["clauses"])
+                                  == (a["interpretation"]["status"], a["interpretation"]["clauses"]),
         "true_synthetic_language_status": lang_truth["status"],
         "true_synthetic_transliteration": lang_truth["transliteration"],
         "true_synthetic_translation": lang_truth["translation"],

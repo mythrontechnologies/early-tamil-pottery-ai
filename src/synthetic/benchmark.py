@@ -33,8 +33,7 @@ from src.dataset.splits import partition_records
 
 from . import DATASET_TYPE, MARKER, PURPOSE, SYNTHETIC_MODELS_ROOT, assert_synthetic_model_destination
 from .dataset import SyntheticPaths, find_manifest, load_synthetic_dataset
-from .interpretation import interpret
-from .lexicon import METHOD, SPEC_ID
+from .lexicon import METHOD, SPEC_ID, decode, grammatical_interpretation
 from .lexicon import target as language_target
 from .ocr_benchmark import _rgb, classify, enhanced_gray, glyph_crops
 from .pipeline import SyntheticPipeline
@@ -132,7 +131,8 @@ def end_to_end(pipe: SyntheticPipeline, records: list[Any]) -> dict[str, Any]:
         if r.script_type == "synthetic_tamil_brahmi_like":
             pairs.append((truth_words, a["ocr"]["words"]))
             interp_n += 1
-            interp_ok += interpret(truth_words, r.script_type).category == a["interpretation"]["category"]
+            truth = grammatical_interpretation(decode(truth_words))
+            interp_ok += (truth["status"], truth["clauses"]) == (a["interpretation"]["status"], a["interpretation"]["clauses"])
             target, pred = rec["synthetic_language_target"], a["synthetic_language"]      # target: evaluation only
             lang_n += 1
             lang_ok["translation_exact"] += (pred["status"], pred["translation"]) == (target["status"], target["translation"])
@@ -146,7 +146,7 @@ def end_to_end(pipe: SyntheticPipeline, records: list[Any]) -> dict[str, Any]:
         chron_ok += (truth_chron.state, truth_chron.categories) == (a["chronology"]["state"], a["chronology"]["categories"])
     n = max(len(records), 1)
     return {"images": len(records), "classification_accuracy_through_pipeline": round(label_ok / n, 4),
-            "ocr": rates(pairs), "interpretation_agreement": round(interp_ok / max(interp_n, 1), 4),
+            "ocr": rates(pairs), "grammatical_interpretation_agreement": round(interp_ok / max(interp_n, 1), 4),
             "synthetic_language": {"images": lang_n} | {
                 k: round(lang_ok[k] / max(lang_n, 1), 4)
                 for k in ("translation_exact", "transliteration_exact", "status_agreement", "targets_consistent_with_spec")}
@@ -208,7 +208,7 @@ def run_synthetic_benchmark(*, partition: str = "test", root: Path | str | None 
                            "test_before": cal.metrics.get("test", {}).get("before"),
                            "test_after": cal.metrics.get("test", {}).get("after")} if cal else None),
         "E_robustness": rob,
-        "F_interpretation_and_chronology": {"interpretation_agreement": e2e["interpretation_agreement"],
+        "F_interpretation_and_chronology": {"grammatical_interpretation_agreement": e2e["grammatical_interpretation_agreement"],
                                             "synthetic_chronology_reasoning_test": e2e["synthetic_chronology_reasoning_test"]},
         "H_synthetic_language": e2e["synthetic_language"] | {
             "spec": SPEC_ID, "method": METHOD,
@@ -262,7 +262,9 @@ def render_benchmark(r: dict[str, Any]) -> str:
               for k, v in r["E_robustness"].items()]
         L.append("")
     L += ["F. SYNTHETIC INTERPRETATION AND CHRONOLOGY REASONING TEST",
-          f"   interpretation agreement with ground-truth rules {f['interpretation_agreement']:.4f}",
+          (f"   grammatical interpretation (agent / action / object) agreement with held-out targets "
+           f"{f['grammatical_interpretation_agreement']:.4f}" if "grammatical_interpretation_agreement" in f else
+           f"   interpretation agreement (retired placeholder categories) {f.get('interpretation_agreement', 0):.4f}"),
           f"   synthetic chronology reasoning test: agreement {f['synthetic_chronology_reasoning_test']['agreement_with_ground_truth_rules']:.4f}", ""]
     h = r.get("H_synthetic_language")
     if h:

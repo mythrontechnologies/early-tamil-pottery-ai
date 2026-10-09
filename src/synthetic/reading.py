@@ -17,7 +17,7 @@ from typing import Any
 from src.translation.reading import NOT_ESTABLISHED, entry
 
 from . import UI_BANNER
-from .lexicon import BANNER, FICTION, METHOD, METHOD_NOTE, SPEC_ID, STATUS_TEXT
+from .lexicon import BANNER, FICTION, METHOD, METHOD_NOTE, SPEC_ID, STATUS_TEXT, grammatical_interpretation
 
 STATEMENT = (f"{BANNER}. {UI_BANNER}: synthetic model output and a fictional language invented for engineering "
              "demonstration — not archaeological evidence and not a reading of Tamil-Brahmi.")
@@ -33,7 +33,7 @@ def _language(lang: dict[str, Any] | None) -> dict[str, Any]:
                 "reason": NOT_RUN}
     keys = ("banner", "spec", "method", "method_note", "fiction", "status", "status_text", "gloss", "reason",
             "unknown_glyphs", "untranslated", "confidence_note")
-    return {k: lang[k] for k in keys if k in lang}
+    return {k: lang[k] for k in keys if k in lang} | {"roles": grammatical_interpretation(lang)["summary"]}
 
 
 def synthetic_reading_results(analysis: dict[str, Any] | None) -> dict[str, Any]:

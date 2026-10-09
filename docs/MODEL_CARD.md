@@ -28,7 +28,7 @@ pipeline applies it to synthetic images only.
 
 ### Synthetic demonstration models (Milestone 10) are not this model either
 
-> **Update 2026-10-09 — generator 1.1.0 (synthetic language).** The dataset was regenerated so that every Tamil-Brahmi-like row is a sentence of the invented synthetic language ([`SYNTHETIC_LANGUAGE.md`](SYNTHETIC_LANGUAGE.md); SYNTHETIC LANGUAGE — NOT TAMIL-BRAHMI); other classes are byte-identical and the split assignment is unchanged. The models were retrained. Current: records `4e6eb6684b50…`, synthetic `c57c6fb985433fae…`, split `a96ed8d18770…`; classifier `synthetic_20261009T065459Z_4e6eb668_s20261003_resnet18` (test artifact accuracy 0.872, balanced 0.872, macro F1 0.861; T = 2.886, ECE 0.114 → 0.021); vision bundle `vision_20261009T071624Z_4e6eb668_s20261003` (regions F1 0.627, rows F1 0.732, segmentation F1 0.967, end-to-end CER 0.091, WER 0.277); synthetic-language exact translation 0.826 on 86 held-out images (`benchmark_20261009T071739Z_test`). The tables below record the 2026-10-03 run (generator 1.0.0) and are kept as history.
+> **Update 2026-10-09 — generator 1.1.0 (synthetic language).** The dataset was regenerated so that every Tamil-Brahmi-like row is a sentence of the invented synthetic language ([`SYNTHETIC_LANGUAGE.md`](SYNTHETIC_LANGUAGE.md); SYNTHETIC LANGUAGE — NOT TAMIL-BRAHMI); other classes are byte-identical and the split assignment is unchanged. Later the same day the split was corrected so that no near-duplicate component crosses a partition ([`SYNTHETIC_DATASET.md`](SYNTHETIC_DATASET.md) §7) and the models were retrained on it. Current: records `4e6eb6684b50…`, synthetic `e999614b37e1eeea…`, split `1201fe36c1f0…`; classifier `synthetic_20261009T105815Z_4e6eb668_s20261003_resnet18` (test artifact accuracy 0.892, balanced 0.892, macro F1 0.891; T = 1.614, ECE 0.071 → 0.050); vision bundle `vision_20261009T111151Z_4e6eb668_s20261003` (regions F1 0.621, rows F1 0.794, segmentation F1 0.962, end-to-end CER 0.079, WER 0.206); synthetic-language exact translation 0.821 and grammatical-role agreement 0.821 on 84 held-out images (`benchmark_20261009T111257Z_test`). The tables below record the 2026-10-03 run (generator 1.0.0) and are kept as history.
 
 | Model | Task (SYNTHETIC) | Synthetic test result |
 |---|---|---|
@@ -39,7 +39,7 @@ pipeline applies it to synthetic images only.
 
 These are **accuracy on the synthetic engineering benchmark**, *glyph recognition accuracy on the
 synthetic glyph benchmark* and a *synthetic chronology reasoning test* — never archaeological
-performance. The glyphs are invented shapes; the interpretation categories and the chronology
+performance. The glyphs are invented shapes; the synthetic language (and its grammatical interpretation) and the chronology
 categories are invented rules. The vision bundle (`models/synthetic/vision/<run>/`) has a
 manifest with SHA-256 and `model_fingerprint` per file, the dataset fingerprint and split digest
 (the pipeline refuses a classifier and bundle trained on different data), git commit and

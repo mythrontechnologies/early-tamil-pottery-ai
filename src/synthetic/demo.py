@@ -94,7 +94,7 @@ def render_demo(a: dict[str, Any]) -> str:
          f"Calibration status:            {c['calibration_status']}",
          "Inscription region:            " + (", ".join(f"R{i + 1} ({r['confidence']:.2f})" for i, r in enumerate(regions)) or "none"),
          f"Synthetic glyph transcription: {o['transcription'] or '(none)'}",
-         f"Synthetic interpretation:      {it['category']} (invented rule table: a placeholder, not a meaning)",
+         f"Synthetic interpretation:      {it['summary']} (grammatical roles; synthetic language, not Tamil-Brahmi)",
          f"Synthetic chronology:          {ch['display']} (synthetic confidence {ch['confidence']})", ""]
     if a.get("synthetic_language"):
         from .__main__ import render_language

@@ -95,8 +95,20 @@ any OCR error.
 * **Benchmark section H** (`python -m src.synthetic` benchmark) reports, on the held-out test split, exact translation,
   transliteration and status agreement between the decoder's output on the predicted codes and the targets. It
   measures the engineering of the pipeline, **not Tamil-Brahmi translation accuracy**.
-* The placeholder interpretation category (`src/synthetic/interpretation.py`, "synthetic grammar") is an older,
-  separate engineering stage. It is not a meaning, and it is not merged with the translation.
+* **Grammatical interpretation** (`grammatical_interpretation`): the 07 INTERPRET stage also reports who does what to
+  what, clause by clause, from the same parse - `SG01 SG09 SG02` → agent *chief* · action *gives* · object *shelter*.
+  It is a field of its own (`interpretation`), separate from the translation (`synthetic_language`); a sequence the
+  grammar does not accept has none. These are roles of invented words: no person, personal name or real-world
+  identity is ever inferred. It replaced, on 2026-10-09, the placeholder categories of `src/synthetic/interpretation.py`
+  ("synthetic grammar", e.g. `synthetic_personal_name_like`), which contradicted the grammar; that module is kept only
+  so that runs and reports stored before then stay readable. Benchmark section F now reports grammatical-role
+  agreement with the held-out targets.
+* **Near-duplicate grouping of the split.** 148 pairs of synthetic photographs across artifacts are near-duplicates by
+  dHash (≤ 6 of 64 bits); they form 37 connected components over 141 artifacts. In the first 1.1.0 split, 61 pairs
+  (29 test↔train, 2 test↔val, 30 train↔val) and 25 components crossed partitions, touching 23 test artifacts. The
+  synthetic split now keeps every component in ONE partition (`group_near_duplicates`; class sizes per partition
+  restored by swapping same-class artifacts outside any component), and the models were retrained and re-evaluated
+  on it. See [`SYNTHETIC_DATASET.md`](SYNTHETIC_DATASET.md) §7.
 
 ## Where it appears
 

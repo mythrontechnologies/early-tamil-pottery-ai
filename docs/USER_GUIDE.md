@@ -98,7 +98,7 @@ complete AI pipeline on images from the **synthetic engineering dataset only**:
 | 03 CLASSIFY | ResNet-18 → a *Synthetic Tamil-Brahmi-like / graffiti-like / none / uncertain class*, temperature-calibrated |
 | 04 DETECT | RegionNet → synthetic inscription regions and glyph rows (purple dotted, "Synthetic detector — not evidence") |
 | 05 SEGMENT · 06 OCR | learned glyph centres → GlyphNet → a **Synthetic glyph transcription** (`SG03 SG11 …`) — not Tamil-Brahmi transcription |
-| 07 INTERPRET | the deterministic **synthetic-language decoder** → a fictional transliteration and English translation of the *predicted* codes (`SG01 SG09 SG02` → `pala taren maku` → *The chief gives shelter.*), **SYNTHETIC LANGUAGE — NOT TAMIL-BRAHMI**; plus the older placeholder category (`synthetic_personal_name_like`, …: never a meaning) |
+| 07 INTERPRET | the deterministic **synthetic-language decoder** → a fictional transliteration and English translation of the *predicted* codes (`SG01 SG09 SG02` → `pala taren maku` → *The chief gives shelter.*), **SYNTHETIC LANGUAGE — NOT TAMIL-BRAHMI**; plus the grammatical interpretation, a separate field: agent *chief* · action *gives* · object *shelter* (roles of invented words; never a name or identity) |
 | 08 REASON | synthetic chronology categories (`SYNTH_CAT_01`–`04`, never BCE/CE) and an 8-node synthetic evidence chain: **"Synthetic demonstration — not archaeological dating."** |
 
 Each stage appears as it finishes (real timings, no artificial delay). The **pipeline replay**

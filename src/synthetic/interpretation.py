@@ -1,4 +1,12 @@
-"""Synthetic interpretation: a rule table over synthetic glyph codes ("synthetic grammar v1").
+"""RETIRED (2026-10-09). Placeholder interpretation categories over synthetic glyph codes ("synthetic grammar v1").
+
+    No longer part of the synthetic pipeline: since generator 1.1.0 the synthetic glyphs form sentences of an invented
+    language, and the INTERPRET stage reports a structured grammatical interpretation instead
+    (``src.synthetic.lexicon.grammatical_interpretation``: agent, action, object). This module is kept, unchanged in
+    behaviour, only so that synthetic runs and benchmark reports stored before that date remain readable and
+    reproducible. Nothing current calls it.
+
+Original description:
 
     SYNTHETIC INTERPRETATION — no language, no meaning, no person, no place.
 

@@ -18,9 +18,7 @@ from test_expert_pilot import NOREFS, annotation, expert
 from src.inference import analyze, render, render_reading
 from src.reasoning.engine import analyze_artifact
 from src.reasoning.types import Attributed, InscriptionInput, ReasoningInputs
-from src.synthetic.interpretation import GLYPH_GROUPS
-from src.synthetic.interpretation import interpret as synthetic_interpret
-from src.synthetic.lexicon import BANNER, METHOD, decode
+from src.synthetic.lexicon import BANNER, LEXICON, METHOD, decode, grammatical_interpretation
 from src.synthetic.reading import NOT_RUN, synthetic_reading_results
 from src.translation.reading import (
     FIELDS,
@@ -212,7 +210,7 @@ def _fake_synthetic(words, cls="synthetic_tamil_brahmi_like"):
             "ocr": ({"status": "read", "transcription": text, "glyph_count": sum(map(len, words)),
                      "mean_glyph_score": 0.93, "segmentation": "learned_centers"} if read else
                     {"status": "no_reading", "reason": "no glyph row detected or segmented", "transcription": ""}),
-            "interpretation": synthetic_interpret(words, cls).to_dict(),
+            "interpretation": grammatical_interpretation(decode(words)),
             "synthetic_language": decode(words).to_dict()}
 
 
@@ -229,7 +227,7 @@ class TestSyntheticReadings:
         assert BANNER in block["statement"] and all(x["synthetic"] for x in f.values())
 
     def test_a_translation_only_ever_comes_from_the_decoder(self):
-        codes = sorted(GLYPH_GROUPS)
+        codes = sorted(LEXICON)
         cases = [[]] + [[list(c)] for c in itertools.combinations(codes, 3)] + [[[a], [b, c]] for a, b, c in
                                                                              itertools.islice(itertools.permutations(codes, 3), 300)]
         for words in cases:
@@ -356,5 +354,7 @@ def test_synthetic_demonstration_page_shows_the_reading_results(ui_mode, tmp_pat
     assert "etp-reading-syn" in html and "Language and reading results, synthetic demonstration" in html
     assert html.count(REFERENCE) >= 2 and "pala taren maku" in html  # the default image: the panel and the section
     assert BANNER in html and "Word-by-word gloss" in html
-    assert "Synthetic interpretation category · not a meaning" in html and not TAMIL.search(html.split("etp-reading", 1)[1])
+    assert "Grammatical interpretation · synthetic language, not Tamil-Brahmi" in html
+    assert "Agent: chief · Action: gives · Object: shelter" in html and not TAMIL.search(html.split("etp-reading", 1)[1])
+    assert "personal_name" not in html and "_like</div>" not in html                # the retired placeholder is gone
     assert ('<div class="who">Evidence:' in html) is (ui_mode == "Research")

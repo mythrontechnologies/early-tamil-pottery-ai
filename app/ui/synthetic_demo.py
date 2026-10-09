@@ -67,12 +67,21 @@ def _panel(a: dict[str, Any]) -> str:
         + (", ".join(f"R{i + 1} · score {r['confidence']:.2f}" for i, r in enumerate(regs)) or "none detected")
         + f'</div><div class="who">class synthetic_inscription_region · {len(a["inscription"]["rows"])} glyph row(s)</div></div>'
         f'<div class="etp-finding"><div class="k">Synthetic glyph transcription</div>{reading}</div>'
-        + _translation(a) +
-        f'<div class="etp-finding"><div class="k">Synthetic interpretation category · not a meaning</div><div class="v etp-mono">{e(it["category"])}</div>'
-        f'<div class="who">{e(it["placeholder"])} · rule {e(it["rule"])}</div></div>'
+        + _translation(a) + _interpretation(it) +
         f'<div class="etp-finding"><div class="k">Synthetic chronology</div><div class="v">{e(ch["display"])}</div>'
         f'<div class="who">{e(ch["statement"])} Synthetic confidence: {e(ch["confidence"])}.</div></div>'
         "</div></section>")
+
+
+def _interpretation(it: dict[str, Any]) -> str:
+    """Grammatical interpretation (agent / action / object); a field separate from the translation."""
+    head = '<div class="etp-finding"><div class="k">Grammatical interpretation · synthetic language, not Tamil-Brahmi</div>'
+    if "clauses" not in it:            # a result stored before 2026-10-09 (retired placeholder categories)
+        return head + ('<div class="v">Not available for this stored result</div><div class="who">The placeholder '
+                       'interpretation categories were retired; run the analysis again.</div></div>')
+    rows = "".join(f'<div class="v">Agent: {e(c["agent"])} · Action: {e(c["action"])} · Object: {e(c["object"])}</div>'
+                   for c in it["clauses"])
+    return head + (rows or f'<div class="v">{e(it["summary"])}</div>') + f'<div class="who">{e(it["statement"])}</div></div>'
 
 
 def _translation(a: dict[str, Any]) -> str:

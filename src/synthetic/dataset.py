@@ -40,7 +40,16 @@ from src.dataset.convert import read_jsonl, write_jsonl
 from src.dataset.fingerprint import dataset_fingerprint, image_set_fingerprint
 from src.dataset.loader import DatasetRecord, LoadedDataset, Rejection
 from src.dataset.schema import ROOT
-from src.dataset.splits import SplitManifest, SplitSettings, latest_manifest, make_split, verify_manifest
+from src.dataset.splits import (
+    SplitManifest,
+    SplitSettings,
+    _eligible_artifacts,
+    _stable_int,
+    _summarise,
+    latest_manifest,
+    make_split,
+    verify_manifest,
+)
 
 from . import (
     DATASET_TYPE,
@@ -441,6 +450,82 @@ def _rel(path: Path) -> str:
 # --------------------------------------------------------------------------- #
 
 
+def near_duplicate_components(dataset: LoadedDataset) -> tuple[list[list[str]], list[Any]]:
+    """Connected components (>= 2 artifacts) of the near-duplicate relation between artifacts, and the pairs."""
+    from src.dataset.near_duplicates import dataset_near_duplicates
+
+    pairs, _ = dataset_near_duplicates(list(dataset.records))
+    parent: dict[str, str] = {}
+
+    def find(a: str) -> str:
+        while parent.setdefault(a, a) != a:
+            parent[a] = parent[parent[a]]
+            a = parent[a]
+        return a
+
+    for p in pairs:
+        parent[find(p.artifact_a)] = find(p.artifact_b)
+    groups: dict[str, list[str]] = {}
+    for a in parent:
+        groups.setdefault(find(a), []).append(a)
+    comps = sorted((sorted(g) for g in groups.values() if len(g) > 1), key=lambda g: (-len(g), g[0]))
+    return comps, pairs
+
+
+def group_near_duplicates(manifest: SplitManifest, dataset: LoadedDataset, seed: int) -> dict[str, Any]:
+    """Keep every near-duplicate component in ONE partition (synthetic split only); in place, deterministic.
+
+    A component spanning partitions moves to the partition holding most of its artifacts (ties: train, then val).
+    The per-class partition sizes of the stratified split are then restored by swapping same-class artifacts that
+    belong to no component, in a seeded order. Nothing depends on the order of the records.
+    """
+    comps, pairs = near_duplicate_components(dataset)
+    cls = {r.artifact_id: r.script_type for r in dataset.records}
+    a = manifest.assignments
+    target_counts = Counter((p, cls[x]) for x, p in a.items())
+    pref = {"train": 0, "val": 1, "test": 2}
+    moved = 0
+    for comp in comps:
+        where = Counter(a[x] for x in comp)
+        if len(where) > 1:
+            dest = min(where, key=lambda p: (-where[p], pref[p]))
+            for x in comp:
+                moved += a[x] != dest
+                a[x] = dest
+    in_comp = {x for comp in comps for x in comp}
+    swapped = 0
+    for _ in range(len(a)):
+        counts = Counter((p, cls[x]) for x, p in a.items())
+        surplus = sorted(k for k in counts if counts[k] > target_counts[k])
+        if not surplus:
+            break
+        part, c = surplus[0]
+        need = sorted(p for p in pref if counts[(p, c)] < target_counts[(p, c)])
+        donors = sorted((x for x, p in a.items() if p == part and cls[x] == c and x not in in_comp),
+                        key=lambda x: _stable_int(seed, "near_duplicate_rebalance", x))
+        if not need or not donors:
+            raise SyntheticDatasetError(f"cannot restore the class balance of {part}/{c} after near-duplicate grouping")
+        a[donors[0]] = need[0]
+        swapped += 1
+    spans = [comp for comp in comps if len({a[x] for x in comp}) > 1]
+    if spans or Counter((p, cls[x]) for x, p in a.items()) != target_counts:   # pragma: no cover - defensive
+        raise SyntheticDatasetError("near-duplicate grouping failed")
+    eligible, _, _ = _eligible_artifacts(dataset, synthetic_class_spec())
+    manifest.assignments = dict(sorted(a.items()))
+    manifest.summary = _summarise(manifest.assignments, eligible, manifest.partitions, manifest.balance_secondary)
+    report = {"pairs": len(pairs), "components": len(comps), "artifacts_in_components": len(in_comp),
+              "moved": moved, "swapped_to_restore_class_counts": swapped}
+    manifest.warnings.append(
+        f"near-duplicate grouping (synthetic only): {len(pairs)} near-duplicate photograph pair(s) (dHash) form "
+        f"{len(comps)} component(s) over {len(in_comp)} artifact(s); every component is kept in ONE partition "
+        f"({moved} artifact(s) moved, {swapped} same-class artifact(s) outside any component swapped to keep the "
+        "per-class partition sizes). Components: " + "; ".join(" + ".join(c) for c in comps))
+    errors = verify_manifest(manifest, dataset)
+    if errors:  # pragma: no cover - defensive
+        raise SyntheticDatasetError(f"grouped split failed verification: {errors}")
+    return report
+
+
 def make_synthetic_split(cfg: SyntheticDatasetConfig, root: Path | str | None = None, *,
                          dataset: LoadedDataset | None = None) -> tuple[SplitManifest, Path]:
     """Artifact-level hold-out split with the research splitter; writes the manifest and updates the lock."""
@@ -450,7 +535,9 @@ def make_synthetic_split(cfg: SyntheticDatasetConfig, root: Path | str | None = 
         raise SyntheticDatasetError("no synthetic dataset; run `python -m src.synthetic generate` first")
     if not dataset.ok:
         raise SyntheticDatasetError(f"synthetic dataset invalid: {[str(r) for r in dataset.rejections[:3]]}")
-    manifest = make_split(dataset, synthetic_class_spec(), split_settings(cfg, paths), strategy="holdout")
+    settings = split_settings(cfg, paths)
+    manifest = make_split(dataset, synthetic_class_spec(), settings, strategy="holdout")
+    group_near_duplicates(manifest, dataset, settings.seed)
     manifest.warnings.append(f"{MARKER}: synthetic split; it never stands in for a research split.")
     out = manifest.save(paths.splits / manifest.default_filename())
     raw = read_jsonl(paths.records)

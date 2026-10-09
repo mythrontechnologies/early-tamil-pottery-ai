@@ -30,6 +30,7 @@ from src.synthetic.lexicon import (
     STATUSES,
     decode,
     english,
+    grammatical_interpretation,
     sample_sentence,
     target,
 )
@@ -316,3 +317,116 @@ def test_research_gates_and_split_policy_are_unchanged():
     import src.dataset.readiness as readiness
 
     assert "lexicon" not in inspect.getsource(readiness) and "distinct_by_construction" not in inspect.getsource(readiness)
+
+
+# --------------------------------------------------------------------------- #
+# Grammatical interpretation (replaces the retired placeholder categories)
+# --------------------------------------------------------------------------- #
+
+RETIRED = re.compile(r"synthetic_(personal_name|name_and_title|ownership_formula|numeral|symbolic_mark)_like|name-like|personal_name")
+
+
+class TestGrammaticalInterpretation:
+    def test_reference_roles(self):
+        it = grammatical_interpretation(decode(REF))
+        assert [(c["agent"], c["action"], c["object"]) for c in it["clauses"]] == [("chief", "gives", "shelter")]
+        assert it["summary"] == "agent: chief · action: gives · object: shelter" and it["spec"] == SPEC_ID
+        assert BANNER in it["statement"] and "no person, personal name or real-world identity" in it["statement"]
+        assert "translation" not in it                                   # a separate field from the translation
+
+    @pytest.mark.parametrize(("seq", "roles"), [
+        ("SG14 SG03 SG14 SG10 SG13 SG12", [("two potters", "do not make", "two jars")]),
+        ("SG07 SG09 SG08 / SG04 SG10 SG02", [("chief", "keeps", "lamp"), ("potter", "gives", "basket")]),
+        ("SG01 SG09 SG02 SG14", [("chief", "gives", "shelter")]),                          # partial: complete clauses only
+    ])
+    def test_roles_follow_the_parse(self, seq, roles):
+        assert [(c["agent"], c["action"], c["object"]) for c in grammatical_interpretation(decode(seq))["clauses"]] == roles
+
+    @pytest.mark.parametrize("seq", ["", "SG02 SG01 SG09", "SG01 SG77 SG02", "SG01 SG09"])
+    def test_nothing_is_interpreted_without_a_clause(self, seq):
+        it = grammatical_interpretation(decode(seq))
+        assert it["clauses"] == [] and it["summary"].startswith("no grammatical interpretation")
+
+    def test_the_pipeline_no_longer_reports_placeholder_categories(self, tiny_synthetic, tiny_synthetic_pipeline):
+        from src.synthetic.demo import render_demo
+
+        rec = _brahmi(tiny_synthetic)
+        a = tiny_synthetic_pipeline["pipeline"].run(tiny_synthetic["root"] / rec["image_path"], record=rec)
+        assert a["interpretation"]["kind"] == "synthetic_grammatical_interpretation"
+        assert a["interpretation"] == grammatical_interpretation(a["synthetic_language"])
+        current = json.dumps(a, ensure_ascii=False) + render_demo(a)
+        assert not RETIRED.search(current)
+        chain = {n["key"]: n for n in a["evidence_chain"]}
+        assert chain["interpretation"]["value"] == a["interpretation"]["summary"] and len(chain) == 8
+        assert a["ground_truth_check"]["interpretation_correct"] in (True, False)
+
+    def test_the_ui_shows_roles_and_survives_a_stored_legacy_result(self):
+        import sys
+
+        sys.path.insert(0, str(ROOT / "app"))
+        from ui.synthetic_demo import _interpretation
+
+        html = _interpretation(grammatical_interpretation(decode(REF)))
+        assert "Agent: chief · Action: gives · Object: shelter" in html and "not Tamil-Brahmi" in html
+        legacy = {"category": "synthetic_personal_name_like", "placeholder": "x", "rule": "R4"}
+        assert "Not available for this stored result" in _interpretation(legacy)
+        assert not RETIRED.search(_interpretation(legacy))
+
+
+# --------------------------------------------------------------------------- #
+# Near-duplicate grouping of the synthetic split
+# --------------------------------------------------------------------------- #
+
+
+class TestNearDuplicateGrouping:
+    def test_components_are_kept_in_one_partition_with_class_counts_unchanged(self, tiny_synthetic, monkeypatch):
+        from collections import Counter
+
+        import src.synthetic.dataset as sd
+        from src.dataset.splits import make_split
+
+        ds = sd.load_synthetic_dataset(tiny_synthetic["root"], verify_hashes=False)
+        cls = {r.artifact_id: r.script_type for r in ds.records}
+        settings = sd.split_settings(tiny_synthetic["cfg"], sd.SyntheticPaths.at(tiny_synthetic["root"]))
+        manifest = make_split(ds, sd.synthetic_class_spec(), settings, strategy="holdout")
+        before = Counter((p, cls[a]) for a, p in manifest.assignments.items())
+        by_part = {p: sorted(manifest.artifacts_in(p)) for p in ("train", "val", "test")}
+        comps = [sorted([by_part["train"][0], by_part["test"][0], by_part["val"][0]]),
+                 sorted([by_part["test"][1], by_part["train"][1]])]
+        monkeypatch.setattr(sd, "near_duplicate_components", lambda _ds: (comps, []))
+        report = sd.group_near_duplicates(manifest, ds, settings.seed)
+        a = manifest.assignments
+        assert all(len({a[x] for x in c}) == 1 for c in comps) and report["moved"] >= 2
+        assert Counter((p, cls[x]) for x, p in a.items()) == before        # per-class partition sizes restored
+        assert any("near-duplicate grouping (synthetic only)" in w for w in manifest.warnings)
+
+    def test_research_settings_still_refuse_the_same_pairs(self, tiny_synthetic, monkeypatch):
+        import dataclasses
+
+        import src.dataset.near_duplicates as nd
+        import src.synthetic.dataset as sd
+        from src.dataset.splits import SplitSettings, check_splittable
+
+        ds = sd.load_synthetic_dataset(tiny_synthetic["root"], verify_hashes=False)
+        arts = sorted({r.artifact_id for r in ds.records})
+        fake = nd.NearDuplicate(f"{arts[0]}-V1", arts[0], f"{arts[1]}-V1", arts[1], 4)
+        monkeypatch.setattr(nd, "dataset_near_duplicates", lambda *_a, **_k: ([fake], []))
+        synthetic = sd.split_settings(tiny_synthetic["cfg"], sd.SyntheticPaths.at(tiny_synthetic["root"]))
+        research = dataclasses.replace(synthetic, distinct_by_construction=False)
+        _, problems = check_splittable(ds, sd.synthetic_class_spec(), research, "holdout")
+        assert any("near-duplicate photographs across artifacts" in p for p in problems)
+        _, problems = check_splittable(ds, sd.synthetic_class_spec(), synthetic, "holdout")
+        assert not any("near-duplicate" in p for p in problems)
+        assert SplitSettings.from_config().distinct_by_construction is False
+
+    @pytest.mark.skipif(not (ROOT / "data" / "synthetic" / "metadata" / "records.jsonl").exists(), reason="no live synthetic dataset")
+    def test_live_split_has_no_component_across_partitions(self):
+        import src.synthetic.dataset as sd
+
+        ds = sd.load_synthetic_dataset(ROOT / "data" / "synthetic", verify_hashes=False)
+        manifest = sd.find_manifest(ds, ROOT / "data" / "synthetic")
+        comps, pairs = sd.near_duplicate_components(ds)
+        a = manifest.assignments
+        assert all(len({a[x] for x in c}) == 1 for c in comps)
+        assert all(a[p.artifact_a] == a[p.artifact_b] for p in pairs)
+        assert any("near-duplicate grouping (synthetic only)" in w for w in manifest.warnings)

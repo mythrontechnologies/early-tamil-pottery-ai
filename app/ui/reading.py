@@ -46,6 +46,8 @@ def _field(f: dict[str, Any], *, research: bool) -> str:
 def _language(lang: dict[str, Any]) -> str:
     """The synthetic-language strip: banner, method, status and the word-by-word gloss (never for real data)."""
     rows = [("Method", f'{lang["method"]} · {lang["spec"]}', False), ("Status", lang["status_text"], False)]
+    if lang.get("roles"):
+        rows.append(("Grammatical roles", lang["roles"], False))
     if lang.get("reason"):
         rows.append(("Reason", lang["reason"], False))
     gloss = "".join(f'<tr><td class="mono" lang="zxx">{e(g["glyph"])}</td><td lang="zxx">{e(g["reading"])}</td>'

@@ -72,8 +72,9 @@ class SplitSettings:
     balance_secondary: tuple[str, ...]
     manifest_dir: Path
     #: Generated data only (the synthetic split): artifact identity is known by construction - every artifact is
-    #: drawn from its own random streams - so a near-duplicate pair is recorded in the manifest's warnings instead of
-    #: refusing the split. Research data never sets this: a human must merge or clear each pair (Milestone 11).
+    #: drawn from its own random streams - so near-duplicate pairs do not refuse the split here; the caller groups
+    #: each near-duplicate component into ONE partition (``src.synthetic.dataset.group_near_duplicates``). Research
+    #: data never sets this: a human must merge or clear each pair (Milestone 11).
     distinct_by_construction: bool = False
 
     @classmethod
@@ -432,14 +433,6 @@ def make_split(
     held = sorted({r for r in excluded.values() if r.startswith("held_out_label")})
     if held:
         warnings.append(f"held-out labels present and excluded from this split: {held}")
-    if settings.distinct_by_construction:
-        from .near_duplicates import dataset_near_duplicates
-
-        pairs, _ = dataset_near_duplicates([r for recs in eligible.values() for r in recs])
-        if pairs:
-            warnings.append(f"{len(pairs)} near-duplicate photograph pair(s) across artifacts recorded, not merged: the "
-                            "artifacts are distinct by construction (generated from separate random streams). "
-                            + "; ".join(str(p) for p in pairs))
 
     manifest = SplitManifest(
         strategy=resolved,

@@ -8,7 +8,7 @@ archaeological evidence: a human check of the references, expert annotation, eno
 class, and then training. None of it can be engineered, and none of it has been fabricated.
 
 ```text
-Tests:              1080 passed, 5 browser tests deselected, 1 expected warning (a hardening test feeds a raw pickle to the safe loader); 31 test files (2026-10-09, synthetic language; 981 at Milestone 11)
+Tests:              1093 passed, 5 browser tests deselected, 1 expected warning (a hardening test feeds a raw pickle to the safe loader); 31 test files (2026-10-09, synthetic language, grammatical interpretation, near-duplicate grouping; 981 at Milestone 11)
 Browser:            5 passed (phone-width overflow at 100-200 % text; keyboard, fallbacks, reduced motion, timing; every page at phone / tablet / desktop width, text 100-200 %; one session through every page with the app's navigation, Research and Presentation; language / reading results at phone / tablet / desktop)
 Static checks:      ruff clean; mypy clean (127 files: src, app, scripts)
 Research data:      21 artifacts / 34 images (Wikimedia Commons, CC BY / CC BY-SA), provenance 34/34, raw files unchanged
@@ -64,7 +64,7 @@ the Milestone 11 additions above ([`MILESTONE_11_REPORT.md`](MILESTONE_11_REPORT
 
 | Check | Result |
 |---|---|
-| `pytest tests/ -q` | 1080 passed, 5 browser tests deselected, 1 expected warning (a hardening test feeds a raw pickle to the safe loader); 31 test files (re-run 2026-10-09 after the synthetic language; 981 on 2026-10-08) |
+| `pytest tests/ -q` | 1093 passed, 5 browser tests deselected, 1 expected warning (a hardening test feeds a raw pickle to the safe loader); 31 test files (re-run 2026-10-09 after the synthetic language; 981 on 2026-10-08) |
 | `pytest -m browser` | 5 passed (phone-width overflow at 100-200 % text; keyboard, fallbacks, reduced motion, timing; every page at phone / tablet / desktop width, text 100-200 %; added 2026-10-09: one session through every page with the app's navigation in Research and Presentation mode; language / reading results at phone / tablet / desktop) |
 | `ruff check src app scripts tests` / `mypy` | clean / no issues in 127 files |
 | `src.workflow status` | stages 1-5 PASS (34 records, 34 files, 21 artifacts, provenance 34/34, 0 hash mismatches) |

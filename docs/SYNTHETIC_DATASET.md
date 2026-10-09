@@ -82,7 +82,7 @@ unknown keys are errors).
 
 ## 5. Size and storage
 
-> **Update 2026-10-09 — generator 1.1.0 (synthetic language).** The dataset was regenerated so that every Tamil-Brahmi-like row is a sentence of the invented synthetic language ([`SYNTHETIC_LANGUAGE.md`](SYNTHETIC_LANGUAGE.md); SYNTHETIC LANGUAGE — NOT TAMIL-BRAHMI); other classes are byte-identical and the split assignment is unchanged. The models were retrained. Current: records `4e6eb6684b50…`, synthetic `c57c6fb985433fae…`, split `a96ed8d18770…`; classifier `synthetic_20261009T065459Z_4e6eb668_s20261003_resnet18` (test artifact accuracy 0.872, balanced 0.872, macro F1 0.861; T = 2.886, ECE 0.114 → 0.021); vision bundle `vision_20261009T071624Z_4e6eb668_s20261003` (regions F1 0.627, rows F1 0.732, segmentation F1 0.967, end-to-end CER 0.091, WER 0.277); synthetic-language exact translation 0.826 on 86 held-out images (`benchmark_20261009T071739Z_test`). The tables below record the 2026-10-03 run (generator 1.0.0) and are kept as history.
+> **Update 2026-10-09 — generator 1.1.0 (synthetic language).** The dataset was regenerated so that every Tamil-Brahmi-like row is a sentence of the invented synthetic language ([`SYNTHETIC_LANGUAGE.md`](SYNTHETIC_LANGUAGE.md); SYNTHETIC LANGUAGE — NOT TAMIL-BRAHMI); other classes are byte-identical and the split assignment is unchanged. Later the same day the split was corrected so that no near-duplicate component crosses a partition ([`SYNTHETIC_DATASET.md`](SYNTHETIC_DATASET.md) §7) and the models were retrained on it. Current: records `4e6eb6684b50…`, synthetic `e999614b37e1eeea…`, split `1201fe36c1f0…`; classifier `synthetic_20261009T105815Z_4e6eb668_s20261003_resnet18` (test artifact accuracy 0.892, balanced 0.892, macro F1 0.891; T = 1.614, ECE 0.071 → 0.050); vision bundle `vision_20261009T111151Z_4e6eb668_s20261003` (regions F1 0.621, rows F1 0.794, segmentation F1 0.962, end-to-end CER 0.079, WER 0.206); synthetic-language exact translation 0.821 and grammatical-role agreement 0.821 on 84 held-out images (`benchmark_20261009T111257Z_test`). The tables below record the 2026-10-03 run (generator 1.0.0) and are kept as history.
 
 Generated 2026-10-03 with generator 1.0.0, seed 20261003:
 
@@ -140,12 +140,25 @@ surface family, seed 20261003.
 
 | partition | artifacts | images | per class |
 |---|---|---|---|
-| train | 700 | 1,538 | 175 each |
-| val | 152 | 338 | 38 each |
-| test | 148 | 326 | 37 each |
+| train | 700 | 1,540 | 175 each |
+| val | 152 | 340 | 38 each |
+| test | 148 | 322 | 37 each |
 
 No artifact, image id or image hash appears in two partitions (checked by `verify_manifest`, by
 `verify` V11 and by tests).
+
+**Near-duplicate grouping (synthetic only, 2026-10-09).** The Milestone 11 leakage guard (dHash of a 9×8
+thumbnail, ≤ 6 of 64 bits differing) finds 148 pairs of photographs across different synthetic artifacts. They are
+independently generated objects - each artifact has its own random streams - whose thumbnails happen to look alike
+(similar outline, surface and lighting at 9×8 pixels): 110 of the pairs join two different classes, 38 the same class.
+Chained, they form 37 connected components over 141 artifacts (27 pairs, 4 triples, …, one component of 48). Because
+they crossed partitions (61 pairs, 25 components, 23 test artifacts), the synthetic split now treats each component as
+one group: the stratified split is made as before, every component spanning partitions moves to the partition that
+holds most of its artifacts (ties: train, then val), and the per-class partition sizes are restored by swapping
+same-class artifacts that belong to no component, in a seeded order (42 moved, 41 swapped). No component and no pair
+crosses a partition now; every component is listed in the manifest's warnings, and
+`test_live_split_has_no_component_across_partitions` checks it. Research data is unaffected: its split still refuses until a human merges or clears
+each pair (`SplitSettings.distinct_by_construction` is set only by the synthetic split).
 
 ## 8. Commands
 

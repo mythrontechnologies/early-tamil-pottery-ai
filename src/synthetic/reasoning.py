@@ -147,7 +147,8 @@ def reasoning_lines(a: dict[str, Any]) -> list[str]:
                      f"'{ocr['transcription']}' (mean glyph score {ocr['mean_glyph_score']:.2f}).")
     else:
         lines.append(f"SYNTHETIC: no synthetic glyph transcription ({ocr['reason']}).")
-    lines.append(f"SYNTHETIC: interpretation rule {interp['rule']} gives '{interp['category']}'.")
+    lines.append(f"SYNTHETIC: grammatical interpretation under the invented synthetic language ({interp['spec']}): "
+                 f"{interp['summary']}.")
     for e in chron["evidence"]:
         lines.append(f"SYNTHETIC: {e['source']}: {e['detail']}.")
     if chron["state"] == "conflict":
@@ -194,16 +195,17 @@ def evidence_chain(a: dict[str, Any]) -> list[dict[str, Any]]:
              source=f"GlyphNet + {ocr.get('segmentation', '—')} segmentation",
              uncertainty="Synthetic glyph codes have no sound and no reading."),
         node("linguistic", "Synthetic linguistic features",
-             ", ".join(f"{k} {v}" for k, v in interp["glyph_groups"].items()) + f" · {interp['words']} word(s)",
-             ("synthetic", "Invented glyph groups") if ocr["status"] == "read" else insufficient,
-             source=interp["grammar"], uncertainty="Glyph groups are an invented engineering table."),
+             " · ".join(f"{g['glyph']} {g['reading'] or '?'} ({g['class']}, {g['role']})"
+                        for g in a.get("synthetic_language", {}).get("gloss", [])) or "No glyph read",
+             ("synthetic", "Synthetic lexicon") if ocr["status"] == "read" else insufficient,
+             source=interp["spec"], uncertainty="Word classes and roles of an invented language (not Tamil-Brahmi)."),
         node("chronology", "Synthetic chronology", chron["display"],
              ("synthetic", f"Synthetic · {chron['confidence']}") if chron["state"] == "estimated"
              else ("unresolved", "Conflicting synthetic evidence") if chron["state"] == "conflict" else insufficient,
              confidence=chron["confidence"], source=chron["rules"], uncertainty=CHRONOLOGY_STATEMENT),
-        node("interpretation", "Synthetic interpretation", interp["category"],
-             ("synthetic", "Synthetic interpretation") if interp["category"] != "synthetic_no_reading" else insufficient,
-             source=interp["grammar"], uncertainty=interp["placeholder"]),
+        node("interpretation", "Synthetic grammatical interpretation", interp["summary"],
+             ("synthetic", "Synthetic grammar") if interp["clauses"] else insufficient,
+             source=interp["spec"], uncertainty=interp["statement"]),
         node("result", "Synthetic result", a["summary"], ("synthetic", "Synthetic result"),
              confidence=chron["confidence"], source="this pipeline run",
              uncertainty="No archaeological significance; not validated on real material."),

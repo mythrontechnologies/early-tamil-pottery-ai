@@ -279,6 +279,40 @@ def decode(sequence: list[list[str]] | list[str] | str) -> SyntheticTranslation:
                                 gloss, [], untranslated=rest, reason=f"no clause of the synthetic grammar ({where})")
 
 
+INTERPRETATION_STATEMENT = (f"Grammatical roles under the invented synthetic language ({BANNER}). They are roles of "
+                            "invented words: no person, personal name or real-world identity is inferred.")
+
+
+def _np_phrase(np_: dict[str, Any]) -> str:
+    """A noun phrase without an article: 'chief', 'two potters'."""
+    n = LEXICON[np_["noun"]]
+    return f"{LEXICON[np_['numeral']].gloss} {n.plural}" if np_["numeral"] else n.gloss
+
+
+def _action(clause: dict[str, Any]) -> str:
+    v, plural = LEXICON[clause["verb"]], clause["agent"]["numeral"] is not None
+    if clause["negated"]:
+        return f"{'do' if plural else 'does'} not {v.gloss}"
+    return v.gloss if plural else v.third_person
+
+
+def grammatical_interpretation(decoded: SyntheticTranslation | dict[str, Any]) -> dict[str, Any]:
+    """The structured interpretation of a decoded sequence: who does what to what, clause by clause.
+
+    Derived only from the parse (``decoded.parse``); a separate field from the translation. Nothing for a sequence
+    the grammar does not accept, and never a name or an identity.
+    """
+    d = decoded.to_dict() if isinstance(decoded, SyntheticTranslation) else decoded
+    clauses = [{"clause": c["clause"], "agent": _np_phrase(c["agent"]), "action": _action(c),
+                "object": _np_phrase(c["object"]), "negated": c["negated"], "glyphs": c["glyphs"]}
+               for c in d.get("parse", [])]
+    summary = " | ".join(f"agent: {c['agent']} · action: {c['action']} · object: {c['object']}" for c in clauses)
+    return {"kind": "synthetic_grammatical_interpretation", "spec": SPEC_ID, "banner": BANNER,
+            "status": d["status"], "clauses": clauses,
+            "summary": summary or f"no grammatical interpretation ({d['status'].replace('_', ' ')})",
+            "reason": d.get("reason", ""), "statement": INTERPRETATION_STATEMENT}
+
+
 # --------------------------------------------------------------------------- #
 # Generation (used by the synthetic generator; never by the decoder)
 # --------------------------------------------------------------------------- #
@@ -329,6 +363,7 @@ def target(sequence: list[list[str]]) -> dict[str, Any]:
     return {"spec": SPEC_ID, "status": d.status, "transliteration": d.transliteration, "translation": d.translation}
 
 
-__all__ = ["BANNER", "BY_CLASS", "CLASSES", "FICTION", "LEXICON", "METHOD", "METHOD_NOTE", "SPEC_ID", "SPEC_NAME",
+__all__ = ["BANNER", "BY_CLASS", "CLASSES", "FICTION", "INTERPRETATION_STATEMENT", "LEXICON", "METHOD", "METHOD_NOTE", "SPEC_ID", "SPEC_NAME",
            "SPEC_VERSION", "STATUSES", "STATUS_TEXT", "Entry", "SyntheticTranslation", "decode", "english",
+           "grammatical_interpretation",
            "sample_clause", "sample_sentence", "target"]
