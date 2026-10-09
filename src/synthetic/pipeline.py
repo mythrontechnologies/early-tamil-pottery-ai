@@ -6,6 +6,8 @@
           -> 04 detect (RegionNet: synthetic inscription regions + glyph rows)
           -> 05 segment (selected strategy) -> 06 OCR (GlyphNet) -> 07 interpret (synthetic grammar)
           -> 08 reason (synthetic chronology, reasoning, evidence chain)
+          -> reading_results: transcription (synthetic glyph codes), transliteration not applicable, translation
+             not available (src.synthetic.reading); never a word, a name or a meaning
 
 Every stage is timed (CUDA synchronised) and reported through an optional ``on_stage`` callback, so a
 UI can show real progress. The pipeline refuses to start unless the classifier checkpoint and the
@@ -33,6 +35,7 @@ from .calibration import confidence_words
 from .inference import SyntheticCheckpointClassifier, latest_synthetic_checkpoint
 from .interpretation import interpret
 from .ocr_benchmark import WORD_SEPARATOR, _iou, enhanced_gray
+from .reading import synthetic_reading_results
 from .reasoning import chronology, evidence_chain, reasoning_lines
 from .vision import VisionBundle, VisionModelError, detect_regions, load_bundle, read_glyphs, segment
 
@@ -207,7 +210,8 @@ class SyntheticPipeline:
 
         def interpret_stage() -> tuple[str, dict[str, Any]]:
             it = interpret(state["ocr"]["words"], state["classify"]["label"]).to_dict()
-            return f"synthetic interpretation: {it['category']}", it
+            return (f"synthetic interpretation category: {it['category']} (invented rule table, no meaning) · "
+                    "translation not available"), it
 
         def reason() -> tuple[str, dict[str, Any]]:
             o = state["ocr"]
@@ -256,6 +260,7 @@ class SyntheticPipeline:
                                   "calibration_status": c["calibration_status"],
                                   "synthetic_chronology_confidence": state["reason"]["confidence"],
                                   "note": "Model probabilities on synthetic images; never an archaeological confidence."}
+        analysis["reading_results"] = synthetic_reading_results(analysis)
         analysis["reasoning"] = reasoning_lines(analysis)
         analysis["evidence_chain"] = evidence_chain(analysis)
         analysis["stages"] = stages

@@ -231,7 +231,9 @@ def analyze_artifact(
     # -- reading ---------------------------------------------------------------------------
     reading = _attr(ins.reading) | {"transliteration": ins.transliteration,
                                     "alternative_readings": list(ins.alternative_readings),
-                                    "completeness": ins.reading_completeness}
+                                    "completeness": ins.reading_completeness,
+                                    "inscription_present": _attr(ins.inscription_present),
+                                    "annotation_id": ins.reading.annotation_id}
     statements: list[str] = []
     if ins.reading_completeness == "illegible" and not ins.reading.known:
         reasoning.append("Reading: marks were examined and are illegible; no sign is supplied by inference.")

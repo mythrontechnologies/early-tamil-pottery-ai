@@ -4,8 +4,10 @@
     streamlit run app/analyze.py        (this page alone)
 
 Layout: title bar (artifact + status) · stage (2D photograph viewer, or 2.5D inspection) ·
-evidence panel (script, reading, dating, evidence) · evidence chain (observation → reference) ·
-evidence layers · AI observation (separate) · warnings.
+evidence panel (script, reading, translation, dating, evidence) · LANGUAGE / READING RESULTS (inscription
+status, transcription, transliteration, translation, completeness: each with who asserts it, confidence and
+why it is missing) · evidence chain (observation → reference) · evidence layers · AI observation (separate) ·
+warnings.
 
 The real photograph is always the authoritative source; every processed view is marked
 derived. AI output appears only inside the panel "AI observation — not archaeological
@@ -51,6 +53,7 @@ from ui.components import (
     section,
 )
 from ui.inspect3d import render_inspection
+from ui.reading import field_map, reading_results_html
 from ui.synthetic_demo import render_synthetic_demo
 from ui.viewer import render_viewer
 
@@ -63,6 +66,7 @@ from src.ocr import enhance
 @st.cache_data(show_spinner="Analysing the photograph…", max_entries=16)
 def _analyse(blob: bytes, artifact_id: str | None, regions: tuple[str, ...]) -> dict:
     # Real Research mode: no synthetic model is offered, whatever the image is.
+    # (Result schema 1.2.0 adds reading_results; editing this body also retires results cached before it.)
     return analyze(blob, artifact_id=artifact_id or None, regions=[parse_region(r) for r in regions]).to_dict()
 
 
@@ -196,11 +200,11 @@ with stage_col:
                "2.5D view is derived and is labelled as such.")
 
 with panel_col:
-    hr, tr = res["transcription"]["human_reading"], res["translation"]
+    hr = res["transcription"]["human_reading"]
+    lang = field_map(res.get("reading_results"))
     ds = res["age"].get("dating_summary", {})
     refs = res["evidence"]["references"]
     ver = sum(v["verification_status"] == "verified_against_source" for v in refs.values())
-    translation = tr["translation"] if tr["state"] == "translated" else tr["meaning"]
     alts = "".join(f'<div class="who">Alternative reading: {e(a.get("reading"))} ({e(a.get("source"))})</div>'
                    for a in hr.get("alternative_readings", []))
     rows = [("Dataset", res["dataset"]["indicator"] if res.get("dataset") else "—", False),
@@ -213,14 +217,20 @@ with panel_col:
         '<section class="etp-shell" aria-label="Analysis panel"><div class="etp-core">'
         f'<div class="etp-finding"><div class="k">Script</div><div class="v">{e(res["script"]["statement"])}</div>'
         f'<div class="who">Asserted by: {e(res["script"]["provenance_label"])}</div></div>'
-        f'<div class="etp-finding"><div class="k">Reading</div><div class="v">{e(res["transcription"]["statement"])}</div>{alts}</div>'
-        f'<div class="etp-finding"><div class="k">Translation</div><div class="v">{e(translation)}</div></div>'
+        f'<div class="etp-finding"><div class="k">Reading (transcription)</div><div class="v">{e(lang["transcription"]["display"])}</div>'
+        f'<div class="who">{e(lang["completeness"]["display"])} · {e(lang["transcription"]["tier_label"])}</div>{alts}</div>'
+        f'<div class="etp-finding"><div class="k">Translation</div><div class="v">{e(lang["translation"]["display"])}</div>'
+        f'<div class="who">Transliteration: {e(lang["transliteration"]["display"])} · details under Language / reading results</div></div>'
         f'<div class="etp-finding"><div class="k">Dating</div><div class="v">{e(res["age"]["display"])}</div>'
         f'<div class="who">Period: {e(res["period"])}</div><div class="who">Basis: {e("; ".join(ds.get("basis", [])) or "none")}</div></div>'
         f'<div class="etp-finding"><div class="k">Evidence</div><div class="v">{ver} verified reference(s) · {len(refs)} cited</div>'
         f'<div class="who">Confidence (archaeological): {e(res["confidence"]["archaeological"])}. A model probability is never an archaeological confidence.</div></div>'
         f'<div class="etp-finding"><div class="k">Artifact &amp; provenance</div>{kv(rows)}</div>'
         "</div></section>")
+
+# -- language / reading results -----------------------------------------------------------------
+section("Language / reading results", "transcription · transliteration · translation · completeness")
+st.html(reading_results_html(res.get("reading_results"), research=research()))
 
 # -- evidence chain -----------------------------------------------------------------------------
 section("Evidence chain", "observation → reference · select a step for detail")

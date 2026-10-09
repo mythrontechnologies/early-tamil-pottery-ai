@@ -58,6 +58,7 @@ Upload a JPEG/PNG/TIFF/WebP/BMP, or choose a registered research photograph.
 | Classification / script | the script as recorded by a human, with who said it | human annotation |
 | Transcription | the human reading, or "No reliable transcription established." | human annotation |
 | Translation | only with a source; "Proper name; no literal translation established." for names | human source |
+| Language / reading results | one card each for inscription or mark status, transcription, transliteration, translation and reading completeness (complete / partial / fragmentary / illegible / unknown), with its confidence, who asserts it and, when missing, why | human evidence, tiered: promoted ground truth · expert adjudication · expert-reviewed · expert (not reviewed) · published source · project annotation; AI drafts listed apart |
 | Estimated age / Period | an evidence-based range, an outer bound, or "Insufficient evidence" | dating evidence |
 | Confidence | archaeological confidence from evidence and its verification status | rules, not scores |
 | Reasoning | every step, traceable to an input | reasoning engine |
@@ -68,6 +69,15 @@ Upload a JPEG/PNG/TIFF/WebP/BMP, or choose a registered research photograph.
 **An uploaded image that is not a registered research photograph** (no SHA-256 match) gets
 no annotations, even if you type an artifact id. It will usually be "Insufficient evidence".
 That is correct: the project knows nothing about it.
+
+**Language / reading results** sit directly below the photograph. A transcription is shown only when
+a human recorded one; a partial or low-confidence reading is shown with that caveat, and alternative
+readings are listed. A translation is shown only when a human recorded it with a cited source; otherwise
+the card says so ("Not established — no human translation with a cited source has been recorded." or
+"Not available — no reading has been established, so nothing can be translated."). A classifier
+prediction or an OCR candidate never fills a card: OCR candidates appear apart as **AI drafts — not
+readings**. Research mode adds the evidence behind each card (annotation id, source and its verification
+status); Presentation mode keeps every value, caveat and explanation.
 
 "Your regions" (`x,y,w,h`, fractions of width/height) help you look; they are not evidence.
 
@@ -88,7 +98,7 @@ complete AI pipeline on images from the **synthetic engineering dataset only**:
 | 03 CLASSIFY | ResNet-18 → a *Synthetic Tamil-Brahmi-like / graffiti-like / none / uncertain class*, temperature-calibrated |
 | 04 DETECT | RegionNet → synthetic inscription regions and glyph rows (purple dotted, "Synthetic detector — not evidence") |
 | 05 SEGMENT · 06 OCR | learned glyph centres → GlyphNet → a **Synthetic glyph transcription** (`SG03 SG11 …`) — not Tamil-Brahmi transcription |
-| 07 INTERPRET | an invented rule table → `synthetic_personal_name_like`, `synthetic_numeral_like`, … (never a real person) |
+| 07 INTERPRET | an invented rule table → `synthetic_personal_name_like`, `synthetic_numeral_like`, … (an engineering placeholder, never a meaning or a real person) · translation not available |
 | 08 REASON | synthetic chronology categories (`SYNTH_CAT_01`–`04`, never BCE/CE) and an 8-node synthetic evidence chain: **"Synthetic demonstration — not archaeological dating."** |
 
 Each stage appears as it finishes (real timings, no artificial delay). The **pipeline replay**
@@ -96,6 +106,12 @@ re-plays the measured stages on an illustrative sherd — *not a scan of the inp
 Play/Pause, Skip, Replay and a 2D view; reduced motion shows every stage at once, and the 2D
 view is used automatically without 3D support. The ground-truth card compares the result with
 the generator's own record. Every block carries **SYNTHETIC — NOT ARCHAEOLOGICAL EVIDENCE**.
+
+The **Language / reading results** of a synthetic run show the synthetic glyph transcription
+(`SG01 SG09 SG02`), transliteration **not applicable** (the codes have no sound value) and
+translation **"Not available — synthetic glyph identifiers have no established linguistic
+meaning."** No Tamil word, English translation, name or meaning is ever produced. The replay shows
+the same lines under 06 OCR and 07 INTERPRET, and `python -m src.synthetic demo` prints them.
 
 The two modes never merge: a real photograph cannot be chosen in Synthetic mode, a synthetic
 image uploaded in Real mode is refused, and no synthetic result is written to the research store.

@@ -6,6 +6,8 @@ illustratively: the sherd is NOT a scan of the input image and says so), the syn
 synthetic glyph transcription as text, and a ring of eight stage lights. The right half replays the
 recorded pipeline run: each of the eight stages reveals its ACTUAL result and its MEASURED latency.
 The replay uses a short fixed transition per stage; it never pretends a stage took longer than it did.
+The language / reading results appear where they arise: the synthetic glyph transcription and
+"transliteration: not applicable" under 06 OCR, "translation: not available" under 07 INTERPRET.
 
 Accessibility: every control is a real button (Play/Pause, Skip, Replay, 2D view); stage reveals are
 announced through an aria-live region; prefers-reduced-motion shows everything at once without
@@ -59,6 +61,8 @@ li.on .n{border-color:var(--syn)}
 li .t{font-weight:600;font-size:13px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 li .t small{font:400 11px "JetBrains Mono",monospace;color:var(--muted)}
 li .s{color:var(--text2);font-size:12.5px;overflow-wrap:anywhere}
+li .d{grid-column:2;color:var(--syn);font-size:12px;overflow-wrap:anywhere}
+li .d b{font-weight:600}
 .status{font:11px "JetBrains Mono",monospace;color:var(--muted);margin-top:6px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media (max-width:640px){.wrap{grid-template-columns:1fr;grid-template-rows:270px minmax(0,1fr)}.ring{top:56%}
@@ -108,7 +112,9 @@ li .s{color:var(--text2);font-size:12.5px;overflow-wrap:anywhere}
  DATA.stages.forEach((s,i)=>{const li=document.createElement('li');const num=document.createElement('span');num.className='n';
   num.textContent=String(s.number).padStart(2,'0');const t=document.createElement('div');t.className='t';const tt=document.createElement('span');
   tt.textContent=s.title.toUpperCase();const ms=document.createElement('small');ms.textContent=(s.seconds*1000).toFixed(1)+' ms';
-  t.append(tt,ms);const sm=document.createElement('div');sm.className='s';sm.textContent=s.summary;li.append(num,t,sm);list.append(li);rows.push(li);
+  t.append(tt,ms);const sm=document.createElement('div');sm.className='s';sm.textContent=s.summary;li.append(num,t,sm);
+  (s.details||[]).forEach(([k,v])=>{const d=document.createElement('div');d.className='d';const b=document.createElement('b');
+   b.textContent=k+': ';d.append(b,document.createTextNode(v));li.append(d);});list.append(li);rows.push(li);
   const d=document.createElement('i');d.textContent=i+1;ring.append(d);dots.push(d);});
  // the ring fits the stage box (recomputed on resize), clear of the label and the result text
  const box=document.getElementById('stagebox');
@@ -128,7 +134,8 @@ li .s{color:var(--text2);font-size:12.5px;overflow-wrap:anywhere}
   marks.replaceChildren(...m.slice(0,k>=6?3:k>=4?2:k>=3?1:0));
   status.textContent=k>=n?'Replay complete: '+n+' of '+n+' stages · total '+(DATA.total*1000).toFixed(1)+' ms measured':
    'Stage '+k+' of '+n+(playing?' · playing':' · paused');
-  if(k>0){const s=DATA.stages[k-1];live.textContent='Stage '+s.number+' of '+n+', '+s.title+': '+s.summary;}}
+  if(k>0){const s=DATA.stages[k-1];live.textContent='Stage '+s.number+' of '+n+', '+s.title+': '+s.summary+
+   (s.details||[]).map(([a,b])=>'. '+a+': '+b).join('');}}
  function tick(){if(!playing)return;if(step<n){step++;show(step);timer=setTimeout(tick,450);}else{setPlaying(false);}}
  function setPlaying(v){playing=v&&!reduce;bPlay.textContent=playing?'Pause':'Play';
   bPlay.setAttribute('aria-label',playing?'Pause the replay':'Play the replay');clearTimeout(timer);if(playing){timer=setTimeout(tick,200);spin();}show(step);}
@@ -149,7 +156,12 @@ li .s{color:var(--text2);font-size:12.5px;overflow-wrap:anywhere}
 
 def replay_html(analysis: dict[str, Any], height: int = 520) -> str:
     c, o, ins = analysis["classification"], analysis["ocr"], analysis["inscription"]
-    data = {"stages": [{k: s[k] for k in ("number", "title", "seconds", "summary")} for s in analysis["stages"]],
+    lang = {f["field"]: f for f in (analysis.get("reading_results") or {}).get("fields", [])}
+    details = ({"ocr": [["Transcription (synthetic)", lang["transcription"]["display"]],
+                        ["Transliteration", lang["transliteration"]["display"]]],
+                "interpret": [["Translation", lang["translation"]["display"]]]} if lang else {})
+    data = {"stages": [{k: s[k] for k in ("number", "title", "seconds", "summary")} | {"details": details.get(s.get("key"), [])}
+                       for s in analysis["stages"]],
             "label": c["display_label"], "confidence": c["confidence"], "regions": len(ins["regions"]),
             "transcription": o["transcription"] if o["status"] == "read" else "",
             "total": analysis["performance"]["total_seconds"]}

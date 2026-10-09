@@ -14,6 +14,8 @@ Pipeline (every stage replaceable, every output labelled with who asserts it):
       -> mark analysis, OCR                       AI observation (null engines by default)
       -> script classification                    AI observation (no model until training runs)
       -> reasoning (src.reasoning)                ONLY human evidence: annotations, knowledge base
+      -> language / reading results               inscription status, transcription, transliteration,
+                                                  translation, completeness (src.translation.reading)
 
 Human evidence is applied only to a registered photograph: an uploaded image picks up an
 artifact's annotations **only if its SHA-256 equals a research record's** ``image_sha256``.
@@ -63,8 +65,11 @@ from src.synthetic import MARKER as SYNTHETIC_MARKER
 from src.synthetic import PURPOSE as SYNTHETIC_PURPOSE
 from src.synthetic import UI_BANNER as SYNTHETIC_BANNER
 from src.synthetic.inference import NoSyntheticModel, dataset_block, synthetic_index
+from src.synthetic.reading import synthetic_reading_results
+from src.translation.reading import reading_results
 
-RESULT_SCHEMA_VERSION = "1.1.0"
+#: 1.2.0: ``reading_results`` (the language / reading block; additive).
+RESULT_SCHEMA_VERSION = "1.2.0"
 MAX_UPLOAD_BYTES = 50 * 2**20          # 50 MiB; the pixel ceiling is preprocessing.max_pixels
 LAYERS = ("ai_observation", "project_annotation", "expert_annotation", "verified_evidence")
 
@@ -94,6 +99,7 @@ class InferenceResult:
     dataset_type: str = "unregistered"            # research | synthetic | unregistered
     dataset: dict[str, Any] = field(default_factory=dict)
     synthetic_analysis: dict[str, Any] | None = None   # Milestone 10: synthetic images only (SyntheticPipeline)
+    reading_results: dict[str, Any] = field(default_factory=dict)   # src.translation.reading / src.synthetic.reading
     disclaimer: str = DISCLAIMER
     schema_version: str = RESULT_SCHEMA_VERSION
     analysis_digest: str = ""
@@ -317,6 +323,13 @@ def analyze(
     }
 
     human_reading = r.reading
+    basis = next((a for a in current if a["annotation_id"] == human_reading.get("annotation_id")), None)
+    language = reading_results(dataset_type=dataset_type, reading=human_reading, interpretation=r.interpretation,
+                               basis=basis, annotation_status=inputs.annotation_status, record=rec,
+                               references={k: asdict(v) for k, v in inputs.references.items()},
+                               ai_predictions=r.ai_predictions)
+    if syn is not None:              # a synthetic image is read only by the synthetic pipeline (its own block)
+        language = (synthetic_analysis or {}).get("reading_results") or synthetic_reading_results(None)
     has_reading = human_reading.get("value") not in ("not_available", "not_applicable", "unknown", None, "")
     transcription = {
         "statement": (f"{human_reading['value']} ({human_reading['provenance_label']})" if has_reading
@@ -358,9 +371,23 @@ def analyze(
         dataset_type=dataset_type,
         dataset=dataset_block(dataset_type, syn),
         synthetic_analysis=synthetic_analysis,
+        reading_results=language,
     )
     result.analysis_digest = _digest({k: v for k, v in result.to_dict().items() if k != "analysis_digest"})
     return result
+
+
+def render_reading(block: dict[str, Any]) -> list[str]:
+    """The language / reading block as report lines (every value comes from the block)."""
+    if not block:
+        return []
+    L = [block["label"].upper() + (" (SYNTHETIC DEMONSTRATION)" if block["synthetic"] else ""), f"  {block['statement']}"]
+    for f in block["fields"]:
+        L.append(f"  {f['label'] + ':':<22} {f['display']}")
+        L.append(f"  {'':<22} [{f['tier_label']} · confidence {f['confidence']}]")
+        L += [f"  {'':<22} {x}" for x in (f["explanation"], *f["caveats"]) if x]
+    L += [f"  AI draft: {x['text']} ({x['engine']}) - {x['note']}" for x in block.get("ai_drafts", [])]
+    return L
 
 
 def render(result: InferenceResult) -> str:
@@ -379,6 +406,7 @@ def render(result: InferenceResult) -> str:
           "TRANSCRIPTION", f"  {d['transcription']['statement']}",
           *[f"  OCR [{o['status']}] {o['statement']}" for o in d["transcription"]["ocr"]], "",
           "TRANSLATION", f"  {d['translation']['translation'] if d['translation']['state'] == 'translated' else d['translation']['meaning']}", "",
+          *render_reading(d["reading_results"]), "",
           "ESTIMATED AGE", f"  {d['age']['display']}", "PERIOD", f"  {d['period']}", "",
           "CONFIDENCE (archaeological)", f"  {d['confidence']['archaeological']}", "",
           "REASONING"] + [f"  - {x}" for x in d["reasoning"]]
@@ -392,4 +420,4 @@ def render(result: InferenceResult) -> str:
 
 
 __all__ = ["LAYERS", "MAX_UPLOAD_BYTES", "RESULT_SCHEMA_VERSION", "InferenceError", "InferenceResult",
-           "analyze", "render"]
+           "analyze", "render", "render_reading"]

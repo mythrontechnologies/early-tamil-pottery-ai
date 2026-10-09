@@ -4,7 +4,8 @@ Run only after the user explicitly switches the data mode. Choose a generated, h
 synthetic image, press Run analysis, and the complete synthetic pipeline runs once, live: every stage
 reports its real result and its measured latency as it finishes. The results are then shown with the
 pipeline replay on the illustrative 3D sherd, the photograph viewer with the detected synthetic regions,
-the synthetic evidence chain, the reasoning, the ground-truth comparison and the performance figures.
+the language / reading results (synthetic glyph transcription; transliteration not applicable; translation not
+available), the synthetic evidence chain, the reasoning, the ground-truth comparison and the performance figures.
 
 Everything here is labelled SYNTHETIC. Nothing here reads or writes research data, annotations or the
 knowledge base, and no real reference is shown in support of a synthetic result.
@@ -23,6 +24,7 @@ from ui import data
 from ui.boot import research
 from ui.chain import render_chain
 from ui.components import badge, blocked_state, dataset_badge, e, kv, note, section
+from ui.reading import field_map, reading_results_html
 from ui.synthetic3d import render_replay
 from ui.viewer import render_viewer
 
@@ -64,11 +66,20 @@ def _panel(a: dict[str, Any]) -> str:
         + (", ".join(f"R{i + 1} · score {r['confidence']:.2f}" for i, r in enumerate(regs)) or "none detected")
         + f'</div><div class="who">class synthetic_inscription_region · {len(a["inscription"]["rows"])} glyph row(s)</div></div>'
         f'<div class="etp-finding"><div class="k">Synthetic glyph transcription</div>{reading}</div>'
-        f'<div class="etp-finding"><div class="k">Synthetic interpretation</div><div class="v etp-mono">{e(it["category"])}</div>'
+        + _translation(a) +
+        f'<div class="etp-finding"><div class="k">Synthetic interpretation category · not a meaning</div><div class="v etp-mono">{e(it["category"])}</div>'
         f'<div class="who">{e(it["placeholder"])} · rule {e(it["rule"])}</div></div>'
         f'<div class="etp-finding"><div class="k">Synthetic chronology</div><div class="v">{e(ch["display"])}</div>'
         f'<div class="who">{e(ch["statement"])} Synthetic confidence: {e(ch["confidence"])}.</div></div>'
         "</div></section>")
+
+
+def _translation(a: dict[str, Any]) -> str:
+    lang = field_map(a.get("reading_results"))
+    if not lang:
+        return ""
+    return (f'<div class="etp-finding"><div class="k">Translation</div><div class="v">{e(lang["translation"]["display"])}</div>'
+            f'<div class="who">Transliteration: {e(lang["transliteration"]["display"])}</div></div>')
 
 
 def _ground_truth(gt: dict[str, Any]) -> str:
@@ -164,6 +175,10 @@ def render_synthetic_demo() -> None:
                    "detector output, never evidence.")
     with panel_col:
         st.html(_panel(a))
+
+    if a.get("reading_results"):
+        section("Language / reading results", "synthetic demonstration · no transliteration · no translation")
+        st.html(reading_results_html(a["reading_results"], research=research()))
 
     section("Synthetic evidence chain", "every node SYNTHETIC · select a step for detail")
     st.html(render_chain(a["evidence_chain"], label="Synthetic evidence chain, from observation to synthetic result",

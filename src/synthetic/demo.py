@@ -74,7 +74,8 @@ def write_run_record(analysis: dict[str, Any]) -> Path:
            "synthetic_fingerprint": prov.get("synthetic_fingerprint"), "split_digest": prov["split_digest"],
            "models": {"classifier": prov["classifier"], "vision_bundle": prov["vision_bundle"]},
            "input": analysis["input"], "summary": analysis["summary"], "performance": analysis["performance"],
-           "ground_truth_check": analysis.get("ground_truth_check"), "warning": analysis["warning"]}
+           "ground_truth_check": analysis.get("ground_truth_check"), "reading_results": analysis.get("reading_results"),
+           "warning": analysis["warning"]}
     out = RUNS_DIR / f"{run['run_id']}.json"
     assert_synthetic_model_destination(out)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -92,8 +93,14 @@ def render_demo(a: dict[str, Any]) -> str:
          f"Calibration status:            {c['calibration_status']}",
          "Inscription region:            " + (", ".join(f"R{i + 1} ({r['confidence']:.2f})" for i, r in enumerate(regions)) or "none"),
          f"Synthetic glyph transcription: {o['transcription'] or '(none)'}",
-         f"Synthetic interpretation:      {it['category']}",
-         f"Synthetic chronology:          {ch['display']} (synthetic confidence {ch['confidence']})", "", "Reasoning:"]
+         f"Synthetic interpretation:      {it['category']} (invented rule table: a placeholder, not a meaning)",
+         f"Synthetic chronology:          {ch['display']} (synthetic confidence {ch['confidence']})", ""]
+    rr = a.get("reading_results")
+    if rr:
+        L += ["Language / reading results (SYNTHETIC DEMONSTRATION — not archaeological evidence):"]
+        L += [f"  {f['label'] + ':':<29}{f['display']}" for f in rr["fields"]]
+        L.append("")
+    L.append("Reasoning:")
     L += [f"  - {line}" for line in a["reasoning"]]
     gt = a.get("ground_truth_check")
     if gt:

@@ -216,3 +216,23 @@ button[aria-label^="Help for"] { min-width: 24px; min-height: 24px; display: inl
 .etp-card h3, .etp-card h4, .etp-card .l, .etp-card .foot { overflow-wrap: anywhere; }
 .etp-badge { display: inline-block; white-space: normal; max-width: 100%; overflow-wrap: anywhere; line-height: 1.35; }
 .etp-badge .g { margin-right: .38rem; }
+
+/* ---------------------------------------------------------------------------------------------
+   Language / reading results (app/ui/reading.py): one card per field - inscription or mark status,
+   transcription, transliteration, translation, completeness. Reuses the text-relative cols-3 grid,
+   so it drops columns as text grows; long readings and glyph codes wrap.
+   --------------------------------------------------------------------------------------------- */
+.etp-reading { margin: 0 0 1rem; }
+.etp-reading-lede { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .6rem; margin: 0 0 .8rem;
+  color: var(--text-2); font-size: .92rem; max-width: 100ch; }
+.etp-reading-lede > span:not(.etp-badge) { min-width: 0; overflow-wrap: anywhere; }
+.etp-reading-field { padding: .9rem 1.05rem; }
+.etp-reading-field .k { font-family: var(--mono); font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; color: var(--copper); }
+.etp-reading-field .v { font-size: 1.02rem; color: var(--text); margin-top: .3rem; line-height: 1.5; overflow-wrap: anywhere; }
+.etp-reading-field .v.mono { font-family: var(--mono); font-size: .95rem; }
+.etp-reading-tags { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .5rem; }
+.etp-reading-field .who { font-size: .8rem; color: var(--muted); margin-top: .35rem; overflow-wrap: anywhere; }
+.etp-reading-field ul { margin: .45rem 0 0 1rem; padding: 0; }
+.etp-reading-field li { font-size: .84rem; line-height: 1.5; color: var(--text-2); overflow-wrap: anywhere; }
+.etp-reading-syn .etp-reading-field { border: 1.5px dashed var(--synthetic); }
+.etp-reading .etp-ai { margin-top: .9rem; }
